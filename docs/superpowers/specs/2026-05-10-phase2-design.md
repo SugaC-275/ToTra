@@ -179,28 +179,43 @@ efficiency_score = total_output_weight / log(total_scu + 1)
 ```
 
 **新员工规则（入职 ≤ 90 天）：**
-- 第 1-3 月（入职日期在快照月份前 90 天内）：
-  - 计算 efficiency_score，但不参与 Peer Group 排名
-  - Dashboard 只展示自我成长曲线（与上月对比 +/-）
-  - 不触发 AI-Fuel 奖励，也不受惩罚
-- 第 4 月起：
-  - 同时展示 Peer Group 排名 + 自我成长曲线
+
+入职日期以 `users.created_at` 为准，90 天窗口期内属于"新员工期"。
+
+- **新员工期（入职 ≤ 90 天）：**
+  - 按**同批次**（同月入职）组成独立 Cohort Peer Group，在组内横向排名
+  - 同时展示自我成长曲线（效率分月度趋势 ↑↓）
+  - 不触发 AI-Fuel 奖励（Cohort 排名不产生配额奖励）
+  - `efficiency_snapshots.peer_group` 字段记录为 `cohort_{YYYY-MM}`（入职月份）
+
+- **第 91 天起（正式员工期）：**
+  - 自动并入 `users.role` 对应的正式 Peer Group
+  - 同时继续展示自我成长曲线（含新员工期历史数据，完整趋势）
+  - 触发正常 AI-Fuel 奖励规则
 
 ### 4.4 Dashboard：KPI 排行榜（`/admin/kpi`）
 
-管理员视图，按月份筛选，每个 Peer Group 一个分区：
+管理员视图，按月份筛选，**分两个 Tab**：
+
+**Tab 1：正式员工**（入职 > 90 天）  
+按 role 分区（standard / senior / researcher），每个分区内显示：
 
 | 列 | 说明 |
 |---|---|
 | 员工姓名 | — |
 | 角色 | Peer Group 标识 |
 | 效率分 | 本月计算值，2位小数 |
-| 产出权重 | 各平台事件权重之和 |
+| 产出权重 | 各平台事件汇总 |
 | SCU 消耗 | — |
 | Peer Group 排名 | 第 X / 共 Y 人 |
 | 环比趋势 | ↑↓ 与上月对比 |
 
-员工在 My Usage 页只看到自己的效率分和 Peer Group 排名（不显示他人）。
+**Tab 2：新员工**（入职 ≤ 90 天，按入职月份分 Cohort）  
+每个 Cohort 一个分区，展示同批次横向对比 + 成长曲线趋势。
+
+**员工 My Usage 页：**
+- 新员工期：展示 Cohort 排名 + 成长曲线，标注"新员工期（还有 X 天进入正式评估）"
+- 正式员工期：展示 Peer Group 排名 + 完整历史成长曲线（含新员工期数据）
 
 ---
 
