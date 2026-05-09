@@ -1,0 +1,8 @@
+.env
+*.local
+node_modules/
+dist/
+vendor/
+*.exe
+*.test
+.DS_Store
