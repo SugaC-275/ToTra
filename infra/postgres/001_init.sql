@@ -55,7 +55,6 @@ CREATE TABLE usage_records (
 );
 
 CREATE INDEX idx_usage_tenant_user ON usage_records (tenant_id, user_id, request_at DESC);
-CREATE INDEX idx_usage_tenant_month ON usage_records (tenant_id, date_trunc('month', request_at));
 
 -- Monthly summaries
 CREATE TABLE monthly_summaries (
