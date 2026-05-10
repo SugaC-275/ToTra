@@ -128,14 +128,19 @@ export function KpiPage() {
                   <tr className="border-b border-zinc-800 text-zinc-400">
                     <th className="text-left py-2 px-4 font-medium">Rank</th>
                     <th className="text-left py-2 font-medium">Employee</th>
-                    <th className="text-right py-2 font-medium">Efficiency Score</th>
-                    <th className="text-right py-2 font-medium">Output Weight</th>
-                    <th className="text-right py-2 font-medium">SCU Used</th>
+                    <th className="text-right py-2 font-medium">Score</th>
+                    <th className="text-right py-2 font-medium text-indigo-400">AIQ</th>
+                    <th className="text-right py-2 font-medium text-emerald-400">OSS</th>
+                    <th className="text-right py-2 font-medium text-green-400">GTS</th>
+                    <th className="text-right py-2 font-medium">SCU</th>
                     <th className="text-right py-2 px-4 font-medium">Peer Rank</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {snapshots.map((s) => (
+                  {snapshots.map((s) => {
+                    const hasScores = s.aiq_score > 0 || s.oss_score > 0;
+                    const gtsSign = s.gts_score >= 0 ? "+" : "";
+                    return (
                     <Fragment key={s.user_id}>
                       <tr
                         onClick={() => toggleUser(s.user_id)}
@@ -149,7 +154,19 @@ export function KpiPage() {
                           </span>
                         </td>
                         <td className="py-2 text-right font-mono">{s.efficiency_score.toFixed(2)}</td>
-                        <td className="py-2 text-right">{s.total_output_weight.toFixed(1)}</td>
+                        <td className="py-2 text-right font-mono text-indigo-400">
+                          {hasScores ? s.aiq_score.toFixed(1) : <span className="text-zinc-600">—</span>}
+                        </td>
+                        <td className="py-2 text-right font-mono text-emerald-400">
+                          {hasScores ? s.oss_score.toFixed(2) : <span className="text-zinc-600">—</span>}
+                        </td>
+                        <td className="py-2 text-right font-mono">
+                          {hasScores
+                            ? <span className={s.gts_score >= 0 ? "text-green-400" : "text-red-400"}>
+                                {gtsSign}{(s.gts_score * 100).toFixed(1)}%
+                              </span>
+                            : <span className="text-zinc-600">—</span>}
+                        </td>
                         <td className="py-2 text-right">{s.total_scu.toLocaleString()}</td>
                         <td className="py-2 px-4 text-right">
                           <Badge variant="outline">{s.rank} / {s.peer_count}</Badge>
@@ -157,13 +174,14 @@ export function KpiPage() {
                       </tr>
                       {expandedUser === s.user_id && (
                         <tr>
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={8} className="p-0">
                             <GrowthChart userID={s.user_id} />
                           </td>
                         </tr>
                       )}
                     </Fragment>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </CardContent>
