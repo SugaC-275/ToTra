@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	Port        string
-	PostgresDSN string
-	JWTSecret   string
-	JWTExpiry   time.Duration
+	Port          string
+	PostgresDSN   string
+	JWTSecret     string
+	JWTExpiry     time.Duration
+	EncryptionKey string
 }
 
 func Load() *Config {
@@ -23,10 +24,11 @@ func Load() *Config {
 	pgPass := mustGetEnv("POSTGRES_PASSWORD")
 
 	return &Config{
-		Port:        getEnv("ADMIN_PORT", "8081"),
-		PostgresDSN: fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", pgHost, pgPort, pgDB, pgUser, pgPass),
-		JWTSecret:   mustGetEnv("JWT_SECRET"),
-		JWTExpiry:   time.Duration(hours) * time.Hour,
+		Port:          getEnv("ADMIN_PORT", "8081"),
+		PostgresDSN:   fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", pgHost, pgPort, pgDB, pgUser, pgPass),
+		JWTSecret:     mustGetEnv("JWT_SECRET"),
+		JWTExpiry:     time.Duration(hours) * time.Hour,
+		EncryptionKey: mustGetEnv("ENCRYPTION_KEY"),
 	}
 }
 

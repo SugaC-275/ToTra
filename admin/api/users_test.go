@@ -27,6 +27,10 @@ func (m *mockUserService) Create(ctx context.Context, tenantID string, req servi
 	return &services.User{ID: "new-id", Name: req.Name, Email: req.Email, Role: req.Role, APIKey: "totra-emp-new-key"}, nil
 }
 
+func (m *mockUserService) UpdateProfile(ctx context.Context, userID string, req services.UpdateProfileRequest) error {
+	return nil
+}
+
 func setupTestApp(svc services.UserServiceInterface) *fiber.App {
 	app := fiber.New()
 	claims := &services.Claims{UserID: "admin-1", TenantID: "tenant-1", Role: "admin"}

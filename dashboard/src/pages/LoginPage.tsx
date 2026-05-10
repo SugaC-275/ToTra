@@ -16,7 +16,14 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await signIn(email, password);
-    if (ok) navigate("/admin/dashboard");
+    if (ok) {
+      const token = localStorage.getItem("totra_token");
+      let role = "";
+      try {
+        role = JSON.parse(atob(token!.split(".")[1])).role;
+      } catch {}
+      navigate(role === "admin" ? "/admin/dashboard" : "/me");
+    }
   };
 
   return (

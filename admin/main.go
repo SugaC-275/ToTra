@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/yourorg/totra/admin/api"
 	"github.com/yourorg/totra/admin/config"
+	"github.com/yourorg/totra/admin/cron"
 	"github.com/yourorg/totra/admin/db"
 	"github.com/yourorg/totra/admin/services"
 )
@@ -20,6 +21,10 @@ func main() {
 	}
 	defer pool.Close()
 
+	kpiSvc := services.NewKPIService(pool)
+	fuelSvc := services.NewFuelService(pool)
+	cron.StartMonthlySnapshot(pool, kpiSvc, fuelSvc)
+
 	jwtSvc := services.NewJWTService(cfg.JWTSecret, cfg.JWTExpiry)
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
 
@@ -32,11 +37,17 @@ func main() {
 
 	app.Post("/api/auth/login", api.LoginHandler(pool, jwtSvc))
 
+	webhookSvc := services.NewWebhookService(pool)
+	api.RegisterWebhookRoutes(app, webhookSvc, cfg.EncryptionKey)
+
 	protected := app.Group("/", jwtMiddleware)
 	api.RegisterUserRoutes(protected, services.NewUserService(pool))
 	api.RegisterModelRoutes(protected, services.NewModelService(pool))
 	api.RegisterUsageRoutes(protected, services.NewUsageService(pool))
 	api.RegisterQuotaRoutes(protected, services.NewQuotaService(pool))
+	api.RegisterIntegrationRoutes(protected, services.NewIntegrationService(pool), cfg.EncryptionKey)
+	api.RegisterKPIRoutes(protected, kpiSvc)
+	api.RegisterFuelRoutes(protected, fuelSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))

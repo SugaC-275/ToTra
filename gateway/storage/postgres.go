@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -13,6 +14,7 @@ type UsageRecord struct {
 	TenantID         string
 	UserID           string
 	ModelConfigID    string
+	ConversationID   string // empty string → stored as NULL
 	PromptTokens     int
 	CompletionTokens int
 	SCUCost          float64
@@ -54,11 +56,19 @@ func (u *UsageStore) runWorker() {
 }
 
 func (u *UsageStore) write(ctx context.Context, r *UsageRecord) error {
+	var convID *string
+	if r.ConversationID != "" {
+		if _, err := uuid.Parse(r.ConversationID); err == nil {
+			convID = &r.ConversationID
+		}
+		// invalid UUID → store as NULL, no error
+	}
 	_, err := u.pool.Exec(ctx, `
 		INSERT INTO usage_records
-			(tenant_id, user_id, model_config_id, prompt_tokens, completion_tokens, scu_cost, usd_cost, response_ms)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		r.TenantID, r.UserID, r.ModelConfigID,
+			(tenant_id, user_id, model_config_id, conversation_id,
+			 prompt_tokens, completion_tokens, scu_cost, usd_cost, response_ms)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		r.TenantID, r.UserID, r.ModelConfigID, convID,
 		r.PromptTokens, r.CompletionTokens,
 		r.SCUCost, r.USDCost, r.ResponseMS,
 	)

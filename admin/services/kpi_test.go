@@ -1,0 +1,98 @@
+package services_test
+
+import (
+	"math"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/yourorg/totra/admin/services"
+)
+
+func TestEfficiencyScore(t *testing.T) {
+	// 10 output weight, 100 SCU → 10/log(101) ≈ 2.17
+	score := services.ComputeEfficiencyScore(10, 100)
+	assert.InDelta(t, 10.0/math.Log(101), score, 0.001)
+}
+
+func TestEfficiencyScoreZeroSCU(t *testing.T) {
+	// Zero SCU → score 0 (no AI usage)
+	score := services.ComputeEfficiencyScore(5, 0)
+	assert.Equal(t, 0.0, score)
+}
+
+func TestEfficiencyScoreNoOutput(t *testing.T) {
+	score := services.ComputeEfficiencyScore(0, 100)
+	assert.Equal(t, 0.0, score)
+}
+
+func TestIsNewEmployee(t *testing.T) {
+	assert.True(t, services.IsNewEmployee(45))   // 45 days old
+	assert.False(t, services.IsNewEmployee(91))  // 91 days old → not new
+	assert.True(t, services.IsNewEmployee(89))   // 89 days → still new
+	assert.False(t, services.IsNewEmployee(90))  // exactly 90 → NOT new (< 90 rule)
+}
+
+func TestCohortGroup(t *testing.T) {
+	assert.Equal(t, "cohort_2026-03", services.CohortGroup("2026-03"))
+}
+
+func TestComputeGTS_NoHistory(t *testing.T) {
+	gts, has := services.ComputeGTS(nil)
+	if has {
+		t.Error("expected hasGTS=false with no history")
+	}
+	if gts != 0 {
+		t.Errorf("expected GTS=0, got %v", gts)
+	}
+}
+
+func TestComputeGTS_OneMonth(t *testing.T) {
+	history := []float64{80}
+	gts, has := services.ComputeGTS(history)
+	if has {
+		t.Error("need ≥2 prior months for GTS; expected hasGTS=false")
+	}
+	_ = gts
+}
+
+func TestComputeGTS_ThreeMonths(t *testing.T) {
+	history := []float64{90, 80, 70, 60}
+	_, has := services.ComputeGTS(history[1:])
+	if !has {
+		t.Error("expected hasGTS=true with 3 prior months")
+	}
+}
+
+func TestDetectIntegrationLevel(t *testing.T) {
+	if services.DetectIntegrationLevel(0) != 1 { t.Error("0 webhooks → level 1") }
+	if services.DetectIntegrationLevel(1) != 2 { t.Error("1 webhook → level 2") }
+	if services.DetectIntegrationLevel(2) != 3 { t.Error("2 webhooks → level 3") }
+	if services.DetectIntegrationLevel(5) != 3 { t.Error("5 webhooks → level 3") }
+}
+
+func TestAdaptiveWeights(t *testing.T) {
+	aW, oW, gW := services.AdaptiveWeights(3, true)
+	if math.Abs(aW+oW+gW-1.0) > 1e-9 { t.Errorf("weights must sum to 1, got %v+%v+%v", aW, oW, gW) }
+	aW2, oW2, gW2 := services.AdaptiveWeights(1, false)
+	if math.Abs(aW2+oW2+gW2-1.0) > 1e-9 { t.Errorf("weights (level1,noGTS) must sum to 1") }
+	_ = gW2
+}
+
+func TestIsAnomalySCU(t *testing.T) {
+	// Not enough prior data
+	if services.IsAnomalySCU(1000, []float64{500}) {
+		t.Error("should not flag with < 2 prior months")
+	}
+	// Normal usage — not anomalous
+	if services.IsAnomalySCU(120, []float64{100, 110, 105}) {
+		t.Error("120 is within 3σ of [100,110,105]")
+	}
+	// Anomalous usage — 10x spike
+	if !services.IsAnomalySCU(1000, []float64{100, 110, 105}) {
+		t.Error("1000 should be flagged vs [100,110,105]")
+	}
+	// std=0 case (identical prior months) — should not flag
+	if services.IsAnomalySCU(200, []float64{100, 100, 100}) {
+		t.Error("should not flag when std=0")
+	}
+}

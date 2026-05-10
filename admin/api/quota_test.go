@@ -26,6 +26,9 @@ func (m *mockQuotaService) Approve(ctx context.Context, tenantID, requestID, rev
 func (m *mockQuotaService) Reject(ctx context.Context, tenantID, requestID, reviewerID string) error {
 	return nil
 }
+func (m *mockQuotaService) GetMyStatus(ctx context.Context, tenantID, userID, month string) (*services.QuotaStatus, error) {
+	return &services.QuotaStatus{UsedSCU: 5000, QuotaSCU: 10000}, nil
+}
 
 func setupQuotaApp() *fiber.App {
 	app := fiber.New()

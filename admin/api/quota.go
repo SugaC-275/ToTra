@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yourorg/totra/admin/services"
 )
@@ -10,6 +12,7 @@ func RegisterQuotaRoutes(app fiber.Router, svc services.QuotaServiceInterface) {
 	app.Post("/api/quota/requests/:id/approve", approveRequest(svc))
 	app.Post("/api/quota/requests/:id/reject", rejectRequest(svc))
 	app.Post("/api/quota/request", requestIncrease(svc))
+	app.Get("/api/me/quota", getMyQuotaStatus(svc))
 }
 
 func listPendingRequests(svc services.QuotaServiceInterface) fiber.Handler {
@@ -42,6 +45,18 @@ func rejectRequest(svc services.QuotaServiceInterface) fiber.Handler {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(fiber.Map{"status": "rejected"})
+	}
+}
+
+func getMyQuotaStatus(svc services.QuotaServiceInterface) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		month := time.Now().Format("2006-01")
+		qs, err := svc.GetMyStatus(c.Context(), claims.TenantID, claims.UserID, month)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(qs)
 	}
 }
 

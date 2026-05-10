@@ -106,11 +106,13 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore) fiber.
 
 		responseMS := int(time.Since(start).Milliseconds())
 		scuCost := tokenizer.ToSCU(usage.PromptTokens, usage.CompletionTokens, modelCfg.SCURate)
+		conversationID := c.Get("X-Conversation-ID") // empty string if absent
 
 		usageStore.Record(&storage.UsageRecord{
 			TenantID:         user.TenantID,
 			UserID:           user.UserID,
 			ModelConfigID:    modelCfg.ID,
+			ConversationID:   conversationID,
 			PromptTokens:     usage.PromptTokens,
 			CompletionTokens: usage.CompletionTokens,
 			SCUCost:          scuCost,
