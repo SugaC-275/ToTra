@@ -22,6 +22,7 @@ type EfficiencySnapshot struct {
 	OSSScore          float64   `json:"oss_score"`
 	GTSScore          float64   `json:"gts_score"`
 	IntegrationLevel  int       `json:"integration_level"`
+	AnomalyFlagged    bool      `json:"anomaly_flagged"`
 	PeerGroup         string    `json:"peer_group"`
 	Rank              int       `json:"rank"`
 	PeerCount         int       `json:"peer_count"`
@@ -88,6 +89,29 @@ func ComputeGTS(priorScores []float64) (float64, bool) {
 		gts /= wSum
 	}
 	return gts, true
+}
+
+// IsAnomalySCU returns true if currentSCU exceeds personal 3-month mean+3σ.
+// Requires at least 2 prior months of data to establish a baseline.
+func IsAnomalySCU(currentSCU float64, priorSCUs []float64) bool {
+	if len(priorSCUs) < 2 {
+		return false
+	}
+	var sum float64
+	for _, s := range priorSCUs {
+		sum += s
+	}
+	mean := sum / float64(len(priorSCUs))
+	var variance float64
+	for _, s := range priorSCUs {
+		variance += (s - mean) * (s - mean)
+	}
+	variance /= float64(len(priorSCUs) - 1)
+	std := math.Sqrt(variance)
+	if std == 0 {
+		return false
+	}
+	return currentSCU > mean+3*std
 }
 
 // ossLevelFallback computes the Level 1 OSS score using completion_tokens as output proxy.
@@ -206,6 +230,28 @@ func (s *KPIService) getPriorScores(ctx context.Context, tenantID, userID, curre
 	return scores, nil
 }
 
+func (s *KPIService) getPriorSCUs(ctx context.Context, tenantID, userID, currentMonth string) ([]float64, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT COALESCE(SUM(scu_cost), 0)
+		FROM usage_records
+		WHERE tenant_id=$1 AND user_id=$2
+		  AND to_char(request_at,'YYYY-MM') < $3
+		GROUP BY to_char(request_at,'YYYY-MM')
+		ORDER BY to_char(request_at,'YYYY-MM') DESC
+		LIMIT 3`, tenantID, userID, currentMonth)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []float64
+	for rows.Next() {
+		var scu float64
+		rows.Scan(&scu)
+		result = append(result, scu)
+	}
+	return result, nil
+}
+
 // RunMonthlySnapshot computes v2 efficiency snapshots for all active users in a tenant.
 func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth string) error {
 	// 1. Detect integration level
@@ -299,13 +345,14 @@ func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth
 	snapshotAt := time.Now().UTC()
 	type snapshotData struct {
 		userRow
-		TotalSCU  float64
-		TotalOW   float64
-		AIQ       float64
-		OSS       float64
-		GTS       float64
-		HasGTS    bool
-		PeerGroup string
+		TotalSCU       float64
+		TotalOW        float64
+		AIQ            float64
+		OSS            float64
+		GTS            float64
+		HasGTS         bool
+		PeerGroup      string
+		AnomalyFlagged bool
 	}
 	var snapshots []snapshotData
 
@@ -328,15 +375,19 @@ func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth
 		aiq := aiqScores[u.ID]
 		oss := ossScores[u.ID]
 
+		priorSCUs, _ := s.getPriorSCUs(ctx, tenantID, u.ID, yearMonth)
+		anomalyFlagged := IsAnomalySCU(totalSCU, priorSCUs)
+
 		snapshots = append(snapshots, snapshotData{
-			userRow:   u,
-			TotalSCU:  totalSCU,
-			TotalOW:   totalOW,
-			AIQ:       aiq,
-			OSS:       oss,
-			GTS:       gts,
-			HasGTS:    hasGTS,
-			PeerGroup: peerGroupOf[u.ID],
+			userRow:        u,
+			TotalSCU:       totalSCU,
+			TotalOW:        totalOW,
+			AIQ:            aiq,
+			OSS:            oss,
+			GTS:            gts,
+			HasGTS:         hasGTS,
+			PeerGroup:      peerGroupOf[u.ID],
+			AnomalyFlagged: anomalyFlagged,
 		})
 	}
 
@@ -351,8 +402,8 @@ func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth
 		aiq := math.Max(0, snap.AIQ)
 		aW, oW, gW := AdaptiveWeights(level, snap.HasGTS)
 		sc := aW*aiq + oW*snap.OSS + gW*snap.GTS
-		if snap.AIQ < 0 {
-			sc = 0 // below threshold
+		if snap.AIQ < 0 || snap.AnomalyFlagged {
+			sc = 0 // below threshold or anomaly flagged
 		}
 		scores[i] = sc
 		groups[snap.PeerGroup] = append(groups[snap.PeerGroup], peerEntry{i, sc})
@@ -377,16 +428,18 @@ func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth
 			INSERT INTO efficiency_snapshots
 			(id,tenant_id,user_id,year_month,total_scu,total_output_weight,
 			 efficiency_score,aiq_score,oss_score,gts_score,integration_level,
-			 peer_group,rank,peer_count,snapshot_at)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+			 peer_group,rank,peer_count,snapshot_at,anomaly_flagged)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 			ON CONFLICT (tenant_id,user_id,year_month) DO UPDATE
 			SET total_scu=$5,total_output_weight=$6,efficiency_score=$7,
 			    aiq_score=$8,oss_score=$9,gts_score=$10,integration_level=$11,
-			    peer_group=$12,rank=$13,peer_count=$14,snapshot_at=$15`,
+			    peer_group=$12,rank=$13,peer_count=$14,snapshot_at=$15,
+			    anomaly_flagged=$16`,
 			uuid.New().String(), tenantID, snap.ID, yearMonth,
 			snap.TotalSCU, snap.TotalOW, sc,
 			aiq, snap.OSS, snap.GTS, level,
 			snap.PeerGroup, ranks[i], len(groups[snap.PeerGroup]), snapshotAt,
+			snap.AnomalyFlagged,
 		)
 		if err != nil {
 			return fmt.Errorf("upsert snapshot for %s: %w", snap.ID, err)
@@ -402,7 +455,8 @@ func (s *KPIService) GetSnapshots(ctx context.Context, tenantID, yearMonth strin
 		       es.total_scu, es.total_output_weight, es.efficiency_score,
 		       COALESCE(es.aiq_score,0), COALESCE(es.oss_score,0), COALESCE(es.gts_score,0),
 		       COALESCE(es.integration_level,1),
-		       es.peer_group, es.rank, es.peer_count, es.snapshot_at
+		       es.peer_group, es.rank, es.peer_count, es.snapshot_at,
+		       COALESCE(es.anomaly_flagged, false)
 		FROM efficiency_snapshots es JOIN users u ON es.user_id=u.id
 		WHERE es.tenant_id=$1 AND es.year_month=$2
 		ORDER BY es.peer_group, es.rank`, tenantID, yearMonth)
@@ -420,7 +474,8 @@ func (s *KPIService) GetUserHistory(ctx context.Context, tenantID, userID string
 		       total_scu, total_output_weight, efficiency_score,
 		       COALESCE(aiq_score,0), COALESCE(oss_score,0), COALESCE(gts_score,0),
 		       COALESCE(integration_level,1),
-		       peer_group, rank, peer_count, snapshot_at
+		       peer_group, rank, peer_count, snapshot_at,
+		       COALESCE(anomaly_flagged, false)
 		FROM efficiency_snapshots
 		WHERE tenant_id=$1 AND user_id=$2
 		ORDER BY year_month DESC LIMIT 12`, tenantID, userID)
@@ -438,9 +493,29 @@ func (s *KPIService) GetMySnapshots(ctx context.Context, userID string) ([]*Effi
 		       total_scu, total_output_weight, efficiency_score,
 		       COALESCE(aiq_score,0), COALESCE(oss_score,0), COALESCE(gts_score,0),
 		       COALESCE(integration_level,1),
-		       peer_group, rank, peer_count, snapshot_at
+		       peer_group, rank, peer_count, snapshot_at,
+		       COALESCE(anomaly_flagged, false)
 		FROM efficiency_snapshots WHERE user_id=$1
 		ORDER BY year_month DESC LIMIT 12`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanSnapshots(rows)
+}
+
+// GetAnomalies returns snapshots flagged for review in a given month.
+func (s *KPIService) GetAnomalies(ctx context.Context, tenantID, yearMonth string) ([]*EfficiencySnapshot, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT es.id, es.user_id, u.name, es.year_month,
+		       es.total_scu, es.total_output_weight, es.efficiency_score,
+		       COALESCE(es.aiq_score,0), COALESCE(es.oss_score,0), COALESCE(es.gts_score,0),
+		       COALESCE(es.integration_level,1),
+		       es.peer_group, es.rank, es.peer_count, es.snapshot_at,
+		       COALESCE(es.anomaly_flagged,false)
+		FROM efficiency_snapshots es JOIN users u ON es.user_id=u.id
+		WHERE es.tenant_id=$1 AND es.year_month=$2 AND es.anomaly_flagged=true
+		ORDER BY es.total_scu DESC`, tenantID, yearMonth)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +533,7 @@ func scanSnapshots(rows interface {
 		if err := rows.Scan(&s.ID, &s.UserID, &s.UserName, &s.YearMonth,
 			&s.TotalSCU, &s.TotalOutputWeight, &s.EfficiencyScore,
 			&s.AIQScore, &s.OSSScore, &s.GTSScore, &s.IntegrationLevel,
-			&s.PeerGroup, &s.Rank, &s.PeerCount, &s.SnapshotAt); err != nil {
+			&s.PeerGroup, &s.Rank, &s.PeerCount, &s.SnapshotAt, &s.AnomalyFlagged); err != nil {
 			return nil, err
 		}
 		results = append(results, s)

@@ -10,6 +10,7 @@ func RegisterKPIRoutes(app fiber.Router, svc *services.KPIService) {
 	app.Get("/api/kpi/user-history", getKPIUserHistory(svc))
 	app.Get("/api/me/kpi", getMyKPI(svc))
 	app.Post("/api/admin/kpi/run", triggerKPISnapshot(svc))
+	app.Get("/api/admin/kpi/anomalies", getKPIAnomalies(svc))
 }
 
 func getKPISnapshots(svc *services.KPIService) fiber.Handler {
@@ -56,6 +57,24 @@ func getMyKPI(svc *services.KPIService) fiber.Handler {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(fiber.Map{"snapshots": snapshots})
+	}
+}
+
+func getKPIAnomalies(svc *services.KPIService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		if claims.Role != "admin" {
+			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
+		}
+		month := c.Query("month", "")
+		if month == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "month required"})
+		}
+		anomalies, err := svc.GetAnomalies(c.Context(), claims.TenantID, month)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"month": month, "anomalies": anomalies})
 	}
 }
 

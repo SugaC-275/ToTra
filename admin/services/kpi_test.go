@@ -77,3 +77,22 @@ func TestAdaptiveWeights(t *testing.T) {
 	if math.Abs(aW2+oW2+gW2-1.0) > 1e-9 { t.Errorf("weights (level1,noGTS) must sum to 1") }
 	_ = gW2
 }
+
+func TestIsAnomalySCU(t *testing.T) {
+	// Not enough prior data
+	if services.IsAnomalySCU(1000, []float64{500}) {
+		t.Error("should not flag with < 2 prior months")
+	}
+	// Normal usage — not anomalous
+	if services.IsAnomalySCU(120, []float64{100, 110, 105}) {
+		t.Error("120 is within 3σ of [100,110,105]")
+	}
+	// Anomalous usage — 10x spike
+	if !services.IsAnomalySCU(1000, []float64{100, 110, 105}) {
+		t.Error("1000 should be flagged vs [100,110,105]")
+	}
+	// std=0 case (identical prior months) — should not flag
+	if services.IsAnomalySCU(200, []float64{100, 100, 100}) {
+		t.Error("should not flag when std=0")
+	}
+}

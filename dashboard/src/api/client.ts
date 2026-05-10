@@ -107,6 +107,7 @@ export interface EfficiencySnapshot {
   oss_score: number;
   gts_score: number;
   integration_level: number;
+  anomaly_flagged: boolean;
   peer_group: string;
   rank: number;
   peer_count: number;
@@ -149,6 +150,11 @@ export const getKPISnapshots = (month: string) =>
 
 export const triggerKPISnapshot = (month: string) =>
   apiClient.post(`/api/admin/kpi/run?month=${month}`);
+
+export const getKPIAnomalies = (month: string) =>
+  apiClient.get<{ month: string; anomalies: EfficiencySnapshot[] }>(
+    `/api/admin/kpi/anomalies?month=${month}`
+  );
 
 export const getMyKPI = () =>
   apiClient.get<{ snapshots: EfficiencySnapshot[] }>("/api/me/kpi");
