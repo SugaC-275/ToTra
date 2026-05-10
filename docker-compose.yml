@@ -12,6 +12,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ./infra/postgres/002_seed_dev.sql:/docker-entrypoint-initdb.d/002_seed_dev.sql:ro
+      - ./infra/postgres/003_phase2.sql:/docker-entrypoint-initdb.d/003_phase2.sql:ro
+      - ./infra/postgres/004_algorithm_v2.sql:/docker-entrypoint-initdb.d/004_algorithm_v2.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -36,6 +39,9 @@ services:
     ports:
       - "${GATEWAY_PORT}:8080"
     env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,6 +54,8 @@ services:
     ports:
       - "${ADMIN_PORT}:8081"
     env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,6 +68,9 @@ services:
     ports:
       - "${DASHBOARD_PORT}:3000"
     env_file: .env
+    depends_on:
+      admin:
+        condition: service_started
     profiles: ["app"]
 
 volumes:

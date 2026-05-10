@@ -35,3 +35,45 @@ func TestIsNewEmployee(t *testing.T) {
 func TestCohortGroup(t *testing.T) {
 	assert.Equal(t, "cohort_2026-03", services.CohortGroup("2026-03"))
 }
+
+func TestComputeGTS_NoHistory(t *testing.T) {
+	gts, has := services.ComputeGTS(nil)
+	if has {
+		t.Error("expected hasGTS=false with no history")
+	}
+	if gts != 0 {
+		t.Errorf("expected GTS=0, got %v", gts)
+	}
+}
+
+func TestComputeGTS_OneMonth(t *testing.T) {
+	history := []float64{80}
+	gts, has := services.ComputeGTS(history)
+	if has {
+		t.Error("need ≥2 prior months for GTS; expected hasGTS=false")
+	}
+	_ = gts
+}
+
+func TestComputeGTS_ThreeMonths(t *testing.T) {
+	history := []float64{90, 80, 70, 60}
+	_, has := services.ComputeGTS(history[1:])
+	if !has {
+		t.Error("expected hasGTS=true with 3 prior months")
+	}
+}
+
+func TestDetectIntegrationLevel(t *testing.T) {
+	if services.DetectIntegrationLevel(0) != 1 { t.Error("0 webhooks → level 1") }
+	if services.DetectIntegrationLevel(1) != 2 { t.Error("1 webhook → level 2") }
+	if services.DetectIntegrationLevel(2) != 3 { t.Error("2 webhooks → level 3") }
+	if services.DetectIntegrationLevel(5) != 3 { t.Error("5 webhooks → level 3") }
+}
+
+func TestAdaptiveWeights(t *testing.T) {
+	aW, oW, gW := services.AdaptiveWeights(3, true)
+	if math.Abs(aW+oW+gW-1.0) > 1e-9 { t.Errorf("weights must sum to 1, got %v+%v+%v", aW, oW, gW) }
+	aW2, oW2, gW2 := services.AdaptiveWeights(1, false)
+	if math.Abs(aW2+oW2+gW2-1.0) > 1e-9 { t.Errorf("weights (level1,noGTS) must sum to 1") }
+	_ = gW2
+}

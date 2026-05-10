@@ -103,6 +103,10 @@ export interface EfficiencySnapshot {
   total_scu: number;
   total_output_weight: number;
   efficiency_score: number;
+  aiq_score: number;
+  oss_score: number;
+  gts_score: number;
+  integration_level: number;
   peer_group: string;
   rank: number;
   peer_count: number;
@@ -177,3 +181,23 @@ export const getKPIUserHistory = (user_id: string) =>
   apiClient.get<{ snapshots: EfficiencySnapshot[] }>(
     `/api/kpi/user-history?user_id=${user_id}`
   );
+
+export const getMyQuota = () =>
+  apiClient.get<{ quota_scu: number; used_scu: number }>("/api/me/quota");
+
+export function getMyUID(): string {
+  const token = localStorage.getItem("totra_token");
+  if (!token) return "";
+  try { return JSON.parse(atob(token.split(".")[1])).uid ?? ""; } catch { return ""; }
+}
+
+export interface UserProfile {
+  job_role: string;
+  department: string;
+}
+
+export const getMyProfile = () =>
+  apiClient.get<UserProfile>("/api/me/profile");
+
+export const updateMyProfile = (data: UserProfile) =>
+  apiClient.patch<{ status: string }>("/api/me/profile", data);

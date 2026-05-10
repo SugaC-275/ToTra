@@ -21,6 +21,8 @@ CREATE TABLE users (
     quota_reset_day INTEGER NOT NULL DEFAULT 1 CHECK (quota_reset_day BETWEEN 1 AND 28),
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     role            TEXT NOT NULL DEFAULT 'standard' CHECK (role IN ('standard', 'senior', 'researcher', 'admin')),
+    job_role        VARCHAR(100),
+    department      VARCHAR(100),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (tenant_id, email)
 );
@@ -46,6 +48,7 @@ CREATE TABLE usage_records (
     tenant_id         UUID NOT NULL REFERENCES tenants(id),
     user_id           UUID NOT NULL REFERENCES users(id),
     model_config_id   UUID NOT NULL REFERENCES model_configs(id),
+    conversation_id   UUID,
     prompt_tokens     INTEGER NOT NULL DEFAULT 0,
     completion_tokens INTEGER NOT NULL DEFAULT 0,
     scu_cost          FLOAT NOT NULL,
@@ -55,6 +58,7 @@ CREATE TABLE usage_records (
 );
 
 CREATE INDEX idx_usage_tenant_user ON usage_records (tenant_id, user_id, request_at DESC);
+CREATE INDEX idx_usage_conversation ON usage_records (conversation_id) WHERE conversation_id IS NOT NULL;
 
 -- Monthly summaries
 CREATE TABLE monthly_summaries (

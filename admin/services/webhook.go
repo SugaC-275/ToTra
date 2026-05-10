@@ -25,6 +25,10 @@ type ParsedEvent struct {
 	OccurredAt      time.Time
 	SenderLogin     string
 	SenderEmail     string
+	// Quality signals
+	LinesChanged   int     // GitHub: additions + deletions
+	ReopenedCount  int     // GitHub: 1 if action=="reopened"
+	CycleTimeHours float64 // Jira: hours from created to resolved
 }
 
 var defaultWeights = map[string]map[string]float64{
@@ -84,9 +88,12 @@ func ParseGitHubEvent(eventType string, body []byte) (*ParsedEvent, error) {
 	var raw struct {
 		Action      string `json:"action"`
 		PullRequest *struct {
-			Merged bool   `json:"merged"`
-			Title  string `json:"title"`
-			Number int    `json:"number"`
+			Merged    bool   `json:"merged"`
+			Title     string `json:"title"`
+			Number    int    `json:"number"`
+			Additions int    `json:"additions"`
+			Deletions int    `json:"deletions"`
+			ClosedAt  string `json:"closed_at"`
 		} `json:"pull_request"`
 		Sender struct {
 			Login string `json:"login"`
@@ -112,6 +119,10 @@ func ParseGitHubEvent(eventType string, body []byte) (*ParsedEvent, error) {
 		if email == "" {
 			email = raw.Sender.Email
 		}
+		reopenedCount := 0
+		if raw.Action == "reopened" {
+			reopenedCount = 1
+		}
 		return &ParsedEvent{
 			Platform:        "github",
 			EventType:       "pr_merged",
@@ -120,6 +131,8 @@ func ParseGitHubEvent(eventType string, body []byte) (*ParsedEvent, error) {
 			OccurredAt:      time.Now().UTC(),
 			SenderLogin:     raw.Sender.Login,
 			SenderEmail:     email,
+			LinesChanged:    raw.PullRequest.Additions + raw.PullRequest.Deletions,
+			ReopenedCount:   reopenedCount,
 		}, nil
 	case "push":
 		if raw.HeadCommit == nil {
@@ -151,6 +164,8 @@ func ParseJiraEvent(body []byte) (*ParsedEvent, error) {
 				Status      struct {
 					Name string `json:"name"`
 				} `json:"status"`
+				Created        string `json:"created"`
+				ResolutionDate string `json:"resolutiondate"`
 				Assignee *struct {
 					EmailAddress string `json:"emailAddress"`
 					AccountID    string `json:"accountId"`
@@ -177,6 +192,20 @@ func ParseJiraEvent(body []byte) (*ParsedEvent, error) {
 		email = raw.Issue.Fields.Assignee.EmailAddress
 		login = raw.Issue.Fields.Assignee.AccountID
 	}
+	var cycleTimeHours float64
+	if raw.Issue.Fields.Created != "" && raw.Issue.Fields.ResolutionDate != "" {
+		created, err1 := time.Parse(time.RFC3339, raw.Issue.Fields.Created)
+		if err1 != nil {
+			created, err1 = time.Parse("2006-01-02T15:04:05.000Z", raw.Issue.Fields.Created)
+		}
+		resolved, err2 := time.Parse(time.RFC3339, raw.Issue.Fields.ResolutionDate)
+		if err2 != nil {
+			resolved, err2 = time.Parse("2006-01-02T15:04:05.000Z", raw.Issue.Fields.ResolutionDate)
+		}
+		if err1 == nil && err2 == nil && resolved.After(created) {
+			cycleTimeHours = resolved.Sub(created).Hours()
+		}
+	}
 	return &ParsedEvent{
 		Platform:        "jira",
 		EventType:       "issue_closed",
@@ -186,6 +215,7 @@ func ParseJiraEvent(body []byte) (*ParsedEvent, error) {
 		OccurredAt:      time.Now().UTC(),
 		SenderLogin:     login,
 		SenderEmail:     email,
+		CycleTimeHours:  cycleTimeHours,
 	}, nil
 }
 
@@ -307,12 +337,15 @@ func (s *WebhookService) SaveEvent(ctx context.Context, tenantID, userID string,
 	}
 	_, err := s.pool.Exec(ctx,
 		`INSERT INTO output_events
-		 (id, tenant_id, user_id, platform, event_type, external_event_id, title, weight, occurred_at, raw_payload)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-		 ON CONFLICT (platform, external_event_id) DO NOTHING`,
+		 (id,tenant_id,user_id,platform,event_type,external_event_id,title,weight,
+		  lines_changed,cycle_time_hours,reopened_count,occurred_at,raw_payload)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		 ON CONFLICT (platform,external_event_id) DO NOTHING`,
 		uuid.New().String(), tenantID, uid,
 		event.Platform, event.EventType, event.ExternalEventID,
-		event.Title, event.Weight, event.OccurredAt, rawPayload,
+		event.Title, event.Weight,
+		event.LinesChanged, event.CycleTimeHours, event.ReopenedCount,
+		event.OccurredAt, rawPayload,
 	)
 	return err
 }

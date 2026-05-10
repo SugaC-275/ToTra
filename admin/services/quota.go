@@ -17,11 +17,17 @@ type QuotaRequest struct {
 	RequestedBy string `json:"requested_by"`
 }
 
+type QuotaStatus struct {
+	QuotaSCU int     `json:"quota_scu"`
+	UsedSCU  float64 `json:"used_scu"`
+}
+
 type QuotaServiceInterface interface {
 	RequestIncrease(ctx context.Context, tenantID, userID, requestedBy string, newQuota int, reason string) error
 	ListPending(ctx context.Context, tenantID string) ([]*QuotaRequest, error)
 	Approve(ctx context.Context, tenantID, requestID, reviewerID string) error
 	Reject(ctx context.Context, tenantID, requestID, reviewerID string) error
+	GetMyStatus(ctx context.Context, tenantID, userID, month string) (*QuotaStatus, error)
 }
 
 type QuotaService struct{ pool *pgxpool.Pool }
@@ -86,4 +92,18 @@ func (s *QuotaService) Reject(ctx context.Context, tenantID, requestID, reviewer
 		reviewerID, requestID, tenantID,
 	)
 	return err
+}
+
+func (s *QuotaService) GetMyStatus(ctx context.Context, tenantID, userID, month string) (*QuotaStatus, error) {
+	var qs QuotaStatus
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.quota_scu, COALESCE(SUM(r.scu_cost), 0)
+		FROM users u
+		LEFT JOIN usage_records r ON r.user_id = u.id
+		    AND to_char(r.request_at, 'YYYY-MM') = $3
+		WHERE u.id = $2 AND u.tenant_id = $1
+		GROUP BY u.quota_scu`,
+		tenantID, userID, month,
+	).Scan(&qs.QuotaSCU, &qs.UsedSCU)
+	return &qs, err
 }
