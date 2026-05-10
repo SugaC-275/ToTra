@@ -234,16 +234,15 @@ func TestIntegration_GetSnapshots(t *testing.T) {
 	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&result))
 	require.NotEmpty(t, result.Snapshots, "snapshots array must not be empty")
 
-	// Find Alice Engineer and verify she has a snapshot (she has usage records in May 2026)
+	// Alice has 12 active days in May 2026 (>= MinActiveDays=8) → non-zero AIQ
 	var aliceFound bool
 	for _, snap := range result.Snapshots {
 		name, _ := snap["user_name"].(string)
-		// Match on "Alice" prefix to handle full names like "Alice Engineer"
 		if len(name) >= 5 && name[:5] == "Alice" {
 			aliceFound = true
-			// Alice has usage records in May 2026, so her snapshot should exist.
-			// AIQ requires >= 8 active days; with seed data she may score 0 but
-			// should still appear with a recorded snapshot entry.
+			aiqScore, _ := snap["aiq_score"].(float64)
+			assert.Greater(t, aiqScore, 0.0,
+				"Alice has 12 active days in May 2026 so AIQ score must be > 0")
 			t.Logf("Alice snapshot: aiq_score=%v efficiency_score=%v",
 				snap["aiq_score"], snap["efficiency_score"])
 			break
