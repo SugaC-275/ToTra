@@ -93,3 +93,82 @@ export interface QuotaRequest {
   reason: string;
   status: string;
 }
+
+// ---- Phase 2 types ----
+export interface EfficiencySnapshot {
+  id: string;
+  user_id: string;
+  user_name: string;
+  year_month: string;
+  total_scu: number;
+  total_output_weight: number;
+  efficiency_score: number;
+  peer_group: string;
+  rank: number;
+  peer_count: number;
+  snapshot_at: string;
+}
+
+export interface WebhookConfig {
+  id: string;
+  platform: string;
+  event_weights: Record<string, number>;
+  is_active: boolean;
+}
+
+export interface UserIntegration {
+  id: string;
+  platform: string;
+  external_id: string;
+  created_by: string;
+}
+
+export interface FuelTransaction {
+  id: string;
+  amount_scu: number;
+  reason: string;
+  tier: string;
+  created_at: string;
+}
+
+export interface FuelSettings {
+  top_10pct_bonus: number;
+  top_25pct_bonus: number;
+  top_50pct_bonus: number;
+}
+
+// ---- Phase 2 API functions ----
+export const getKPISnapshots = (month: string) =>
+  apiClient.get<{ month: string; snapshots: EfficiencySnapshot[] }>(
+    `/api/kpi/snapshots?month=${month}`
+  );
+
+export const triggerKPISnapshot = (month: string) =>
+  apiClient.post(`/api/admin/kpi/run?month=${month}`);
+
+export const getMyKPI = () =>
+  apiClient.get<{ snapshots: EfficiencySnapshot[] }>("/api/me/kpi");
+
+export const getWebhookConfigs = () =>
+  apiClient.get<{ configs: WebhookConfig[] }>("/api/integrations");
+
+export const createWebhookConfig = (data: {
+  platform: string;
+  webhook_secret: string;
+  event_weights?: Record<string, number>;
+}) => apiClient.post<WebhookConfig>("/api/integrations", data);
+
+export const getMyIntegrations = () =>
+  apiClient.get<{ integrations: UserIntegration[] }>("/api/me/integrations");
+
+export const bindIntegration = (platform: string, external_id: string) =>
+  apiClient.post("/api/me/integrations", { platform, external_id });
+
+export const getFuelSettings = () =>
+  apiClient.get<FuelSettings>("/api/fuel/settings");
+
+export const updateFuelSettings = (data: FuelSettings) =>
+  apiClient.put("/api/fuel/settings", data);
+
+export const getMyFuel = () =>
+  apiClient.get<{ transactions: FuelTransaction[] }>("/api/me/fuel");

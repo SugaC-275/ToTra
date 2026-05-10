@@ -1,0 +1,58 @@
+package api
+
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/yourorg/totra/admin/services"
+)
+
+func RegisterKPIRoutes(app fiber.Router, svc *services.KPIService) {
+	app.Get("/api/kpi/snapshots", getKPISnapshots(svc))
+	app.Get("/api/me/kpi", getMyKPI(svc))
+	app.Post("/api/admin/kpi/run", triggerKPISnapshot(svc))
+}
+
+func getKPISnapshots(svc *services.KPIService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		if claims.Role != "admin" {
+			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
+		}
+		month := c.Query("month", "")
+		if month == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "month required (?month=YYYY-MM)"})
+		}
+		snapshots, err := svc.GetSnapshots(c.Context(), claims.TenantID, month)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"month": month, "snapshots": snapshots})
+	}
+}
+
+func getMyKPI(svc *services.KPIService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		snapshots, err := svc.GetMySnapshots(c.Context(), claims.UserID)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"snapshots": snapshots})
+	}
+}
+
+func triggerKPISnapshot(svc *services.KPIService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		if claims.Role != "admin" {
+			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
+		}
+		month := c.Query("month", "")
+		if month == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "month required (?month=2026-04)"})
+		}
+		if err := svc.RunMonthlySnapshot(c.Context(), claims.TenantID, month); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"status": "ok", "month": month})
+	}
+}

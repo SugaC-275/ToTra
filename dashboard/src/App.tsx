@@ -7,6 +7,8 @@ import { DashboardPage } from "./pages/admin/DashboardPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { ModelsPage } from "./pages/admin/ModelsPage";
 import { QuotaPage } from "./pages/admin/QuotaPage";
+import { KpiPage } from "./pages/admin/KpiPage";
+import { IntegrationsPage } from "./pages/admin/IntegrationsPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
 const queryClient = new QueryClient({
@@ -32,6 +34,8 @@ export default function App() {
             <Route path="admin/users" element={<UsersPage />} />
             <Route path="admin/models" element={<ModelsPage />} />
             <Route path="admin/quota" element={<QuotaPage />} />
+            <Route path="admin/kpi" element={<KpiPage />} />
+            <Route path="admin/integrations" element={<IntegrationsPage />} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

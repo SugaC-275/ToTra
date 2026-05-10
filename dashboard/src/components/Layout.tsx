@@ -6,6 +6,8 @@ const navItems = [
   { label: "Employees", href: "/admin/users" },
   { label: "Models", href: "/admin/models" },
   { label: "Quota Requests", href: "/admin/quota" },
+  { label: "KPI", href: "/admin/kpi" },
+  { label: "Integrations", href: "/admin/integrations" },
   { label: "My Usage", href: "/me" },
 ];
 
