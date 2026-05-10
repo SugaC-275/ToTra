@@ -200,6 +200,34 @@ func (s *KPIService) GetSnapshots(ctx context.Context, tenantID, yearMonth strin
 	return results, nil
 }
 
+// GetUserHistory returns the last 12 months of efficiency snapshots for a specific user (admin use).
+func (s *KPIService) GetUserHistory(ctx context.Context, tenantID, userID string) ([]*EfficiencySnapshot, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, user_id, '' AS user_name, year_month,
+		        total_scu, total_output_weight, efficiency_score,
+		        peer_group, rank, peer_count, snapshot_at
+		 FROM efficiency_snapshots
+		 WHERE tenant_id=$1 AND user_id=$2
+		 ORDER BY year_month DESC LIMIT 12`,
+		tenantID, userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []*EfficiencySnapshot
+	for rows.Next() {
+		snap := &EfficiencySnapshot{}
+		if err := rows.Scan(&snap.ID, &snap.UserID, &snap.UserName, &snap.YearMonth,
+			&snap.TotalSCU, &snap.TotalOutputWeight, &snap.EfficiencyScore,
+			&snap.PeerGroup, &snap.Rank, &snap.PeerCount, &snap.SnapshotAt); err != nil {
+			return nil, err
+		}
+		results = append(results, snap)
+	}
+	return results, nil
+}
+
 // GetMySnapshots returns up to 12 months of snapshots for a user (for growth curve).
 func (s *KPIService) GetMySnapshots(ctx context.Context, userID string) ([]*EfficiencySnapshot, error) {
 	rows, err := s.pool.Query(ctx,

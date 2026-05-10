@@ -172,3 +172,8 @@ export const updateFuelSettings = (data: FuelSettings) =>
 
 export const getMyFuel = () =>
   apiClient.get<{ transactions: FuelTransaction[] }>("/api/me/fuel");
+
+export const getKPIUserHistory = (user_id: string) =>
+  apiClient.get<{ snapshots: EfficiencySnapshot[] }>(
+    `/api/kpi/user-history?user_id=${user_id}`
+  );

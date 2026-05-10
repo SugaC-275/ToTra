@@ -7,6 +7,7 @@ import (
 
 func RegisterKPIRoutes(app fiber.Router, svc *services.KPIService) {
 	app.Get("/api/kpi/snapshots", getKPISnapshots(svc))
+	app.Get("/api/kpi/user-history", getKPIUserHistory(svc))
 	app.Get("/api/me/kpi", getMyKPI(svc))
 	app.Post("/api/admin/kpi/run", triggerKPISnapshot(svc))
 }
@@ -26,6 +27,24 @@ func getKPISnapshots(svc *services.KPIService) fiber.Handler {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(fiber.Map{"month": month, "snapshots": snapshots})
+	}
+}
+
+func getKPIUserHistory(svc *services.KPIService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		if claims.Role != "admin" {
+			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
+		}
+		userID := c.Query("user_id", "")
+		if userID == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "user_id required"})
+		}
+		snapshots, err := svc.GetUserHistory(c.Context(), claims.TenantID, userID)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"snapshots": snapshots})
 	}
 }
 
