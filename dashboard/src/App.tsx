@@ -30,15 +30,15 @@ export default function App() {
             }
           >
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="admin/dashboard" element={<DashboardPage />} />
-            <Route path="admin/users" element={<UsersPage />} />
-            <Route path="admin/models" element={<ModelsPage />} />
+            <Route path="admin/dashboard" element={<ProtectedRoute adminOnly><DashboardPage /></ProtectedRoute>} />
+            <Route path="admin/users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />
+            <Route path="admin/models" element={<ProtectedRoute adminOnly><ModelsPage /></ProtectedRoute>} />
             <Route path="admin/quota" element={<QuotaPage />} />
-            <Route path="admin/kpi" element={<KpiPage />} />
-            <Route path="admin/integrations" element={<IntegrationsPage />} />
+            <Route path="admin/kpi" element={<ProtectedRoute adminOnly><KpiPage /></ProtectedRoute>} />
+            <Route path="admin/integrations" element={<ProtectedRoute adminOnly><IntegrationsPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
