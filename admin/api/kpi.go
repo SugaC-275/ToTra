@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yourorg/totra/admin/services"
 )
@@ -9,6 +11,7 @@ func RegisterKPIRoutes(app fiber.Router, svc *services.KPIService) {
 	app.Get("/api/kpi/snapshots", getKPISnapshots(svc))
 	app.Get("/api/kpi/user-history", getKPIUserHistory(svc))
 	app.Get("/api/me/kpi", getMyKPI(svc))
+	app.Get("/api/me/kpi/submetrics", getMyKPISubmetrics(svc))
 	app.Post("/api/admin/kpi/run", triggerKPISnapshot(svc))
 	app.Get("/api/admin/kpi/anomalies", getKPIAnomalies(svc))
 }
@@ -92,5 +95,30 @@ func triggerKPISnapshot(svc *services.KPIService) fiber.Handler {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(fiber.Map{"status": "ok", "month": month})
+	}
+}
+
+func getMyKPISubmetrics(svc *services.KPIService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims := c.Locals("claims").(*services.Claims)
+		month := c.Query("month", time.Now().UTC().Format("2006-01"))
+		metrics, err := svc.GetUserAIQMetrics(c.Context(), claims.TenantID, claims.UserID, month)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		if metrics == nil {
+			return c.JSON(fiber.Map{"month": month, "metrics": nil})
+		}
+		return c.JSON(fiber.Map{
+			"month": month,
+			"metrics": fiber.Map{
+				"output_density":    metrics.OutputDensity,
+				"usage_consistency": metrics.UsageConsistency,
+				"task_depth":        metrics.TaskDepth,
+				"cost_efficiency":   metrics.CostEfficiency,
+				"active_days":       metrics.ActiveDays,
+				"working_days":      services.WorkingDaysInMonth(month),
+			},
+		})
 	}
 }

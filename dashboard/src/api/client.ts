@@ -202,6 +202,20 @@ export interface UserProfile {
   department: string;
 }
 
+export interface AIQSubmetrics {
+  output_density: number;
+  usage_consistency: number;
+  task_depth: number;
+  cost_efficiency: number;
+  active_days: number;
+  working_days: number;
+}
+
+export const getMyKPISubmetrics = (month: string) =>
+  apiClient.get<{ month: string; metrics: AIQSubmetrics | null }>(
+    `/api/me/kpi/submetrics?month=${month}`
+  );
+
 export const getMyProfile = () =>
   apiClient.get<UserProfile>("/api/me/profile");
 

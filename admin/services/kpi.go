@@ -486,6 +486,21 @@ func (s *KPIService) GetUserHistory(ctx context.Context, tenantID, userID string
 	return scanSnapshots(rows)
 }
 
+// GetUserAIQMetrics returns the raw AIQ sub-metrics for a single user in a given month.
+// Returns nil, nil if the user has no usage data for that month.
+func (s *KPIService) GetUserAIQMetrics(ctx context.Context, tenantID, userID, yearMonth string) (*RawAIQMetrics, error) {
+	all, err := s.aiqSvc.GetRawMetrics(ctx, tenantID, yearMonth)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range all {
+		if m.UserID == userID {
+			return m, nil
+		}
+	}
+	return nil, nil
+}
+
 // GetMySnapshots returns up to 12 months of snapshots for the logged-in user.
 func (s *KPIService) GetMySnapshots(ctx context.Context, userID string) ([]*EfficiencySnapshot, error) {
 	rows, err := s.pool.Query(ctx, `

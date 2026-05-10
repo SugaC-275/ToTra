@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getMonthlySummary, getMyKPI, getMyFuel, getMyIntegrations, getMyQuota, bindIntegration, apiClient, getMyUID, getMyProfile, updateMyProfile } from "../../api/client";
+import { getMonthlySummary, getMyKPI, getMyFuel, getMyIntegrations, getMyQuota, bindIntegration, apiClient, getMyUID, getMyProfile, updateMyProfile, getMyKPISubmetrics } from "../../api/client";
+import type { AIQSubmetrics } from "../../api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { QuotaMeter } from "../../components/QuotaMeter";
 import { Button } from "../../components/ui/button";
@@ -24,6 +25,11 @@ export function MyUsagePage() {
     queryKey: ["my-kpi"],
     queryFn: () => getMyKPI().then((r) => r.data),
   });
+  const { data: submetricsData } = useQuery({
+    queryKey: ["my-kpi-submetrics", currentMonth],
+    queryFn: () => getMyKPISubmetrics(currentMonth).then((r) => r.data),
+  });
+  const submetrics: AIQSubmetrics | null = submetricsData?.metrics ?? null;
   const { data: fuelData } = useQuery({
     queryKey: ["my-fuel"],
     queryFn: () => getMyFuel().then((r) => r.data),
@@ -244,6 +250,33 @@ export function MyUsagePage() {
                   <p className={`text-lg font-semibold ${latestSnapshot.gts_score >= 0 ? "text-green-400" : "text-red-400"}`}>
                     {latestSnapshot.gts_score >= 0 ? "+" : ""}{(latestSnapshot.gts_score * 100).toFixed(1)}%
                   </p>
+                </div>
+              </div>
+            )}
+            {submetrics && (
+              <div className="mt-4 pt-4 border-t border-zinc-800">
+                <p className="text-xs text-zinc-500 mb-3">AIQ Sub-metrics — {currentMonth}</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-zinc-800/50 rounded p-2">
+                    <p className="text-zinc-500 mb-1">Output Density</p>
+                    <p className="font-mono font-semibold">{submetrics.output_density.toFixed(2)}</p>
+                    <p className="text-zinc-600 mt-0.5">completion / prompt ratio</p>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded p-2">
+                    <p className="text-zinc-500 mb-1">Usage Consistency</p>
+                    <p className="font-mono font-semibold">{(submetrics.usage_consistency * 100).toFixed(0)}%</p>
+                    <p className="text-zinc-600 mt-0.5">{submetrics.active_days} / {submetrics.working_days} working days</p>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded p-2">
+                    <p className="text-zinc-500 mb-1">Task Depth</p>
+                    <p className="font-mono font-semibold">{submetrics.task_depth.toFixed(1)}</p>
+                    <p className="text-zinc-600 mt-0.5">turns × log(tokens)</p>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded p-2">
+                    <p className="text-zinc-500 mb-1">Cost Efficiency</p>
+                    <p className="font-mono font-semibold">{submetrics.cost_efficiency.toFixed(0)}</p>
+                    <p className="text-zinc-600 mt-0.5">completion tokens / SCU</p>
+                  </div>
                 </div>
               </div>
             )}
