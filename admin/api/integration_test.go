@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -193,6 +194,11 @@ func TestIntegration_KPISnapshot(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, count, 1,
 		"RunMonthlySnapshot must write at least 1 row to efficiency_snapshots")
+
+	t.Cleanup(func() {
+		pool.Exec(context.Background(),
+			`DELETE FROM efficiency_snapshots WHERE year_month = $1`, month)
+	})
 }
 
 func TestIntegration_GetSnapshots(t *testing.T) {
@@ -234,11 +240,12 @@ func TestIntegration_GetSnapshots(t *testing.T) {
 	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&result))
 	require.NotEmpty(t, result.Snapshots, "snapshots array must not be empty")
 
-	// Alice has 12 active days in May 2026 (>= MinActiveDays=8) → non-zero AIQ
+	// Alice has 12 active days in May 2026 (>= MinActiveDays=8) → non-zero AIQ.
+	// Fixture source: infra/postgres/002_seed_dev.sql (Alice user ...-0011).
 	var aliceFound bool
 	for _, snap := range result.Snapshots {
 		name, _ := snap["user_name"].(string)
-		if len(name) >= 5 && name[:5] == "Alice" {
+		if strings.HasPrefix(name, "Alice") {
 			aliceFound = true
 			aiqScore, _ := snap["aiq_score"].(float64)
 			assert.Greater(t, aiqScore, 0.0,
