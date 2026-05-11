@@ -360,3 +360,46 @@ export const syncHRCSV = async (file: File): Promise<SyncResult> => {
   const { data } = await apiClient.post("/api/admin/hr/sync", formData);
   return data;
 };
+
+// ---- Executive ROI Reports ----
+
+export interface QuarterROI {
+  quarter: string;
+  total_usd: number;
+  total_output: number;
+  roi_score: number;
+  active_users: number;
+}
+
+export interface BenchmarkResult {
+  tenant_avg_efficiency: number;
+  percentile: number;
+  industry_p25: number;
+  industry_p50: number;
+  industry_p75: number;
+  industry_p90: number;
+  label: string;
+}
+
+export interface DeptChallengeEntry {
+  department: string;
+  avg_aiq_score: number;
+  user_count: number;
+  rank: number;
+  is_winner: boolean;
+}
+
+export const getQuarterlyROI = async (year: string): Promise<QuarterROI[]> => {
+  const { data } = await apiClient.get(`/api/admin/roi/quarterly?year=${year}`);
+  return data;
+};
+
+export const getROIBenchmark = async (month: string): Promise<BenchmarkResult> => {
+  const { data } = await apiClient.get(`/api/admin/roi/benchmark?month=${month}`);
+  return data;
+};
+
+export const getDeptChallenge = async (month: string): Promise<DeptChallengeEntry[]> => {
+  const { data } = await apiClient.get(`/api/admin/roi/challenge?month=${month}`);
+  return data;
+};

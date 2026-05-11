@@ -23,6 +23,7 @@ const adminNavItems = [
   { label: "IP Allowlist", href: "/admin/ip-allowlist" },
   { label: "Bot Notifications", href: "/admin/bot-configs" },
   { label: "HR Sync", href: "/admin/hr-sync" },
+  { label: "ROI Reports", href: "/admin/roi" },
   { label: "My Usage", href: "/me" },
 ];
 
