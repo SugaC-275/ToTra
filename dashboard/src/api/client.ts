@@ -426,3 +426,29 @@ export const getMyAgentSessions = (month: string) =>
   apiClient.get<{ month: string; sessions: AgentSession[] }>(
     `/api/me/agent-sessions?month=${month}`
   );
+
+export interface AuditEntry {
+  id: number;
+  tenant_id: string;
+  record_type: string;
+  record_id: string;
+  record_hash: string;
+  prev_hash: string;
+  chain_hash: string;
+  created_at: string;
+}
+
+export interface VerifyResult {
+  valid: boolean;
+  first_bad_id?: number;
+}
+
+export const getAuditLog = async (limit = 50): Promise<AuditEntry[]> => {
+  const { data } = await apiClient.get(`/api/admin/audit-log?limit=${limit}`);
+  return data;
+};
+
+export const verifyAuditChain = async (): Promise<VerifyResult> => {
+  const { data } = await apiClient.get("/api/admin/audit-log/verify");
+  return data;
+};

@@ -15,6 +15,7 @@ import BotConfigPage from "./pages/admin/BotConfigPage";
 import HRSyncPage from "./pages/admin/HRSyncPage";
 import ROIReportPage from "./pages/admin/ROIReportPage";
 import { AgentTrackingPage } from "./pages/admin/AgentTrackingPage";
+import AuditLogPage from "./pages/admin/AuditLogPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="admin/hr-sync" element={<ProtectedRoute adminOnly><HRSyncPage /></ProtectedRoute>} />
             <Route path="admin/roi" element={<ProtectedRoute adminOnly><ROIReportPage /></ProtectedRoute>} />
             <Route path="admin/agent-tracking" element={<ProtectedRoute adminOnly><AgentTrackingPage /></ProtectedRoute>} />
+            <Route path="admin/audit-log" element={<ProtectedRoute adminOnly><AuditLogPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
