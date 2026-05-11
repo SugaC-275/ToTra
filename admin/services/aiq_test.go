@@ -75,3 +75,28 @@ func TestComputeAIQScore(t *testing.T) {
 		t.Errorf("u1 (better metrics) should score higher than u2, got u1=%v u2=%v", scores["u1"], scores["u2"])
 	}
 }
+
+func TestMinPeerGroupSize(t *testing.T) {
+	if services.MinPeerGroupSize != 5 {
+		t.Errorf("MinPeerGroupSize should be 5, got %d", services.MinPeerGroupSize)
+	}
+}
+
+func TestComputeAIQScores_SmallGroupStillScored(t *testing.T) {
+	// 3 users (< MinPeerGroupSize=5): when the caller routes them to a global
+	// pool, ComputeAIQScores must still produce valid scores (not all -1).
+	metrics := []*services.RawAIQMetrics{
+		{UserID: "u1", OutputDensity: 2.0, UsageConsistency: 0.8, TaskDepth: 4.0, CostEfficiency: 100, ActiveDays: 15},
+		{UserID: "u2", OutputDensity: 1.0, UsageConsistency: 0.5, TaskDepth: 2.0, CostEfficiency: 50, ActiveDays: 10},
+		{UserID: "u3", OutputDensity: 0.5, UsageConsistency: 0.3, TaskDepth: 1.0, CostEfficiency: 20, ActiveDays: 9},
+	}
+	scores := services.ComputeAIQScores(metrics)
+	for uid, sc := range scores {
+		if sc < 0 {
+			t.Errorf("user %s got negative AIQ %v despite active_days >= threshold", uid, sc)
+		}
+	}
+	if scores["u1"] <= scores["u3"] {
+		t.Errorf("u1 (better metrics) should score higher than u3, got u1=%v u3=%v", scores["u1"], scores["u3"])
+	}
+}

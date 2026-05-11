@@ -87,10 +87,14 @@ func (s *AIQService) GetRawMetrics(ctx context.Context, tenantID, yearMonth stri
 	return result, nil
 }
 
+const (
+	MinActiveDays    = 8 // minimum active days for AIQ eligibility
+	MinPeerGroupSize = 5 // minimum eligible users for isolated Z-score; smaller groups use global pool
+)
+
 // ComputeAIQScores takes raw metrics for users in one peer group and returns
 // a map[userID]aiqScore (0–100). Users below MinActiveDays threshold get -1.
 func ComputeAIQScores(metrics []*RawAIQMetrics) map[string]float64 {
-	const MinActiveDays = 8
 
 	eligible := make([]*RawAIQMetrics, 0, len(metrics))
 	for _, m := range metrics {

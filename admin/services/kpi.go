@@ -318,10 +318,37 @@ func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth
 			peerGroups[pg] = append(peerGroups[pg], m)
 		}
 	}
+
+	// Count eligible (active_days >= MinActiveDays) per group.
+	eligibleCount := map[string]int{}
+	for pg, members := range peerGroups {
+		for _, m := range members {
+			if m.ActiveDays >= MinActiveDays {
+				eligibleCount[pg]++
+			}
+		}
+	}
+
+	// Groups with < MinPeerGroupSize eligible users route to a global fallback pool.
+	var globalPool []*RawAIQMetrics
+	for pg, members := range peerGroups {
+		if eligibleCount[pg] < MinPeerGroupSize {
+			globalPool = append(globalPool, members...)
+		}
+	}
+
+	// Compute AIQ: large groups in isolation; small groups via global pool.
 	aiqScores := map[string]float64{}
-	for _, members := range peerGroups {
-		scores := ComputeAIQScores(members)
-		for uid, sc := range scores {
+	for pg, members := range peerGroups {
+		if eligibleCount[pg] < MinPeerGroupSize {
+			continue
+		}
+		for uid, sc := range ComputeAIQScores(members) {
+			aiqScores[uid] = sc
+		}
+	}
+	if len(globalPool) > 0 {
+		for uid, sc := range ComputeAIQScores(globalPool) {
 			aiqScores[uid] = sc
 		}
 	}
