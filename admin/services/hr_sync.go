@@ -78,6 +78,7 @@ func ParseHRCSV(r io.Reader) ([]HRRecord, error) {
 	var records []HRRecord
 	lineNum := 1
 	for {
+		lineNum++
 		row, err := cr.Read()
 		if err == io.EOF {
 			break
@@ -85,7 +86,6 @@ func ParseHRCSV(r io.Reader) ([]HRRecord, error) {
 		if err != nil {
 			return nil, fmt.Errorf("hr_sync: reading row %d: %w", lineNum, err)
 		}
-		lineNum++
 
 		email := strings.TrimSpace(row[emailIdx])
 		if email == "" {
@@ -131,7 +131,7 @@ func (s *HRSyncService) SyncFromCSV(ctx context.Context, tenantID string, record
 
 		if err != nil {
 			// User not found — insert.
-			_, insertErr := s.pool.Exec(ctx,
+			tag, insertErr := s.pool.Exec(ctx,
 				`INSERT INTO users (tenant_id, email, name, role, department, api_key_hash, auth_type)
 				 VALUES ($1, $2, $3, $4, $5, 'LOCKED', 'api_key')
 				 ON CONFLICT (tenant_id, email) DO NOTHING`,
@@ -141,7 +141,11 @@ func (s *HRSyncService) SyncFromCSV(ctx context.Context, tenantID string, record
 				result.Errors++
 				continue
 			}
-			result.Created++
+			if tag.RowsAffected() == 0 {
+				result.Skipped++
+			} else {
+				result.Created++
+			}
 		} else {
 			// User exists — update name and department.
 			_, updateErr := s.pool.Exec(ctx,
