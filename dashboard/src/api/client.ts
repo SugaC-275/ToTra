@@ -452,3 +452,82 @@ export const verifyAuditChain = async (): Promise<VerifyResult> => {
   const { data } = await apiClient.get("/api/admin/audit-log/verify");
   return data;
 };
+
+// ---- GDPR & Compliance ----
+
+export interface DeletionRequest {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  user_name?: string;
+  user_email?: string;
+  status: string;
+  requested_at: string;
+  processed_at?: string | null;
+}
+
+export interface ExportUsageRecord {
+  request_at: string;
+  model_name: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  scu_cost: number;
+  usd_cost: number;
+  response_ms: number;
+}
+
+export interface ExportSnapshot {
+  year_month: string;
+  efficiency_score: number;
+  aiq_score: number;
+  oss_score: number;
+  gts_score: number;
+  rank: number;
+  peer_count: number;
+}
+
+export interface DataExport {
+  exported_at: string;
+  user_id: string;
+  usage_records: ExportUsageRecord[];
+  efficiency_history: ExportSnapshot[];
+}
+
+export const getDataRetention = () =>
+  apiClient.get<{ data_retention_months: number }>("/api/admin/data-retention");
+
+export const setDataRetention = (months: number) =>
+  apiClient.put<{ data_retention_months: number }>("/api/admin/data-retention", {
+    data_retention_months: months,
+  });
+
+export const runRetentionCleanup = () =>
+  apiClient.post<{ deleted_count: number }>("/api/admin/data-retention/run");
+
+export const listDeletionRequests = () =>
+  apiClient.get<{ requests: DeletionRequest[] }>("/api/admin/data-deletion-requests");
+
+export const approveDeletionRequest = (id: string) =>
+  apiClient.post<{ status: string }>(`/api/admin/data-deletion-requests/${id}/approve`);
+
+export const rejectDeletionRequest = (id: string) =>
+  apiClient.post<{ status: string }>(`/api/admin/data-deletion-requests/${id}/reject`);
+
+export const exportMyData = () =>
+  apiClient.get<DataExport>("/api/me/data-export");
+
+export const createDeletionRequest = () =>
+  apiClient.post<DeletionRequest>("/api/me/data-deletion-request");
+
+export const downloadMyDataExport = async (): Promise<void> => {
+  const { data } = await exportMyData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `totra-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getMonthlySummary, getMyKPI, getMyFuel, getMyIntegrations, getMyQuota, bindIntegration, apiClient, getMyUID, getMyProfile, updateMyProfile, getMyKPISubmetrics, getMyKPIInsights } from "../../api/client";
+import { getMonthlySummary, getMyKPI, getMyFuel, getMyIntegrations, getMyQuota, bindIntegration, apiClient, getMyUID, getMyProfile, updateMyProfile, getMyKPISubmetrics, getMyKPIInsights, downloadMyDataExport, createDeletionRequest } from "../../api/client";
 import type { AIQSubmetrics } from "../../api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { QuotaMeter } from "../../components/QuotaMeter";
@@ -76,6 +76,11 @@ export function MyUsagePage() {
       setBindForm({ platform: "github", external_id: "" });
       refetchInt();
     },
+  });
+
+  const [exportLoading, setExportLoading] = useState(false);
+  const deletionMutation = useMutation({
+    mutationFn: createDeletionRequest,
   });
 
   const uid = getMyUID();
@@ -159,6 +164,27 @@ export function MyUsagePage() {
               </form>
             </DialogContent>
           </Dialog>
+          <Button
+            variant="outline"
+            disabled={exportLoading}
+            onClick={async () => {
+              setExportLoading(true);
+              try { await downloadMyDataExport(); } finally { setExportLoading(false); }
+            }}
+          >
+            {exportLoading ? "Exporting..." : "Export My Data"}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={deletionMutation.isPending || deletionMutation.isSuccess}
+            onClick={() => {
+              if (confirm("Request deletion of all your personal data? This cannot be undone once approved.")) {
+                deletionMutation.mutate();
+              }
+            }}
+          >
+            {deletionMutation.isSuccess ? "Deletion Requested" : deletionMutation.isPending ? "Requesting..." : "Request Data Deletion"}
+          </Button>
         </div>
       </div>
 

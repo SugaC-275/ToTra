@@ -16,6 +16,7 @@ import HRSyncPage from "./pages/admin/HRSyncPage";
 import ROIReportPage from "./pages/admin/ROIReportPage";
 import { AgentTrackingPage } from "./pages/admin/AgentTrackingPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
+import GDPRPage from "./pages/admin/GDPRPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="admin/roi" element={<ProtectedRoute adminOnly><ROIReportPage /></ProtectedRoute>} />
             <Route path="admin/agent-tracking" element={<ProtectedRoute adminOnly><AgentTrackingPage /></ProtectedRoute>} />
             <Route path="admin/audit-log" element={<ProtectedRoute adminOnly><AuditLogPage /></ProtectedRoute>} />
+            <Route path="admin/gdpr" element={<ProtectedRoute adminOnly><GDPRPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
