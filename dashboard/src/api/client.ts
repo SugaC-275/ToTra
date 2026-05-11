@@ -86,6 +86,36 @@ export interface AdoptionStats {
   active_users: number;
   adoption_rate: number;
 }
+export interface DeptSummary {
+  department: string;
+  user_count: number;
+  active_users: number;
+  total_scu: number;
+  total_usd: number;
+  request_count: number;
+}
+
+export interface BudgetForecast {
+  month: string;
+  current_scu: number;
+  current_usd: number;
+  days_elapsed: number;
+  days_in_month: number;
+  projected_scu: number;
+  projected_usd: number;
+  prior_month_scu: number;
+  trend_pct: number;
+}
+
+export interface InactiveUser {
+  user_id: string;
+  name: string;
+  email: string;
+  department: string;
+  job_role: string;
+  active_days: number;
+  last_active_at: string | null;
+}
 export interface QuotaRequest {
   id: string;
   user_id: string;
@@ -221,3 +251,36 @@ export const getMyProfile = () =>
 
 export const updateMyProfile = (data: UserProfile) =>
   apiClient.patch<{ status: string }>("/api/me/profile", data);
+
+// ---- Ops Reports ----
+
+export const getDepartmentSummary = (month: string) =>
+  apiClient.get<{ month: string; departments: DeptSummary[] }>(
+    `/api/admin/usage/department?month=${month}`
+  );
+
+export const exportDepartmentCSV = async (month: string): Promise<void> => {
+  const token = localStorage.getItem("totra_token");
+  const res = await fetch(
+    `${BASE_URL}/api/admin/usage/department/export?month=${month}`,
+    { headers: { Authorization: `Bearer ${token ?? ""}` } }
+  );
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `cost-chargeback-${month}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const getBudgetForecast = (month: string) =>
+  apiClient.get<BudgetForecast>(`/api/admin/usage/forecast?month=${month}`);
+
+export const getInactiveUsers = (month: string, maxDays = 3) =>
+  apiClient.get<{ month: string; max_days: number; users: InactiveUser[] }>(
+    `/api/admin/usage/inactive?month=${month}&max_days=${maxDays}`
+  );
