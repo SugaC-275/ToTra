@@ -364,6 +364,7 @@ func ParseGitLabEvent(eventType string, body []byte) (*ParsedEvent, error) {
 	var raw struct {
 		UserUsername string `json:"user_username"`
 		Commits      []struct {
+			ID     string `json:"id"`
 			Author struct {
 				Name string `json:"name"`
 			} `json:"author"`
@@ -391,10 +392,11 @@ func ParseGitLabEvent(eventType string, body []byte) (*ParsedEvent, error) {
 			actor = raw.UserUsername
 		}
 		return &ParsedEvent{
-			Platform:    "gitlab",
-			EventType:   "push",
-			OccurredAt:  time.Now().UTC(),
-			SenderLogin: actor,
+			Platform:        "gitlab",
+			EventType:       "push",
+			ExternalEventID: raw.Commits[0].ID,
+			OccurredAt:      time.Now().UTC(),
+			SenderLogin:     actor,
 		}, nil
 
 	case "Merge Request Hook":
