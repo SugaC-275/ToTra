@@ -31,6 +31,7 @@ func main() {
 	allowlistSvc := services.NewIPAllowlistService(pool)
 	botSvc := services.NewBotService(pool, cfg.EncryptionKey)
 	insightsSvc := services.NewAIInsightsService(pool, os.Getenv("ANTHROPIC_API_KEY"))
+	hrSyncSvc := services.NewHRSyncService(pool)
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{AllowOrigins: "*"}))
@@ -58,6 +59,7 @@ func main() {
 	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
 	api.RegisterBotRoutes(protected, botSvc)
 	api.RegisterAIInsightsRoutes(protected, insightsSvc)
+	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
