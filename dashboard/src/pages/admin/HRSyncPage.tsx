@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { syncHRCSV, SyncResult } from "../../api/client";
+import { syncHRCSV } from "../../api/client";
+import type { SyncResult } from "../../api/client";
 
 export default function HRSyncPage() {
   const fileRef = useRef<HTMLInputElement>(null);

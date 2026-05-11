@@ -6,8 +6,8 @@ import {
   deleteBotConfig,
   sendKPISummary,
   sendTestBotMessage,
-  BotConfig,
 } from "../../api/client";
+import type { BotConfig } from "../../api/client";
 
 export default function BotConfigPage() {
   const queryClient = useQueryClient();

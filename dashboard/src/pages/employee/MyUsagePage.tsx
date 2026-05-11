@@ -397,8 +397,8 @@ export function MyUsagePage() {
         <h3 className="font-semibold text-purple-800 mb-2">AI Insights</h3>
         {insightsLoading ? (
           <p className="text-gray-500 text-sm">Generating insights...</p>
-        ) : insightsData?.insight ? (
-          <p className="text-gray-700 text-sm leading-relaxed">{insightsData.insight}</p>
+        ) : insightsData?.data?.insight ? (
+          <p className="text-gray-700 text-sm leading-relaxed">{insightsData.data.insight}</p>
         ) : (
           <p className="text-gray-400 text-sm">No insights available for this month.</p>
         )}
