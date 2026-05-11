@@ -24,6 +24,7 @@ const adminNavItems = [
   { label: "Bot Notifications", href: "/admin/bot-configs" },
   { label: "HR Sync", href: "/admin/hr-sync" },
   { label: "ROI Reports", href: "/admin/roi" },
+  { label: "Agent Tracking", href: "/admin/agent-tracking" },
   { label: "My Usage", href: "/me" },
 ];
 

@@ -403,3 +403,26 @@ export const getDeptChallenge = async (month: string): Promise<DeptChallengeEntr
   const { data } = await apiClient.get(`/api/admin/roi/challenge?month=${month}`);
   return data;
 };
+
+export interface AgentSession {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  user_name: string;
+  conversation_id: string;
+  loop_count: number;
+  tool_call_count: number;
+  is_dead_loop: boolean;
+  last_seen_at: string;
+  created_at: string;
+}
+
+export const getAdminAgentSessions = (month: string) =>
+  apiClient.get<{ month: string; sessions: AgentSession[] }>(
+    `/api/admin/agent-sessions?month=${month}`
+  );
+
+export const getMyAgentSessions = (month: string) =>
+  apiClient.get<{ month: string; sessions: AgentSession[] }>(
+    `/api/me/agent-sessions?month=${month}`
+  );
