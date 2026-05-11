@@ -344,3 +344,21 @@ export const sendKPISummary = async (month: string): Promise<void> => {
 export const sendTestBotMessage = async (id: string): Promise<void> => {
   await apiClient.post(`/api/admin/bot-configs/${id}/test`);
 };
+
+// ---- HR Sync ----
+
+export interface SyncResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+}
+
+export const syncHRCSV = async (file: File): Promise<SyncResult> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await apiClient.post("/api/admin/hr/sync", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+};
