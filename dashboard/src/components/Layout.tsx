@@ -18,6 +18,7 @@ const adminNavItems = [
   { label: "Models", href: "/admin/models" },
   { label: "Quota Requests", href: "/admin/quota" },
   { label: "KPI", href: "/admin/kpi" },
+  { label: "Reports", href: "/admin/reports" },
   { label: "Integrations", href: "/admin/integrations" },
   { label: "My Usage", href: "/me" },
 ];
