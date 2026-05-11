@@ -166,17 +166,21 @@ func (s *UsageService) GetBudgetForecast(ctx context.Context, tenantID, yearMont
 	}
 
 	var currentSCU, currentUSD float64
-	s.pool.QueryRow(ctx,
+	if err := s.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(scu_cost),0), COALESCE(SUM(usd_cost),0)
 		 FROM usage_records WHERE tenant_id=$1 AND to_char(request_at,'YYYY-MM')=$2`,
-		tenantID, yearMonth).Scan(&currentSCU, &currentUSD)
+		tenantID, yearMonth).Scan(&currentSCU, &currentUSD); err != nil {
+		return nil, err
+	}
 
 	priorMonth := t.AddDate(0, -1, 0).Format("2006-01")
 	var priorMonthSCU float64
-	s.pool.QueryRow(ctx,
+	if err := s.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(scu_cost),0)
 		 FROM usage_records WHERE tenant_id=$1 AND to_char(request_at,'YYYY-MM')=$2`,
-		tenantID, priorMonth).Scan(&priorMonthSCU)
+		tenantID, priorMonth).Scan(&priorMonthSCU); err != nil {
+		return nil, err
+	}
 
 	var projSCU, projUSD float64
 	if daysElapsed > 0 {
