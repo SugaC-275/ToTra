@@ -117,6 +117,12 @@ func (s *HRSyncService) SyncFromCSV(ctx context.Context, tenantID string, record
 	result := &SyncResult{}
 
 	for _, rec := range records {
+		// Map CSV-friendly role "employee" to the DB-constrained role "standard".
+		dbRole := rec.Role
+		if dbRole == "employee" {
+			dbRole = "standard"
+		}
+
 		var existingID string
 		err := s.pool.QueryRow(ctx,
 			`SELECT id FROM users WHERE tenant_id=$1 AND email=$2`,
@@ -129,7 +135,7 @@ func (s *HRSyncService) SyncFromCSV(ctx context.Context, tenantID string, record
 				`INSERT INTO users (tenant_id, email, name, role, department, api_key_hash, auth_type)
 				 VALUES ($1, $2, $3, $4, $5, 'LOCKED', 'api_key')
 				 ON CONFLICT (tenant_id, email) DO NOTHING`,
-				tenantID, rec.Email, rec.Name, rec.Role, nullableStr(rec.Department),
+				tenantID, rec.Email, rec.Name, dbRole, nullableStr(rec.Department),
 			)
 			if insertErr != nil {
 				result.Errors++
