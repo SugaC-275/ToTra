@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getMonthlySummary, getMyKPI, getMyFuel, getMyIntegrations, getMyQuota, bindIntegration, apiClient, getMyUID, getMyProfile, updateMyProfile, getMyKPISubmetrics } from "../../api/client";
+import { getMonthlySummary, getMyKPI, getMyFuel, getMyIntegrations, getMyQuota, bindIntegration, apiClient, getMyUID, getMyProfile, updateMyProfile, getMyKPISubmetrics, getMyKPIInsights } from "../../api/client";
 import type { AIQSubmetrics } from "../../api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { QuotaMeter } from "../../components/QuotaMeter";
@@ -30,6 +30,11 @@ export function MyUsagePage() {
     queryFn: () => getMyKPISubmetrics(currentMonth).then((r) => r.data),
   });
   const submetrics: AIQSubmetrics | null = submetricsData?.metrics ?? null;
+  const { data: insightsData, isLoading: insightsLoading } = useQuery({
+    queryKey: ["kpi-insights", currentMonth],
+    queryFn: () => getMyKPIInsights(currentMonth),
+    retry: false,
+  });
   const { data: fuelData } = useQuery({
     queryKey: ["my-fuel"],
     queryFn: () => getMyFuel().then((r) => r.data),
@@ -360,6 +365,18 @@ export function MyUsagePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* AI Insights */}
+      <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 p-4">
+        <h3 className="font-semibold text-purple-800 mb-2">AI Insights</h3>
+        {insightsLoading ? (
+          <p className="text-gray-500 text-sm">Generating insights...</p>
+        ) : insightsData?.insight ? (
+          <p className="text-gray-700 text-sm leading-relaxed">{insightsData.insight}</p>
+        ) : (
+          <p className="text-gray-400 text-sm">No insights available for this month.</p>
+        )}
+      </div>
     </div>
   );
 }

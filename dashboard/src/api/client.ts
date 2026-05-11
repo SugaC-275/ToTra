@@ -246,6 +246,11 @@ export const getMyKPISubmetrics = (month: string) =>
     `/api/me/kpi/submetrics?month=${month}`
   );
 
+export const getMyKPIInsights = (month: string) =>
+  apiClient.get<{ insight: string; month: string }>(
+    `/api/me/kpi/insights?month=${month}`
+  );
+
 export const getMyProfile = () =>
   apiClient.get<UserProfile>("/api/me/profile");
 
