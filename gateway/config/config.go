@@ -1,18 +1,19 @@
-// gateway/config/config.go
 package config
 
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Config struct {
-	Port          string
-	PostgresDSN   string
-	RedisAddr     string
-	RedisPassword string
-	EncryptionKey string
-	JWTSecret     string
+	Port           string
+	PostgresDSN    string
+	RedisAddr      string
+	RedisPassword  string
+	EncryptionKey  string
+	JWTSecret      string
+	AgentLoopLimit int64
 }
 
 func Load() (*Config, error) {
@@ -23,13 +24,21 @@ func Load() (*Config, error) {
 	pgUser := mustGetEnv("POSTGRES_USER")
 	pgPass := mustGetEnv("POSTGRES_PASSWORD")
 
+	loopLimit := int64(20)
+	if v := os.Getenv("AGENT_LOOP_LIMIT"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			loopLimit = n
+		}
+	}
+
 	return &Config{
-		Port:          port,
-		PostgresDSN:   fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", pgHost, pgPort, pgDB, pgUser, pgPass),
-		RedisAddr:     fmt.Sprintf("%s:%s", getEnv("REDIS_HOST", "localhost"), getEnv("REDIS_PORT", "6379")),
-		RedisPassword: os.Getenv("REDIS_PASSWORD"),
-		EncryptionKey: mustGetEnv("GATEWAY_ENCRYPTION_KEY"),
-		JWTSecret:     mustGetEnv("JWT_SECRET"),
+		Port:           port,
+		PostgresDSN:    fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", pgHost, pgPort, pgDB, pgUser, pgPass),
+		RedisAddr:      fmt.Sprintf("%s:%s", getEnv("REDIS_HOST", "localhost"), getEnv("REDIS_PORT", "6379")),
+		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
+		EncryptionKey:  mustGetEnv("GATEWAY_ENCRYPTION_KEY"),
+		JWTSecret:      mustGetEnv("JWT_SECRET"),
+		AgentLoopLimit: loopLimit,
 	}, nil
 }
 

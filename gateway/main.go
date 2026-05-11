@@ -38,6 +38,7 @@ func main() {
 
 	quotaStore := storage.NewQuotaStore(rdb)
 	usageStore := storage.NewUsageStore(pool)
+	agentStore := storage.NewAgentStore(rdb, pool, cfg.AgentLoopLimit)
 	pgUserLookup := storage.NewPGUserLookup(pool)
 	pgUserQuota := storage.NewPGUserQuota(pool)
 
@@ -54,9 +55,10 @@ func main() {
 		middleware.NewAuthMiddleware(pgUserLookup),
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
 		middleware.NewPIIMiddleware(),
+		middleware.NewAgentMiddleware(agentStore),
 	)
 
-	proxyHandler := makeProxyHandler(pool, usageStore)
+	proxyHandler := makeProxyHandler(pool, usageStore, agentStore)
 	v1.Post("/chat/completions", proxyHandler)
 	v1.Post("/messages", proxyHandler)
 
@@ -64,7 +66,7 @@ func main() {
 	log.Fatal(app.Listen(":" + cfg.Port))
 }
 
-func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore) fiber.Handler {
+func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore) fiber.Handler {
 	modelLookup := storage.NewPGModelLookup(pool)
 
 	return func(c *fiber.Ctx) error {
@@ -119,6 +121,17 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore) fiber.
 			USDCost:          0,
 			ResponseMS:       responseMS,
 		})
+
+		if agentMode, _ := c.Locals("agent_mode").(bool); agentMode && conversationID != "" {
+			toolCallCount, _ := c.Locals("agent_tool_call_count").(int)
+			agentStore.Record(&storage.AgentRecord{
+				TenantID:       user.TenantID,
+				UserID:         user.UserID,
+				ConversationID: conversationID,
+				ToolCallCount:  toolCallCount,
+				IsDeadLoop:     false,
+			})
+		}
 
 		for k, vs := range result.Headers {
 			for _, v := range vs {
