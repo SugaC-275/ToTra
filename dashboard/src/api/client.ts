@@ -357,8 +357,6 @@ export interface SyncResult {
 export const syncHRCSV = async (file: File): Promise<SyncResult> => {
   const formData = new FormData();
   formData.append("file", file);
-  const { data } = await apiClient.post("/api/admin/hr/sync", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const { data } = await apiClient.post("/api/admin/hr/sync", formData);
   return data;
 };
