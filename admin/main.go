@@ -27,6 +27,7 @@ func main() {
 
 	jwtSvc := services.NewJWTService(cfg.JWTSecret, cfg.JWTExpiry)
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
+	allowlistSvc := services.NewIPAllowlistService(pool)
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{AllowOrigins: "*"}))
@@ -41,6 +42,7 @@ func main() {
 	api.RegisterWebhookRoutes(app, webhookSvc, cfg.EncryptionKey)
 
 	protected := app.Group("/", jwtMiddleware)
+	protected.Use(services.IPAllowlistMiddleware(allowlistSvc))
 	api.RegisterUserRoutes(protected, services.NewUserService(pool))
 	api.RegisterModelRoutes(protected, services.NewModelService(pool))
 	usageSvc := services.NewUsageService(pool)
@@ -50,6 +52,7 @@ func main() {
 	api.RegisterIntegrationRoutes(protected, services.NewIntegrationService(pool), cfg.EncryptionKey)
 	api.RegisterKPIRoutes(protected, kpiSvc)
 	api.RegisterFuelRoutes(protected, fuelSvc)
+	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
