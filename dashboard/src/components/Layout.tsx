@@ -21,6 +21,7 @@ const adminNavItems = [
   { label: "Reports", href: "/admin/reports" },
   { label: "Integrations", href: "/admin/integrations" },
   { label: "IP Allowlist", href: "/admin/ip-allowlist" },
+  { label: "Bot Notifications", href: "/admin/bot-configs" },
   { label: "My Usage", href: "/me" },
 ];
 

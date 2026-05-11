@@ -28,6 +28,7 @@ func main() {
 	jwtSvc := services.NewJWTService(cfg.JWTSecret, cfg.JWTExpiry)
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
 	allowlistSvc := services.NewIPAllowlistService(pool)
+	botSvc := services.NewBotService(pool, cfg.EncryptionKey)
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{AllowOrigins: "*"}))
@@ -53,6 +54,7 @@ func main() {
 	api.RegisterKPIRoutes(protected, kpiSvc)
 	api.RegisterFuelRoutes(protected, fuelSvc)
 	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
+	api.RegisterBotRoutes(protected, botSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))

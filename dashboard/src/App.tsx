@@ -11,6 +11,7 @@ import { KpiPage } from "./pages/admin/KpiPage";
 import { IntegrationsPage } from "./pages/admin/IntegrationsPage";
 import { DepartmentReportPage } from "./pages/admin/DepartmentReportPage";
 import { IPAllowlistPage } from "./pages/admin/IPAllowlistPage";
+import BotConfigPage from "./pages/admin/BotConfigPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
 const queryClient = new QueryClient({
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="admin/integrations" element={<ProtectedRoute adminOnly><IntegrationsPage /></ProtectedRoute>} />
             <Route path="admin/reports" element={<ProtectedRoute adminOnly><DepartmentReportPage /></ProtectedRoute>} />
             <Route path="admin/ip-allowlist" element={<ProtectedRoute adminOnly><IPAllowlistPage /></ProtectedRoute>} />
+            <Route path="admin/bot-configs" element={<ProtectedRoute adminOnly><BotConfigPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />

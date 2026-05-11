@@ -302,3 +302,40 @@ export const addIPAllowlistEntry = (cidr: string, label: string) =>
 
 export const deleteIPAllowlistEntry = (id: string) =>
   apiClient.delete<{ status: string }>(`/api/admin/ip-allowlist/${id}`);
+
+// ---- Bot Notifications ----
+
+export interface BotConfig {
+  id: string;
+  tenant_id: string;
+  platform: string;
+  label: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export const listBotConfigs = async (): Promise<{ configs: BotConfig[] }> => {
+  const { data } = await apiClient.get("/api/admin/bot-configs");
+  return data;
+};
+
+export const addBotConfig = async (payload: {
+  platform: string;
+  webhook_url: string;
+  label: string;
+}): Promise<BotConfig> => {
+  const { data } = await apiClient.post("/api/admin/bot-configs", payload);
+  return data;
+};
+
+export const deleteBotConfig = async (id: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/bot-configs/${id}`);
+};
+
+export const sendKPISummary = async (month: string): Promise<void> => {
+  await apiClient.post(`/api/admin/bot-configs/send-summary?month=${month}`);
+};
+
+export const sendTestBotMessage = async (id: string): Promise<void> => {
+  await apiClient.post(`/api/admin/bot-configs/${id}/test`);
+};
