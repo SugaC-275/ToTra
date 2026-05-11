@@ -35,6 +35,8 @@ func main() {
 	hrSyncSvc := services.NewHRSyncService(pool)
 	roiSvc := services.NewROIService(pool)
 	agentSvc := services.NewAgentServiceFromPool(pool)
+	retentionSvc := services.NewDataRetentionService(pool)
+	deletionSvc := services.NewDeletionRequestService(pool)
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{AllowOrigins: "*"}))
@@ -66,6 +68,7 @@ func main() {
 	api.RegisterROIRoutes(protected, roiSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)
 	api.RegisterAuditRoutes(protected, auditSvc)
+	api.RegisterGDPRRoutes(protected, retentionSvc, deletionSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
