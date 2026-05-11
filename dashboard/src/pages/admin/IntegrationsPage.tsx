@@ -55,16 +55,24 @@ export function IntegrationsPage() {
                   value={form.platform}
                   onChange={(e) => setForm({ ...form, platform: e.target.value })}
                 >
-                  {["github", "jira", "feishu", "dingtalk"].map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
+                  {["github", "jira", "feishu", "dingtalk", "gitlab", "confluence"].map((p) => {
+                    const labels: Record<string, string> = {
+                      github: "GitHub",
+                      jira: "Jira",
+                      feishu: "飞书",
+                      dingtalk: "DingTalk",
+                      gitlab: "GitLab",
+                      confluence: "Confluence",
+                    };
+                    return <option key={p} value={p}>{labels[p]}</option>;
+                  })}
                 </select>
               </div>
               <div className="space-y-1">
                 <Label>Webhook Secret</Label>
                 <Input
                   type="password"
-                  placeholder="Secret configured in GitHub/Jira/飞书"
+                  placeholder="Secret configured in GitHub / Jira / 飞书 / GitLab / Confluence"
                   value={form.webhook_secret}
                   onChange={(e) => setForm({ ...form, webhook_secret: e.target.value })}
                   required
