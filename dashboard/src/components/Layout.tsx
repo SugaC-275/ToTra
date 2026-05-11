@@ -20,6 +20,7 @@ const adminNavItems = [
   { label: "KPI", href: "/admin/kpi" },
   { label: "Reports", href: "/admin/reports" },
   { label: "Integrations", href: "/admin/integrations" },
+  { label: "IP Allowlist", href: "/admin/ip-allowlist" },
   { label: "My Usage", href: "/me" },
 ];
 
