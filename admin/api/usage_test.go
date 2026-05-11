@@ -24,6 +24,18 @@ func (m *mockUsageService) GetAdoptionRate(ctx context.Context, tenantID, yearMo
 	return &services.AdoptionStats{TotalUsers: 10, ActiveUsers: 7, AdoptionRate: 0.70}, nil
 }
 
+func (m *mockUsageService) GetDepartmentSummary(ctx context.Context, tenantID, yearMonth string) ([]*services.DeptSummary, error) {
+	return []*services.DeptSummary{}, nil
+}
+
+func (m *mockUsageService) GetBudgetForecast(ctx context.Context, tenantID, yearMonth string) (*services.BudgetForecast, error) {
+	return &services.BudgetForecast{}, nil
+}
+
+func (m *mockUsageService) GetInactiveUsers(ctx context.Context, tenantID, yearMonth string, maxDays int) ([]*services.InactiveUser, error) {
+	return []*services.InactiveUser{}, nil
+}
+
 func setupUsageApp() *fiber.App {
 	app := fiber.New()
 	claims := &services.Claims{UserID: "admin-1", TenantID: "tenant-1", Role: "admin"}
