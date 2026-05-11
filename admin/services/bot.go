@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -30,6 +31,8 @@ type botEntry struct {
 	platform   string
 	webhookURL string
 }
+
+var botHTTPClient = &http.Client{Timeout: 10 * time.Second}
 
 type BotService struct {
 	pool   *pgxpool.Pool
@@ -113,7 +116,7 @@ func (s *BotService) loadEnabledConfigs(ctx context.Context, tenantID string) ([
 		}
 		url, err := crypto.Decrypt(encURL, s.encKey)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("decrypt bot config %s: %w", platform, err)
 		}
 		result = append(result, botEntry{platform, url})
 	}
@@ -157,17 +160,19 @@ func (s *BotService) SendKPISummary(ctx context.Context, tenantID, month string)
 	}
 
 	var tenantName string
-	s.pool.QueryRow(ctx, `SELECT name FROM tenants WHERE id = $1`, tenantID).Scan(&tenantName)
+	if err := s.pool.QueryRow(ctx, `SELECT name FROM tenants WHERE id = $1`, tenantID).Scan(&tenantName); err != nil {
+		tenantName = tenantID
+	}
 
 	message := FormatKPISummaryMessage(tenantName, month, topEntries)
 
-	var sendErr error
+	var errs []error
 	for _, cfg := range configs {
 		if err := SendBotMessage(cfg.platform, cfg.webhookURL, message); err != nil {
-			sendErr = err
+			errs = append(errs, err)
 		}
 	}
-	return sendErr
+	return errors.Join(errs...)
 }
 
 func (s *BotService) SendTestMessage(ctx context.Context, tenantID, id string) error {
@@ -220,8 +225,7 @@ func SendBotMessage(platform, webhookURL, message string) error {
 		return err
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(webhookURL, "application/json", bytes.NewReader(data))
+	resp, err := botHTTPClient.Post(webhookURL, "application/json", bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
