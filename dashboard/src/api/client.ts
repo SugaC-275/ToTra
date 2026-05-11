@@ -284,3 +284,21 @@ export const getInactiveUsers = (month: string, maxDays = 3) =>
   apiClient.get<{ month: string; max_days: number; users: InactiveUser[] }>(
     `/api/admin/usage/inactive?month=${month}&max_days=${maxDays}`
   );
+
+// ---- IP Allowlist ----
+
+export interface IPAllowlistEntry {
+  id: string;
+  cidr: string;
+  label: string;
+  created_at: string;
+}
+
+export const listIPAllowlist = () =>
+  apiClient.get<{ entries: IPAllowlistEntry[] }>("/api/admin/ip-allowlist");
+
+export const addIPAllowlistEntry = (cidr: string, label: string) =>
+  apiClient.post<IPAllowlistEntry>("/api/admin/ip-allowlist", { cidr, label });
+
+export const deleteIPAllowlistEntry = (id: string) =>
+  apiClient.delete<{ status: string }>(`/api/admin/ip-allowlist/${id}`);
