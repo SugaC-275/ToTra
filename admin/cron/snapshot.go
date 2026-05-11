@@ -11,7 +11,12 @@ import (
 
 // StartMonthlySnapshot starts a background goroutine that runs the KPI snapshot
 // at 00:05 on the 1st of each month for all tenants, then triggers fuel rewards.
-func StartMonthlySnapshot(pool *pgxpool.Pool, kpiSvc *services.KPIService, fuelSvc *services.FuelService) {
+func StartMonthlySnapshot(
+	pool *pgxpool.Pool,
+	kpiSvc *services.KPIService,
+	fuelSvc *services.FuelService,
+	auditSvc *services.AuditService,
+) {
 	go func() {
 		for {
 			next := nextMonthStart()
@@ -43,6 +48,24 @@ func StartMonthlySnapshot(pool *pgxpool.Pool, kpiSvc *services.KPIService, fuelS
 				if err := fuelSvc.ApplyRewards(ctx, tenantID, yearMonth); err != nil {
 					log.Printf("cron: fuel rewards failed for tenant %s: %v", tenantID, err)
 				}
+				// Audit: append one entry per snapshot produced this month.
+				snapshots, err := kpiSvc.GetSnapshots(ctx, tenantID, yearMonth)
+				if err != nil {
+					log.Printf("cron: audit fetch snapshots failed for tenant %s: %v", tenantID, err)
+					continue
+				}
+				for _, snap := range snapshots {
+					if aerr := auditSvc.AppendAuditLog(
+						ctx,
+						tenantID,
+						"kpi_snapshot",
+						snap.ID,
+						snap,
+					); aerr != nil {
+						log.Printf("cron: audit append failed for snapshot %s: %v", snap.ID, aerr)
+					}
+				}
+				log.Printf("cron: audited %d snapshots for tenant %s", len(snapshots), tenantID)
 			}
 			log.Printf("cron: monthly snapshot complete for %d tenants", len(tenantIDs))
 		}

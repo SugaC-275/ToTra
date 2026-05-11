@@ -24,7 +24,8 @@ func main() {
 
 	kpiSvc := services.NewKPIService(pool)
 	fuelSvc := services.NewFuelService(pool)
-	cron.StartMonthlySnapshot(pool, kpiSvc, fuelSvc)
+	auditSvc := services.NewAuditService(pool)
+	cron.StartMonthlySnapshot(pool, kpiSvc, fuelSvc, auditSvc)
 
 	jwtSvc := services.NewJWTService(cfg.JWTSecret, cfg.JWTExpiry)
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
@@ -64,6 +65,7 @@ func main() {
 	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
 	api.RegisterROIRoutes(protected, roiSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)
+	api.RegisterAuditRoutes(protected, auditSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
