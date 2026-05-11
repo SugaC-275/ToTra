@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -29,6 +30,7 @@ func main() {
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
 	allowlistSvc := services.NewIPAllowlistService(pool)
 	botSvc := services.NewBotService(pool, cfg.EncryptionKey)
+	insightsSvc := services.NewAIInsightsService(pool, os.Getenv("ANTHROPIC_API_KEY"))
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{AllowOrigins: "*"}))
@@ -55,6 +57,7 @@ func main() {
 	api.RegisterFuelRoutes(protected, fuelSvc)
 	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
 	api.RegisterBotRoutes(protected, botSvc)
+	api.RegisterAIInsightsRoutes(protected, insightsSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
