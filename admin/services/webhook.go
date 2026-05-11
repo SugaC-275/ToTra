@@ -32,10 +32,12 @@ type ParsedEvent struct {
 }
 
 var defaultWeights = map[string]map[string]float64{
-	"github":   {"pr_merged": 5, "push": 1},
-	"jira":     {"issue_closed": 3},
-	"feishu":   {"task_completed": 2, "doc_created": 2},
-	"dingtalk": {"task_completed": 2},
+	"github":     {"pr_merged": 5, "push": 1},
+	"jira":       {"issue_closed": 3},
+	"feishu":     {"task_completed": 2, "doc_created": 2},
+	"dingtalk":   {"task_completed": 2},
+	"gitlab":     {"push": 1, "merge_request": 3},
+	"confluence": {"page_created": 2, "page_updated": 1},
 }
 
 // EventWeight returns the weight for a platform+eventType, checking custom weights first.
@@ -348,4 +350,109 @@ func (s *WebhookService) SaveEvent(ctx context.Context, tenantID, userID string,
 		event.OccurredAt, rawPayload,
 	)
 	return err
+}
+
+// VerifyGitLabToken checks the X-Gitlab-Token header against the stored secret using
+// constant-time comparison to prevent timing attacks.
+func VerifyGitLabToken(secret, header string) bool {
+	return hmac.Equal([]byte(secret), []byte(header))
+}
+
+// ParseGitLabEvent parses a GitLab webhook payload.
+// Supported X-Gitlab-Event values: "Push Hook", "Merge Request Hook".
+func ParseGitLabEvent(eventType string, body []byte) (*ParsedEvent, error) {
+	var raw struct {
+		UserUsername string `json:"user_username"`
+		Commits      []struct {
+			Author struct {
+				Name string `json:"name"`
+			} `json:"author"`
+		} `json:"commits"`
+		User struct {
+			Username string `json:"username"`
+		} `json:"user"`
+		ObjectAttributes struct {
+			Action string `json:"action"`
+			IID    int    `json:"iid"`
+			Title  string `json:"title"`
+		} `json:"object_attributes"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
+
+	switch eventType {
+	case "Push Hook":
+		if len(raw.Commits) == 0 {
+			return nil, errors.New("push event has no commits, skipping")
+		}
+		actor := raw.Commits[0].Author.Name
+		if actor == "" {
+			actor = raw.UserUsername
+		}
+		return &ParsedEvent{
+			Platform:    "gitlab",
+			EventType:   "push",
+			OccurredAt:  time.Now().UTC(),
+			SenderLogin: actor,
+		}, nil
+
+	case "Merge Request Hook":
+		return &ParsedEvent{
+			Platform:        "gitlab",
+			EventType:       "merge_request",
+			ExternalEventID: fmt.Sprintf("%d", raw.ObjectAttributes.IID),
+			Title:           raw.ObjectAttributes.Title,
+			OccurredAt:      time.Now().UTC(),
+			SenderLogin:     raw.User.Username,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("unsupported gitlab event: %s", eventType)
+}
+
+// ParseConfluenceEvent parses a Confluence Cloud webhook payload.
+// Supported X-Event-Key values: "page_created", "page_updated".
+func ParseConfluenceEvent(eventKey string, body []byte) (*ParsedEvent, error) {
+	var raw struct {
+		Page struct {
+			ID        string `json:"id"`
+			Title     string `json:"title"`
+			CreatedBy struct {
+				DisplayName string `json:"displayName"`
+			} `json:"createdBy"`
+			Version struct {
+				By struct {
+					DisplayName string `json:"displayName"`
+				} `json:"by"`
+			} `json:"version"`
+		} `json:"page"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
+
+	switch eventKey {
+	case "page_created":
+		return &ParsedEvent{
+			Platform:        "confluence",
+			EventType:       "page_created",
+			ExternalEventID: raw.Page.ID,
+			Title:           raw.Page.Title,
+			OccurredAt:      time.Now().UTC(),
+			SenderLogin:     raw.Page.CreatedBy.DisplayName,
+		}, nil
+
+	case "page_updated":
+		return &ParsedEvent{
+			Platform:        "confluence",
+			EventType:       "page_updated",
+			ExternalEventID: raw.Page.ID,
+			Title:           raw.Page.Title,
+			OccurredAt:      time.Now().UTC(),
+			SenderLogin:     raw.Page.Version.By.DisplayName,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("unsupported confluence event: %s", eventKey)
 }

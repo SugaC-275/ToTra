@@ -96,3 +96,107 @@ func TestParseJiraEvent_CycleTime(t *testing.T) {
 		t.Errorf("CycleTimeHours = %v, want 120", event.CycleTimeHours)
 	}
 }
+
+// ---- GitLab ----
+
+func TestVerifyGitLabToken(t *testing.T) {
+	assert.True(t, services.VerifyGitLabToken("mysecret", "mysecret"))
+	assert.False(t, services.VerifyGitLabToken("mysecret", "wrongsecret"))
+	assert.False(t, services.VerifyGitLabToken("mysecret", ""))
+}
+
+func TestParseGitLabPushEvent(t *testing.T) {
+	payload := []byte(`{
+		"user_username": "alice-gl",
+		"commits": [{"author": {"name": "Alice"}}]
+	}`)
+	event, err := services.ParseGitLabEvent("Push Hook", payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "gitlab", event.Platform)
+	assert.Equal(t, "push", event.EventType)
+	assert.Equal(t, "Alice", event.SenderLogin)
+}
+
+func TestParseGitLabPushEvent_FallbackToUserUsername(t *testing.T) {
+	payload := []byte(`{
+		"user_username": "alice-gl",
+		"commits": [{"author": {"name": ""}}]
+	}`)
+	event, err := services.ParseGitLabEvent("Push Hook", payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "alice-gl", event.SenderLogin)
+}
+
+func TestParseGitLabPushEvent_NoCommits(t *testing.T) {
+	payload := []byte(`{"user_username": "alice-gl", "commits": []}`)
+	_, err := services.ParseGitLabEvent("Push Hook", payload)
+	assert.Error(t, err)
+}
+
+func TestParseGitLabMergeRequestEvent(t *testing.T) {
+	payload := []byte(`{
+		"user": {"username": "bob-gl"},
+		"object_attributes": {"action": "merged", "iid": 7, "title": "Fix login"}
+	}`)
+	event, err := services.ParseGitLabEvent("Merge Request Hook", payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "gitlab", event.Platform)
+	assert.Equal(t, "merge_request", event.EventType)
+	assert.Equal(t, "bob-gl", event.SenderLogin)
+	assert.Equal(t, "7", event.ExternalEventID)
+	assert.Equal(t, "Fix login", event.Title)
+}
+
+func TestParseGitLabUnsupportedEvent(t *testing.T) {
+	_, err := services.ParseGitLabEvent("Tag Push Hook", []byte(`{}`))
+	assert.Error(t, err)
+}
+
+// ---- Confluence ----
+
+func TestParseConfluencePageCreated(t *testing.T) {
+	payload := []byte(`{
+		"page": {
+			"id": "page-123",
+			"title": "My New Page",
+			"createdBy": {"displayName": "Carol"},
+			"version": {"by": {"displayName": "Carol"}}
+		}
+	}`)
+	event, err := services.ParseConfluenceEvent("page_created", payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "confluence", event.Platform)
+	assert.Equal(t, "page_created", event.EventType)
+	assert.Equal(t, "Carol", event.SenderLogin)
+	assert.Equal(t, "page-123", event.ExternalEventID)
+	assert.Equal(t, "My New Page", event.Title)
+}
+
+func TestParseConfluencePageUpdated(t *testing.T) {
+	payload := []byte(`{
+		"page": {
+			"id": "page-456",
+			"title": "Updated Page",
+			"createdBy": {"displayName": "Alice"},
+			"version": {"by": {"displayName": "Dave"}}
+		}
+	}`)
+	event, err := services.ParseConfluenceEvent("page_updated", payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "page_updated", event.EventType)
+	assert.Equal(t, "Dave", event.SenderLogin)
+	assert.Equal(t, "page-456", event.ExternalEventID)
+}
+
+func TestParseConfluenceUnsupportedEvent(t *testing.T) {
+	_, err := services.ParseConfluenceEvent("space_created", []byte(`{}`))
+	assert.Error(t, err)
+}
+
+func TestDefaultWeight_GitLabConfluence(t *testing.T) {
+	weights := map[string]float64{}
+	assert.Equal(t, 1.0, services.EventWeight("gitlab", "push", weights))
+	assert.Equal(t, 3.0, services.EventWeight("gitlab", "merge_request", weights))
+	assert.Equal(t, 2.0, services.EventWeight("confluence", "page_created", weights))
+	assert.Equal(t, 1.0, services.EventWeight("confluence", "page_updated", weights))
+}
