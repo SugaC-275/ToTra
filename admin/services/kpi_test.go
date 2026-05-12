@@ -96,3 +96,31 @@ func TestIsAnomalySCU(t *testing.T) {
 		t.Error("should not flag when std=0")
 	}
 }
+
+func TestAdaptiveWeights_v3(t *testing.T) {
+	// L1: GTS↑ 0.15→0.25 (OSS unreliable, reward growth more)
+	aW, oW, gW := services.AdaptiveWeights(1, true)
+	assert.InDelta(t, 1.0, aW+oW+gW, 1e-9, "L1 weights must sum to 1")
+	assert.InDelta(t, 0.25, gW, 1e-9, "L1 GTS should be 0.25")
+	assert.InDelta(t, 0.20, oW, 1e-9, "L1 OSS should be 0.20")
+	assert.InDelta(t, 0.55, aW, 1e-9, "L1 AIQ should be 0.55")
+
+	// L2: GTS↑ 0.15→0.20, OSS and AIQ balanced
+	aW2, oW2, gW2 := services.AdaptiveWeights(2, true)
+	assert.InDelta(t, 1.0, aW2+oW2+gW2, 1e-9, "L2 weights must sum to 1")
+	assert.InDelta(t, 0.20, gW2, 1e-9, "L2 GTS should be 0.20")
+	assert.InDelta(t, 0.40, oW2, 1e-9, "L2 OSS should be 0.40")
+	assert.InDelta(t, 0.40, aW2, 1e-9, "L2 AIQ should be 0.40")
+
+	// L3: unchanged — OSS dominant, GTS minimal
+	aW3, oW3, gW3 := services.AdaptiveWeights(3, true)
+	assert.InDelta(t, 1.0, aW3+oW3+gW3, 1e-9, "L3 weights must sum to 1")
+	assert.InDelta(t, 0.15, gW3, 1e-9, "L3 GTS should be 0.15 (unchanged)")
+	assert.InDelta(t, 0.50, oW3, 1e-9, "L3 OSS should be 0.50 (unchanged)")
+
+	// No-GTS: GTS weight (0.25) redistributed to AIQ → AIQ = 0.55+0.25 = 0.80
+	aW4, oW4, gW4 := services.AdaptiveWeights(1, false)
+	assert.InDelta(t, 1.0, aW4+oW4+gW4, 1e-9, "no-GTS weights must sum to 1")
+	assert.Equal(t, 0.0, gW4)
+	assert.InDelta(t, 0.80, aW4, 1e-9, "no-GTS L1 AIQ = 0.55+0.25")
+}

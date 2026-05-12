@@ -54,9 +54,9 @@ func DetectIntegrationLevel(activeWebhooks int) int {
 func AdaptiveWeights(level int, hasGTS bool) (float64, float64, float64) {
 	type w struct{ a, o, g float64 }
 	base := map[int]w{
-		1: {0.60, 0.25, 0.15},
-		2: {0.45, 0.40, 0.15},
-		3: {0.35, 0.50, 0.15},
+		1: {0.55, 0.20, 0.25}, // L1: OSS weak (no webhooks), GTS↑ incentivizes adoption
+		2: {0.40, 0.40, 0.20}, // L2: balanced, GTS↑ for growth awareness
+		3: {0.35, 0.50, 0.15}, // L3: OSS dominant (reliable signal), GTS minimal
 	}
 	b, ok := base[level]
 	if !ok {
