@@ -144,13 +144,22 @@ export function KpiPage() {
                     <Fragment key={s.user_id}>
                       <tr
                         onClick={() => toggleUser(s.user_id)}
-                        className={`border-b border-zinc-800/50 cursor-pointer transition-colors ${s.anomaly_flagged ? "bg-red-950/30 hover:bg-red-900/30" : "hover:bg-zinc-800/30"}`}
+                        className={`border-b border-zinc-800/50 cursor-pointer transition-colors ${
+                          s.anomaly_flagged
+                            ? "bg-red-950/30 hover:bg-red-900/30"
+                            : s.anomaly_soft_flagged
+                            ? "bg-yellow-950/20 hover:bg-yellow-900/20"
+                            : "hover:bg-zinc-800/30"
+                        }`}
                       >
                         <td className="py-2 px-4 font-bold text-indigo-400">#{s.rank}</td>
                         <td className="py-2">
                           <span>{s.user_name}</span>
                           {s.anomaly_flagged && (
                             <Badge variant="destructive" className="ml-2 text-xs">⚠ Review</Badge>
+                          )}
+                          {s.anomaly_soft_flagged && !s.anomaly_flagged && (
+                            <Badge variant="outline" className="ml-2 text-xs text-yellow-400 border-yellow-400/50">⚠ Watch</Badge>
                           )}
                           <span className="ml-2 text-zinc-600 text-xs">
                             {expandedUser === s.user_id ? "▲" : "▼"}

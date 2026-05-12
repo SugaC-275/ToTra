@@ -138,6 +138,7 @@ export interface EfficiencySnapshot {
   gts_score: number;
   integration_level: number;
   anomaly_flagged: boolean;
+  anomaly_soft_flagged: boolean;
   peer_group: string;
   rank: number;
   peer_count: number;
