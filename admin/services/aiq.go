@@ -110,6 +110,12 @@ func ComputeAIQScores(metrics []*RawAIQMetrics) map[string]float64 {
 	if len(eligible) == 0 {
 		return result
 	}
+	// Single eligible user: Z-score normalization is undefined with n=1.
+	// Assign a neutral midpoint score rather than letting std=0 produce silent 50s.
+	if len(eligible) == 1 {
+		result[eligible[0].UserID] = 50
+		return result
+	}
 
 	// Cap OutputDensity at 95th percentile (anti-gaming)
 	odVals := make([]float64, len(eligible))

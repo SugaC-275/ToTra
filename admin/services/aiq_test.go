@@ -82,6 +82,21 @@ func TestMinPeerGroupSize(t *testing.T) {
 	}
 }
 
+func TestComputeAIQScores_SingleEligible(t *testing.T) {
+	// One eligible user in the global pool: should get neutral score 50, not panic or -1
+	metrics := []*services.RawAIQMetrics{
+		{UserID: "u1", OutputDensity: 1.5, UsageConsistency: 0.6, TaskDepth: 3.0, CostEfficiency: 60, ActiveDays: 12},
+		{UserID: "u2", OutputDensity: 0.3, UsageConsistency: 0.1, TaskDepth: 0.5, CostEfficiency: 10, ActiveDays: 2}, // below threshold
+	}
+	scores := services.ComputeAIQScores(metrics)
+	if scores["u1"] != 50 {
+		t.Errorf("single eligible user should get neutral score 50, got %v", scores["u1"])
+	}
+	if scores["u2"] != -1 {
+		t.Errorf("ineligible user should get -1, got %v", scores["u2"])
+	}
+}
+
 func TestComputeAIQScores_SmallGroupStillScored(t *testing.T) {
 	// 3 users (< MinPeerGroupSize=5): when the caller routes them to a global
 	// pool, ComputeAIQScores must still produce valid scores (not all -1).
