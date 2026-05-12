@@ -136,12 +136,18 @@ func TestComputeOSSLevelOne_SingleUser(t *testing.T) {
 }
 
 func TestComputeOSSLevelOne_ZeroSessions(t *testing.T) {
+	// Inactive user (zero sessions) in a group with an active peer:
+	// inactive user should score 0, active user should score 1.0 (peer max).
 	data := map[string]services.SessionDepthData{
-		"u1": {TotalSessions: 0, MultiTurnSessions: 0},
+		"active":   {TotalSessions: 8, MultiTurnSessions: 4},
+		"inactive": {TotalSessions: 0, MultiTurnSessions: 0},
 	}
 	scores := services.ComputeOSSLevelOne(data)
-	if scores["u1"] != 0 {
-		t.Errorf("zero sessions should give score 0, got %v", scores["u1"])
+	if scores["inactive"] != 0 {
+		t.Errorf("inactive user should score 0, got %v", scores["inactive"])
+	}
+	if math.Abs(scores["active"]-1.0) > 1e-9 {
+		t.Errorf("active user (peer max) should score 1.0, got %v", scores["active"])
 	}
 }
 

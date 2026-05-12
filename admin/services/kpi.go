@@ -130,7 +130,7 @@ func ComputeOSSLevelOne(data map[string]SessionDepthData) map[string]float64 {
 	depthRatios := make(map[string]float64, len(data))
 	for uid, d := range data {
 		if d.TotalSessions > 0 {
-			depthRatios[uid] = float64(d.MultiTurnSessions) / float64(d.TotalSessions)
+			depthRatios[uid] = math.Min(float64(d.MultiTurnSessions)/float64(d.TotalSessions), 1.0)
 		}
 		if float64(d.TotalSessions) > maxSessions {
 			maxSessions = float64(d.TotalSessions)
@@ -184,6 +184,9 @@ func (s *KPIService) ossLevelOne(ctx context.Context, tenantID, yearMonth string
 			return nil, err
 		}
 		data[uid] = d
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return ComputeOSSLevelOne(data), nil
 }
