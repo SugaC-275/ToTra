@@ -97,6 +97,54 @@ func TestIsAnomalySCU(t *testing.T) {
 	}
 }
 
+func TestComputeOSSLevelOne_Basic(t *testing.T) {
+	data := map[string]services.SessionDepthData{
+		"u1": {TotalSessions: 10, MultiTurnSessions: 8}, // 80% deep, highest volume
+		"u2": {TotalSessions: 5, MultiTurnSessions: 1},  // 20% deep, medium volume
+		"u3": {TotalSessions: 8, MultiTurnSessions: 0},  // 0% deep, no multi-turn
+	}
+	scores := services.ComputeOSSLevelOne(data)
+	if scores["u1"] <= scores["u2"] {
+		t.Errorf("u1 (deeper + more sessions) should beat u2, got u1=%v u2=%v", scores["u1"], scores["u2"])
+	}
+	if scores["u2"] <= scores["u3"] {
+		t.Errorf("u2 (some multi-turn) should beat u3 (none), got u2=%v u3=%v", scores["u2"], scores["u3"])
+	}
+	for uid, sc := range scores {
+		if sc < 0 || sc > 1+1e-9 {
+			t.Errorf("user %s: score %v out of [0,1]", uid, sc)
+		}
+	}
+}
+
+func TestComputeOSSLevelOne_Empty(t *testing.T) {
+	scores := services.ComputeOSSLevelOne(map[string]services.SessionDepthData{})
+	if len(scores) != 0 {
+		t.Errorf("empty input should return empty map, got %v", scores)
+	}
+}
+
+func TestComputeOSSLevelOne_SingleUser(t *testing.T) {
+	data := map[string]services.SessionDepthData{
+		"u1": {TotalSessions: 5, MultiTurnSessions: 3},
+	}
+	scores := services.ComputeOSSLevelOne(data)
+	// Single user: normalized depth = 1.0, normalized volume = 1.0 → score = 1.0
+	if math.Abs(scores["u1"]-1.0) > 1e-9 {
+		t.Errorf("single user should get 1.0, got %v", scores["u1"])
+	}
+}
+
+func TestComputeOSSLevelOne_ZeroSessions(t *testing.T) {
+	data := map[string]services.SessionDepthData{
+		"u1": {TotalSessions: 0, MultiTurnSessions: 0},
+	}
+	scores := services.ComputeOSSLevelOne(data)
+	if scores["u1"] != 0 {
+		t.Errorf("zero sessions should give score 0, got %v", scores["u1"])
+	}
+}
+
 func TestAdaptiveWeights_v3(t *testing.T) {
 	// L1: GTS↑ 0.15→0.25 (OSS unreliable, reward growth more)
 	aW, oW, gW := services.AdaptiveWeights(1, true)

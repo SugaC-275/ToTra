@@ -114,39 +114,78 @@ func IsAnomalySCU(currentSCU float64, priorSCUs []float64) bool {
 	return currentSCU > mean+3*std
 }
 
-// ossLevelFallback computes the Level 1 OSS score using completion_tokens as output proxy.
-func (s *KPIService) ossLevelFallback(ctx context.Context, tenantID, yearMonth string) (map[string]float64, error) {
+// SessionDepthData holds raw session counts for one user (exported for unit tests).
+type SessionDepthData struct {
+	TotalSessions     int
+	MultiTurnSessions int // conversations with >= 3 turns
+}
+
+// ComputeOSSLevelOne computes OSS for L1 (no-webhook) users using session-depth signal.
+// score = 0.6 × (depth_ratio / peer_max_depth) + 0.4 × (log(sessions+1) / log(peer_max_sessions+1))
+func ComputeOSSLevelOne(data map[string]SessionDepthData) map[string]float64 {
+	if len(data) == 0 {
+		return map[string]float64{}
+	}
+	var maxSessions float64
+	depthRatios := make(map[string]float64, len(data))
+	for uid, d := range data {
+		if d.TotalSessions > 0 {
+			depthRatios[uid] = float64(d.MultiTurnSessions) / float64(d.TotalSessions)
+		}
+		if float64(d.TotalSessions) > maxSessions {
+			maxSessions = float64(d.TotalSessions)
+		}
+	}
+	var maxDepth float64
+	for _, dr := range depthRatios {
+		if dr > maxDepth {
+			maxDepth = dr
+		}
+	}
+	result := make(map[string]float64, len(data))
+	for uid, d := range data {
+		depthNorm := 0.0
+		if maxDepth > 0 {
+			depthNorm = depthRatios[uid] / maxDepth
+		}
+		volumeFactor := 0.0
+		if maxSessions > 0 {
+			volumeFactor = math.Log(float64(d.TotalSessions)+1) / math.Log(maxSessions+1)
+		}
+		result[uid] = 0.6*depthNorm + 0.4*volumeFactor
+	}
+	return result
+}
+
+// ossLevelOne fetches session-depth data from the DB and computes L1 OSS scores.
+func (s *KPIService) ossLevelOne(ctx context.Context, tenantID, yearMonth string) (map[string]float64, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT user_id, COALESCE(SUM(completion_tokens),0)
-		FROM usage_records
-		WHERE tenant_id=$1 AND to_char(request_at,'YYYY-MM')=$2
-		GROUP BY user_id`, tenantID, yearMonth)
+		WITH conv AS (
+			SELECT user_id, conversation_id, COUNT(*) AS turns
+			FROM usage_records
+			WHERE tenant_id=$1 AND to_char(request_at,'YYYY-MM')=$2
+			  AND conversation_id IS NOT NULL
+			GROUP BY user_id, conversation_id
+		)
+		SELECT user_id,
+		       COUNT(*)                            AS total_sessions,
+		       COUNT(*) FILTER (WHERE turns >= 3) AS multi_turn_sessions
+		FROM conv GROUP BY user_id`, tenantID, yearMonth)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	m := map[string]float64{}
-	vals := []float64{}
-	ids := []string{}
+	data := map[string]SessionDepthData{}
 	for rows.Next() {
 		var uid string
-		var tokens float64
-		rows.Scan(&uid, &tokens)
-		m[uid] = tokens
-		vals = append(vals, tokens)
-		ids = append(ids, uid)
-	}
-	peerMedian := Median(vals)
-	result := map[string]float64{}
-	for _, uid := range ids {
-		if peerMedian <= 0 {
-			result[uid] = 0
-			continue
+		var d SessionDepthData
+		if err := rows.Scan(&uid, &d.TotalSessions, &d.MultiTurnSessions); err != nil {
+			return nil, err
 		}
-		result[uid] = math.Log(m[uid]+1) / math.Log(peerMedian+1)
+		data[uid] = d
 	}
-	return result, nil
+	return ComputeOSSLevelOne(data), nil
 }
 
 type outputEventRow struct {
@@ -356,9 +395,9 @@ func (s *KPIService) RunMonthlySnapshot(ctx context.Context, tenantID, yearMonth
 	// 6. Compute OSS
 	ossScores := map[string]float64{}
 	if level == 1 {
-		ossScores, err = s.ossLevelFallback(ctx, tenantID, yearMonth)
+		ossScores, err = s.ossLevelOne(ctx, tenantID, yearMonth)
 		if err != nil {
-			return fmt.Errorf("oss fallback: %w", err)
+			return fmt.Errorf("oss level-1: %w", err)
 		}
 	} else {
 		events, err := s.getOutputEvents(ctx, tenantID, yearMonth)
