@@ -151,6 +151,40 @@ func TestComputeOSSLevelOne_ZeroSessions(t *testing.T) {
 	}
 }
 
+func TestIsAnomaly(t *testing.T) {
+	// Not enough prior data → both false
+	hard, soft := services.IsAnomaly(1000, []float64{500})
+	assert.False(t, hard)
+	assert.False(t, soft)
+
+	// Normal usage (well within 2σ) → both false
+	// [100,105,110]: mean=105, std=5; 2σ threshold=115
+	hard2, soft2 := services.IsAnomaly(112, []float64{100, 105, 110})
+	assert.False(t, hard2, "112 is within 2σ of [100,105,110]")
+	assert.False(t, soft2)
+
+	// Soft anomaly: between 2σ and 3σ
+	// [95,100,105]: mean=100, std=5; 2σ=110, 3σ=115
+	hard3, soft3 := services.IsAnomaly(112, []float64{95, 100, 105})
+	assert.False(t, hard3, "112 should not hard-flag (< 3σ=115)")
+	assert.True(t, soft3, "112 should soft-flag (> 2σ=110)")
+
+	// Hard anomaly: >3σ — soft should be false (mutually exclusive)
+	hard4, soft4 := services.IsAnomaly(1000, []float64{100, 110, 105})
+	assert.True(t, hard4, "1000 is a hard anomaly")
+	assert.False(t, soft4, "hard anomaly should not also set soft")
+
+	// std=0 (identical prior months) → both false
+	hard5, soft5 := services.IsAnomaly(200, []float64{100, 100, 100})
+	assert.False(t, hard5)
+	assert.False(t, soft5)
+}
+
+func TestIsAnomalySCU_BackwardCompat(t *testing.T) {
+	assert.False(t, services.IsAnomalySCU(120, []float64{100, 110, 105}))
+	assert.True(t, services.IsAnomalySCU(1000, []float64{100, 110, 105}))
+}
+
 func TestAdaptiveWeights_v3(t *testing.T) {
 	// L1: GTS↑ 0.15→0.25 (OSS unreliable, reward growth more)
 	aW, oW, gW := services.AdaptiveWeights(1, true)
