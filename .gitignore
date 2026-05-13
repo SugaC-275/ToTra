@@ -6,3 +6,4 @@ vendor/
 *.exe
 *.test
 .DS_Store
+.worktrees/
