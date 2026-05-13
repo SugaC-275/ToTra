@@ -212,3 +212,47 @@ func TestAdaptiveWeights_v3(t *testing.T) {
 	assert.Equal(t, 0.0, gW4)
 	assert.InDelta(t, 0.80, aW4, 1e-9, "no-GTS L1 AIQ = 0.55+0.25")
 }
+
+func TestResolveWeights_FallsBackToV3WhenNoMLWeights(t *testing.T) {
+	// Empty map → same result as AdaptiveWeights
+	emptyML := map[int]services.PillarWeights{}
+
+	a1, o1, g1 := services.AdaptiveWeights(1, true)
+	a2, o2, g2 := services.ResolveWeights(1, true, emptyML)
+	assert.InDelta(t, a1, a2, 1e-9)
+	assert.InDelta(t, o1, o2, 1e-9)
+	assert.InDelta(t, g1, g2, 1e-9)
+}
+
+func TestResolveWeights_UsesMLWeightsWhenPresent(t *testing.T) {
+	ml := map[int]services.PillarWeights{
+		2: {AIQ: 0.45, OSS: 0.35, GTS: 0.20},
+	}
+	a, o, g := services.ResolveWeights(2, true, ml)
+	assert.InDelta(t, 0.45, a, 1e-9)
+	assert.InDelta(t, 0.35, o, 1e-9)
+	assert.InDelta(t, 0.20, g, 1e-9)
+}
+
+func TestResolveWeights_NoGTSRedistributesGTSToAIQ(t *testing.T) {
+	ml := map[int]services.PillarWeights{
+		1: {AIQ: 0.55, OSS: 0.20, GTS: 0.25},
+	}
+	// hasGTS=false → GTS weight should be added to AIQ, GTS returns 0
+	a, o, g := services.ResolveWeights(1, false, ml)
+	assert.InDelta(t, 0.80, a, 1e-9) // 0.55 + 0.25
+	assert.InDelta(t, 0.20, o, 1e-9)
+	assert.Equal(t, 0.0, g)
+}
+
+func TestResolveWeights_FallsBackForUnknownLevel(t *testing.T) {
+	// ML has level 2 but we ask for level 99 → fallback to v3 (which defaults to L1)
+	ml := map[int]services.PillarWeights{
+		2: {AIQ: 0.40, OSS: 0.40, GTS: 0.20},
+	}
+	a, o, g := services.ResolveWeights(99, true, ml)
+	a0, o0, g0 := services.AdaptiveWeights(99, true)
+	assert.InDelta(t, a0, a, 1e-9)
+	assert.InDelta(t, o0, o, 1e-9)
+	assert.InDelta(t, g0, g, 1e-9)
+}
