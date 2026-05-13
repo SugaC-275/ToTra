@@ -16,6 +16,15 @@ services:
       - ./infra/postgres/003_phase2.sql:/docker-entrypoint-initdb.d/003_phase2.sql:ro
       - ./infra/postgres/004_algorithm_v2.sql:/docker-entrypoint-initdb.d/004_algorithm_v2.sql:ro
       - ./infra/postgres/005_anomaly_detection.sql:/docker-entrypoint-initdb.d/005_anomaly_detection.sql:ro
+      - ./infra/postgres/006_ip_allowlist.sql:/docker-entrypoint-initdb.d/006_ip_allowlist.sql:ro
+      - ./infra/postgres/007_add_gitlab_confluence_platforms.sql:/docker-entrypoint-initdb.d/007_add_gitlab_confluence_platforms.sql:ro
+      - ./infra/postgres/008_bot_configs.sql:/docker-entrypoint-initdb.d/008_bot_configs.sql:ro
+      - ./infra/postgres/009_roi_reports.sql:/docker-entrypoint-initdb.d/009_roi_reports.sql:ro
+      - ./infra/postgres/010_agent_sessions.sql:/docker-entrypoint-initdb.d/010_agent_sessions.sql:ro
+      - ./infra/postgres/011_audit_log.sql:/docker-entrypoint-initdb.d/011_audit_log.sql:ro
+      - ./infra/postgres/012_gdpr_compliance.sql:/docker-entrypoint-initdb.d/012_gdpr_compliance.sql:ro
+      - ./infra/postgres/013_kpi_v3.sql:/docker-entrypoint-initdb.d/013_kpi_v3.sql:ro
+      - ./infra/postgres/014_ml_infrastructure.sql:/docker-entrypoint-initdb.d/014_ml_infrastructure.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
