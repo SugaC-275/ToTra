@@ -164,6 +164,9 @@ func (s *KPIService) loadMLWeights(ctx context.Context) map[int]PillarWeights {
 		}
 		result[lvl] = w
 	}
+	if rows.Err() != nil {
+		return map[int]PillarWeights{}
+	}
 	return result
 }
 
