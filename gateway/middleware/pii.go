@@ -17,6 +17,12 @@ var piiPatterns = []*piiRule{
 	{name: "credit_card", re: regexp.MustCompile(`\b(?:\d[ -]?){13,16}\b`)},
 	{name: "email", re: regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)},
 	{name: "bank_account", re: regexp.MustCompile(`\b\d{16,19}\b`)},
+	// Finance industry
+	{name: "contract_amount", re: regexp.MustCompile(`(?:合同金额|合同价款)[：:\s]*[¥￥]?\d[\d,\.]*(?:万|千万|亿)?元?`)},
+	{name: "transaction_id", re: regexp.MustCompile(`(?:交易流水号|流水号|交易编号)[：:\s]*[A-Za-z0-9\-]{8,}`)},
+	// Medical industry
+	{name: "patient_id", re: regexp.MustCompile(`(?:患者[Ii][Dd]|患者编号|病历号|住院号)[：:\s]*[A-Za-z0-9\-]{4,20}`)},
+	{name: "icd_code", re: regexp.MustCompile(`\bICD[-–]?(?:10|11)[-–]\s*[A-Z]\d{2}(?:\.\d{1,4})?\b`)},
 }
 
 // ViolationRecorder is the interface PIIMiddleware uses to record violations.

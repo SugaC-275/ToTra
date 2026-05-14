@@ -68,3 +68,39 @@ func TestPIIMiddleware_CleanRequestPasses(t *testing.T) {
 	resp, _ := app.Test(req)
 	assert.Equal(t, 200, resp.StatusCode)
 }
+
+func TestPIIMiddleware_ContractAmount(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"审核合同金额：12,345,678元的采购合同"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_TransactionID(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"查询交易流水号：TX20260514001234的状态"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_PatientID(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"患者ID: P20260514001的检查报告"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_ICDCode(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"患者诊断：ICD-10-A01.0，请给出治疗方案"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
