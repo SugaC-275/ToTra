@@ -27,6 +27,7 @@ services:
       - ./infra/postgres/016_drop_kpi_tables.sql:/docker-entrypoint-initdb.d/016_drop_kpi_tables.sql:ro
       - ./infra/postgres/017_industry_compliance.sql:/docker-entrypoint-initdb.d/017_industry_compliance.sql:ro
       - ./infra/postgres/018_routing_events.sql:/docker-entrypoint-initdb.d/018_routing_events.sql:ro
+      - ./infra/postgres/020_cost_settings.sql:/docker-entrypoint-initdb.d/020_cost_settings.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
