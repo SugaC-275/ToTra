@@ -44,6 +44,7 @@ func main() {
 	piiStore := storage.NewPIIStore(pool, 256)
 	requestCache := storage.NewRequestCache(rdb)
 	routingStore := storage.NewRoutingStore(pool)
+	policyRuleStore := storage.NewPolicyRuleStore(pool, rdb)
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  30 * time.Second,
@@ -58,6 +59,7 @@ func main() {
 		middleware.NewAuthMiddleware(pgUserLookup),
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
 		middleware.NewPIIMiddleware(piiStore, ""),
+		middleware.NewPolicyMiddleware(policyRuleStore),
 		middleware.NewAutoRouterMiddleware(routingStore),
 		middleware.NewAgentMiddleware(agentStore),
 	)
