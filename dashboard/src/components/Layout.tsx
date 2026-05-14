@@ -25,6 +25,7 @@ const adminNavItems = [
   { label: "Agent Tracking", href: "/admin/agent-tracking" },
   { label: "Audit Log", href: "/admin/audit-log" },
   { label: "GDPR & Compliance", href: "/admin/gdpr" },
+  { label: "Cost Center", href: "/admin/cost" },
   { label: "My Usage", href: "/me" },
 ];
 
