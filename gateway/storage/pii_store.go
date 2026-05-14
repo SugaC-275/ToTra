@@ -1,8 +1,12 @@
 package storage
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"log"
+	"net/http"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -54,6 +58,31 @@ func (s *PIIStore) flush() {
 			r.TenantID, userID, r.PIIType, r.Action, r.RequestPath)
 		if err != nil {
 			log.Printf("pii_store: insert error: %v", err)
+			continue
+		}
+		// Fire-and-forget HTTP alert to admin service
+		if adminURL := os.Getenv("ADMIN_INTERNAL_URL"); adminURL != "" {
+			go func(rec ViolationRecord) {
+				body, _ := json.Marshal(map[string]string{
+					"tenant_id":    rec.TenantID,
+					"user_id":      rec.UserID,
+					"pii_type":     rec.PIIType,
+					"request_path": rec.RequestPath,
+				})
+				req, err := http.NewRequest("POST", adminURL+"/internal/compliance/pii-alert", bytes.NewReader(body))
+				if err != nil {
+					log.Printf("pii_store: build alert request error: %v", err)
+					return
+				}
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Internal-Secret", os.Getenv("INTERNAL_SECRET"))
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					log.Printf("pii_store: send alert error: %v", err)
+					return
+				}
+				resp.Body.Close()
+			}(r)
 		}
 	}
 }
