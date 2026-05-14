@@ -41,6 +41,7 @@ func main() {
 	agentStore := storage.NewAgentStore(rdb, pool, cfg.AgentLoopLimit)
 	pgUserLookup := storage.NewPGUserLookup(pool)
 	pgUserQuota := storage.NewPGUserQuota(pool)
+	piiStore := storage.NewPIIStore(pool, 256)
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  30 * time.Second,
@@ -54,7 +55,7 @@ func main() {
 	v1 := app.Group("/v1",
 		middleware.NewAuthMiddleware(pgUserLookup),
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
-		middleware.NewPIIMiddleware(),
+		middleware.NewPIIMiddleware(piiStore, ""),
 		middleware.NewAgentMiddleware(agentStore),
 	)
 

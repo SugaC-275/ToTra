@@ -38,6 +38,11 @@ func (s *PIIStore) Record(r ViolationRecord) {
 	}
 }
 
+// RecordViolation implements the middleware.ViolationRecorder interface.
+func (s *PIIStore) RecordViolation(tenantID, userID, piiType, action, requestPath string) {
+	s.Record(BuildViolationRecord(tenantID, userID, piiType, action, requestPath))
+}
+
 func (s *PIIStore) flush() {
 	for r := range s.ch {
 		var userID *string
