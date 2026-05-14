@@ -76,6 +76,8 @@ func main() {
 	api.RegisterComplianceRoutes(protected, complianceSvc)
 	api.RegisterChecklistRoutes(protected, checklistSvc)
 	api.RegisterComplianceAdvancedRoutes(protected, anomalySvc, complianceBenchmarkSvc)
+	policyRulesSvc := services.NewPolicyRulesService(pool)
+	api.RegisterPolicyRulesRoutes(protected, policyRulesSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
