@@ -46,6 +46,8 @@ func main() {
 
 	complianceSvc := services.NewComplianceService(pool)
 	checklistSvc := services.NewChecklistService(pool)
+	anomalySvc := services.NewAnomalyService(pool)
+	complianceBenchmarkSvc := services.NewComplianceBenchmarkService(pool)
 	internalSecret := os.Getenv("INTERNAL_SECRET")
 	api.RegisterComplianceInternalRoutes(app, complianceSvc, botSvc, internalSecret)
 
@@ -70,6 +72,7 @@ func main() {
 	api.RegisterGDPRRoutes(protected, retentionSvc, deletionSvc)
 	api.RegisterComplianceRoutes(protected, complianceSvc)
 	api.RegisterChecklistRoutes(protected, checklistSvc)
+	api.RegisterComplianceAdvancedRoutes(protected, anomalySvc, complianceBenchmarkSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
