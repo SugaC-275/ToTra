@@ -124,26 +124,6 @@ export interface QuotaRequest {
   status: string;
 }
 
-// ---- Phase 2 types ----
-export interface EfficiencySnapshot {
-  id: string;
-  user_id: string;
-  user_name: string;
-  year_month: string;
-  total_scu: number;
-  total_output_weight: number;
-  efficiency_score: number;
-  aiq_score: number;
-  oss_score: number;
-  gts_score: number;
-  integration_level: number;
-  anomaly_flagged: boolean;
-  anomaly_soft_flagged: boolean;
-  peer_group: string;
-  rank: number;
-  peer_count: number;
-  snapshot_at: string;
-}
 
 export interface WebhookConfig {
   id: string;
@@ -159,36 +139,6 @@ export interface UserIntegration {
   created_by: string;
 }
 
-export interface FuelTransaction {
-  id: string;
-  amount_scu: number;
-  reason: string;
-  tier: string;
-  created_at: string;
-}
-
-export interface FuelSettings {
-  top_10pct_bonus: number;
-  top_25pct_bonus: number;
-  top_50pct_bonus: number;
-}
-
-// ---- Phase 2 API functions ----
-export const getKPISnapshots = (month: string) =>
-  apiClient.get<{ month: string; snapshots: EfficiencySnapshot[] }>(
-    `/api/kpi/snapshots?month=${month}`
-  );
-
-export const triggerKPISnapshot = (month: string) =>
-  apiClient.post(`/api/admin/kpi/run?month=${month}`);
-
-export const getKPIAnomalies = (month: string) =>
-  apiClient.get<{ month: string; anomalies: EfficiencySnapshot[] }>(
-    `/api/admin/kpi/anomalies?month=${month}`
-  );
-
-export const getMyKPI = () =>
-  apiClient.get<{ snapshots: EfficiencySnapshot[] }>("/api/me/kpi");
 
 export const getWebhookConfigs = () =>
   apiClient.get<{ configs: WebhookConfig[] }>("/api/integrations");
@@ -205,19 +155,6 @@ export const getMyIntegrations = () =>
 export const bindIntegration = (platform: string, external_id: string) =>
   apiClient.post("/api/me/integrations", { platform, external_id });
 
-export const getFuelSettings = () =>
-  apiClient.get<FuelSettings>("/api/fuel/settings");
-
-export const updateFuelSettings = (data: FuelSettings) =>
-  apiClient.put("/api/fuel/settings", data);
-
-export const getMyFuel = () =>
-  apiClient.get<{ transactions: FuelTransaction[] }>("/api/me/fuel");
-
-export const getKPIUserHistory = (user_id: string) =>
-  apiClient.get<{ snapshots: EfficiencySnapshot[] }>(
-    `/api/kpi/user-history?user_id=${user_id}`
-  );
 
 export const getMyQuota = () =>
   apiClient.get<{ quota_scu: number; used_scu: number }>("/api/me/quota");
@@ -233,19 +170,6 @@ export interface UserProfile {
   department: string;
 }
 
-export interface AIQSubmetrics {
-  output_density: number;
-  usage_consistency: number;
-  task_depth: number;
-  cost_efficiency: number;
-  active_days: number;
-  working_days: number;
-}
-
-export const getMyKPISubmetrics = (month: string) =>
-  apiClient.get<{ month: string; metrics: AIQSubmetrics | null }>(
-    `/api/me/kpi/submetrics?month=${month}`
-  );
 
 
 export const getMyProfile = () =>
@@ -334,10 +258,6 @@ export const deleteBotConfig = async (id: string): Promise<void> => {
   await apiClient.delete(`/api/admin/bot-configs/${id}`);
 };
 
-export const sendKPISummary = async (month: string): Promise<void> => {
-  await apiClient.post(`/api/admin/bot-configs/send-summary?month=${month}`);
-};
-
 export const sendTestBotMessage = async (id: string): Promise<void> => {
   await apiClient.post(`/api/admin/bot-configs/${id}/test`);
 };
@@ -355,49 +275,6 @@ export const syncHRCSV = async (file: File): Promise<SyncResult> => {
   const formData = new FormData();
   formData.append("file", file);
   const { data } = await apiClient.post("/api/admin/hr/sync", formData);
-  return data;
-};
-
-// ---- Executive ROI Reports ----
-
-export interface QuarterROI {
-  quarter: string;
-  total_usd: number;
-  total_output: number;
-  roi_score: number;
-  active_users: number;
-}
-
-export interface BenchmarkResult {
-  tenant_avg_efficiency: number;
-  percentile: number;
-  industry_p25: number;
-  industry_p50: number;
-  industry_p75: number;
-  industry_p90: number;
-  label: string;
-}
-
-export interface DeptChallengeEntry {
-  department: string;
-  avg_aiq_score: number;
-  user_count: number;
-  rank: number;
-  is_winner: boolean;
-}
-
-export const getQuarterlyROI = async (year: string): Promise<QuarterROI[]> => {
-  const { data } = await apiClient.get(`/api/admin/roi/quarterly?year=${year}`);
-  return data;
-};
-
-export const getROIBenchmark = async (month: string): Promise<BenchmarkResult> => {
-  const { data } = await apiClient.get(`/api/admin/roi/benchmark?month=${month}`);
-  return data;
-};
-
-export const getDeptChallenge = async (month: string): Promise<DeptChallengeEntry[]> => {
-  const { data } = await apiClient.get(`/api/admin/roi/challenge?month=${month}`);
   return data;
 };
 
@@ -473,21 +350,10 @@ export interface ExportUsageRecord {
   response_ms: number;
 }
 
-export interface ExportSnapshot {
-  year_month: string;
-  efficiency_score: number;
-  aiq_score: number;
-  oss_score: number;
-  gts_score: number;
-  rank: number;
-  peer_count: number;
-}
-
 export interface DataExport {
   exported_at: string;
   user_id: string;
   usage_records: ExportUsageRecord[];
-  efficiency_history: ExportSnapshot[];
 }
 
 export const getDataRetention = () =>

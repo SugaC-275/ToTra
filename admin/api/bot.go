@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yourorg/totra/admin/services"
@@ -12,13 +11,11 @@ type BotServiceIface interface {
 	List(ctx context.Context, tenantID string) ([]services.BotConfig, error)
 	Add(ctx context.Context, tenantID, platform, webhookURL, label string) (*services.BotConfig, error)
 	Delete(ctx context.Context, tenantID, id string) error
-	SendKPISummary(ctx context.Context, tenantID, month string) error
 	SendTestMessage(ctx context.Context, tenantID, id string) error
 }
 
 func RegisterBotRoutes(app fiber.Router, svc BotServiceIface) {
 	app.Get("/api/admin/bot-configs", listBotConfigs(svc))
-	app.Post("/api/admin/bot-configs/send-summary", sendBotKPISummary(svc))
 	app.Post("/api/admin/bot-configs", addBotConfig(svc))
 	app.Delete("/api/admin/bot-configs/:id", deleteBotConfig(svc))
 	app.Post("/api/admin/bot-configs/:id/test", sendBotTestMessage(svc))
@@ -76,23 +73,6 @@ func deleteBotConfig(svc BotServiceIface) fiber.Handler {
 			return c.Status(404).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(fiber.Map{"status": "deleted"})
-	}
-}
-
-func sendBotKPISummary(svc BotServiceIface) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		claims, ok := c.Locals("claims").(*services.Claims)
-		if !ok || claims.Role != "admin" {
-			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
-		}
-		month := c.Query("month")
-		if month == "" {
-			month = time.Now().UTC().Format("2006-01")
-		}
-		if err := svc.SendKPISummary(c.Context(), claims.TenantID, month); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-		}
-		return c.JSON(fiber.Map{"status": "sent", "month": month})
 	}
 }
 

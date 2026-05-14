@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -20,11 +19,6 @@ type BotConfig struct {
 	Label     string    `json:"label"`
 	Enabled   bool      `json:"enabled"`
 	CreatedAt time.Time `json:"created_at"`
-}
-
-type BotTopEntry struct {
-	UserName string
-	AIQScore float64
 }
 
 type botEntry struct {
@@ -123,58 +117,6 @@ func (s *BotService) loadEnabledConfigs(ctx context.Context, tenantID string) ([
 	return result, rows.Err()
 }
 
-func (s *BotService) SendKPISummary(ctx context.Context, tenantID, month string) error {
-	configs, err := s.loadEnabledConfigs(ctx, tenantID)
-	if err != nil {
-		return err
-	}
-	if len(configs) == 0 {
-		return nil
-	}
-
-	rows, err := s.pool.Query(ctx,
-		`SELECT u.name, es.aiq_score
-		 FROM efficiency_snapshots es
-		 JOIN users u ON u.id = es.user_id
-		 WHERE es.tenant_id = $1 AND es.year_month = $2
-		   AND es.anomaly_flagged = FALSE
-		 ORDER BY es.aiq_score DESC
-		 LIMIT 3`,
-		tenantID, month,
-	)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	var topEntries []BotTopEntry
-	for rows.Next() {
-		var e BotTopEntry
-		if err := rows.Scan(&e.UserName, &e.AIQScore); err != nil {
-			return err
-		}
-		topEntries = append(topEntries, e)
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-
-	var tenantName string
-	if err := s.pool.QueryRow(ctx, `SELECT name FROM tenants WHERE id = $1`, tenantID).Scan(&tenantName); err != nil {
-		tenantName = tenantID
-	}
-
-	message := FormatKPISummaryMessage(tenantName, month, topEntries)
-
-	var errs []error
-	for _, cfg := range configs {
-		if err := SendBotMessage(cfg.platform, cfg.webhookURL, message); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errors.Join(errs...)
-}
-
 func (s *BotService) SendTestMessage(ctx context.Context, tenantID, id string) error {
 	var platform, encURL string
 	err := s.pool.QueryRow(ctx,
@@ -189,20 +131,6 @@ func (s *BotService) SendTestMessage(ctx context.Context, tenantID, id string) e
 		return err
 	}
 	return SendBotMessage(platform, url, "ToTra bot notification test — connection successful!")
-}
-
-// FormatKPISummaryMessage builds the notification text for KPI summary.
-func FormatKPISummaryMessage(tenantName, month string, top []BotTopEntry) string {
-	msg := fmt.Sprintf("ToTra KPI Summary — %s (%s)\n", tenantName, month)
-	if len(top) == 0 {
-		msg += "\nNo KPI snapshots found for this month."
-		return msg
-	}
-	msg += "\nTop performers by AIQ score:\n"
-	for i, e := range top {
-		msg += fmt.Sprintf("%d. %s — AIQ: %.1f\n", i+1, e.UserName, e.AIQScore)
-	}
-	return msg
 }
 
 // SendBotMessage posts a text message to a Feishu or Slack webhook URL.

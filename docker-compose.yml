@@ -23,8 +23,7 @@ services:
       - ./infra/postgres/010_agent_sessions.sql:/docker-entrypoint-initdb.d/010_agent_sessions.sql:ro
       - ./infra/postgres/011_audit_log.sql:/docker-entrypoint-initdb.d/011_audit_log.sql:ro
       - ./infra/postgres/012_gdpr_compliance.sql:/docker-entrypoint-initdb.d/012_gdpr_compliance.sql:ro
-      - ./infra/postgres/013_kpi_v3.sql:/docker-entrypoint-initdb.d/013_kpi_v3.sql:ro
-      - ./infra/postgres/014_ml_infrastructure.sql:/docker-entrypoint-initdb.d/014_ml_infrastructure.sql:ro
+      - ./infra/postgres/016_drop_kpi_tables.sql:/docker-entrypoint-initdb.d/016_drop_kpi_tables.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s

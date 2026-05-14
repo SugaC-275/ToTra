@@ -20,7 +20,6 @@ type stubBotSvc struct {
 	configs []services.BotConfig
 	addErr  error
 	delErr  error
-	sendErr error
 	testErr error
 }
 
@@ -35,7 +34,6 @@ func (s *stubBotSvc) Add(_ context.Context, _, _, _, _ string) (*services.BotCon
 	return c, nil
 }
 func (s *stubBotSvc) Delete(_ context.Context, _, _ string) error         { return s.delErr }
-func (s *stubBotSvc) SendKPISummary(_ context.Context, _, _ string) error  { return s.sendErr }
 func (s *stubBotSvc) SendTestMessage(_ context.Context, _, _ string) error { return s.testErr }
 
 func setupBotApp(svc *stubBotSvc) *fiber.App {
@@ -80,13 +78,6 @@ func TestAddBotConfig_MissingFields(t *testing.T) {
 func TestDeleteBotConfig_OK(t *testing.T) {
 	app := setupBotApp(&stubBotSvc{})
 	req := httptest.NewRequest(http.MethodDelete, "/api/admin/bot-configs/some-id", nil)
-	resp, _ := app.Test(req)
-	assert.Equal(t, 200, resp.StatusCode)
-}
-
-func TestSendKPISummary_OK(t *testing.T) {
-	app := setupBotApp(&stubBotSvc{})
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/bot-configs/send-summary?month=2026-05", nil)
 	resp, _ := app.Test(req)
 	assert.Equal(t, 200, resp.StatusCode)
 }

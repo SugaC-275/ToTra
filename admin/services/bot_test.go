@@ -17,17 +17,6 @@ import (
 
 const testBotEncKey = "0000000000000000000000000000000000000000000000000000000000000000"
 
-func TestFormatBotMessage(t *testing.T) {
-	msg := services.FormatKPISummaryMessage("Acme Corp", "2026-05", []services.BotTopEntry{
-		{UserName: "Alice", AIQScore: 88.5},
-		{UserName: "Bob", AIQScore: 75.0},
-	})
-	assert.Contains(t, msg, "Acme Corp")
-	assert.Contains(t, msg, "2026-05")
-	assert.Contains(t, msg, "Alice")
-	assert.Contains(t, msg, "88.5")
-}
-
 func TestSendBotMessage_Feishu(t *testing.T) {
 	var received []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

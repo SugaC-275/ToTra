@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/yourorg/totra/admin/api"
 	"github.com/yourorg/totra/admin/config"
-	"github.com/yourorg/totra/admin/cron"
 	"github.com/yourorg/totra/admin/db"
 	"github.com/yourorg/totra/admin/services"
 )
@@ -21,17 +20,13 @@ func main() {
 	}
 	defer pool.Close()
 
-	kpiSvc := services.NewKPIService(pool)
-	fuelSvc := services.NewFuelService(pool)
 	auditSvc := services.NewAuditService(pool)
-	cron.StartMonthlySnapshot(pool, kpiSvc, fuelSvc, auditSvc)
 
 	jwtSvc := services.NewJWTService(cfg.JWTSecret, cfg.JWTExpiry)
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
 	allowlistSvc := services.NewIPAllowlistService(pool)
 	botSvc := services.NewBotService(pool, cfg.EncryptionKey)
 	hrSyncSvc := services.NewHRSyncService(pool)
-	roiSvc := services.NewROIService(pool)
 	agentSvc := services.NewAgentServiceFromPool(pool)
 	retentionSvc := services.NewDataRetentionService(pool)
 	deletionSvc := services.NewDeletionRequestService(pool)
@@ -57,12 +52,9 @@ func main() {
 	api.RegisterUsageAdminRoutes(protected, usageSvc)
 	api.RegisterQuotaRoutes(protected, services.NewQuotaService(pool))
 	api.RegisterIntegrationRoutes(protected, services.NewIntegrationService(pool), cfg.EncryptionKey)
-	api.RegisterKPIRoutes(protected, kpiSvc)
-	api.RegisterFuelRoutes(protected, fuelSvc)
 	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
 	api.RegisterBotRoutes(protected, botSvc)
 	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
-	api.RegisterROIRoutes(protected, roiSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)
 	api.RegisterAuditRoutes(protected, auditSvc)
 	api.RegisterGDPRRoutes(protected, retentionSvc, deletionSvc)

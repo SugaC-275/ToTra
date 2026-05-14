@@ -30,10 +30,9 @@ type DeletionRequest struct {
 }
 
 type DataExport struct {
-	ExportedAt        string               `json:"exported_at"`
-	UserID            string               `json:"user_id"`
-	UsageRecords      []ExportUsageRecord  `json:"usage_records"`
-	EfficiencyHistory []ExportSnapshot     `json:"efficiency_history"`
+	ExportedAt   string              `json:"exported_at"`
+	UserID       string              `json:"user_id"`
+	UsageRecords []ExportUsageRecord `json:"usage_records"`
 }
 
 type ExportUsageRecord struct {
@@ -44,16 +43,6 @@ type ExportUsageRecord struct {
 	SCUCost          float64 `json:"scu_cost"`
 	USDCost          float64 `json:"usd_cost"`
 	ResponseMS       int     `json:"response_ms"`
-}
-
-type ExportSnapshot struct {
-	YearMonth       string  `json:"year_month"`
-	EfficiencyScore float64 `json:"efficiency_score"`
-	AIQScore        float64 `json:"aiq_score"`
-	OSSScore        float64 `json:"oss_score"`
-	GTSScore        float64 `json:"gts_score"`
-	Rank            int     `json:"rank"`
-	PeerCount       int     `json:"peer_count"`
 }
 
 type DeletionRequestServiceIface interface {
@@ -171,14 +160,6 @@ func (s *DeletionRequestService) Approve(ctx context.Context, tenantID, requestI
 		return err
 	}
 
-	// Delete efficiency snapshots (efficiency_snapshots confirmed)
-	if _, err = tx.Exec(ctx,
-		`DELETE FROM efficiency_snapshots WHERE tenant_id = $1 AND user_id = $2`,
-		tenantID, userID,
-	); err != nil {
-		return err
-	}
-
 	// Delete monthly summaries (monthly_summaries confirmed)
 	if _, err = tx.Exec(ctx,
 		`DELETE FROM monthly_summaries WHERE tenant_id = $1 AND user_id = $2`,
@@ -245,47 +226,13 @@ func (s *DeletionRequestService) ExportUserData(ctx context.Context, tenantID, u
 		return nil, err
 	}
 
-	// efficiency_snapshots confirmed with these columns
-	snapshotRows, err := s.pool.Query(ctx, `
-		SELECT year_month, efficiency_score, aiq_score, oss_score, gts_score, rank, peer_count
-		FROM efficiency_snapshots
-		WHERE tenant_id = $1 AND user_id = $2
-		ORDER BY year_month DESC
-		LIMIT 12`,
-		tenantID, userID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer snapshotRows.Close()
-
-	var snapshots []ExportSnapshot
-	for snapshotRows.Next() {
-		var snap ExportSnapshot
-		if err := snapshotRows.Scan(
-			&snap.YearMonth, &snap.EfficiencyScore,
-			&snap.AIQScore, &snap.OSSScore, &snap.GTSScore,
-			&snap.Rank, &snap.PeerCount,
-		); err != nil {
-			return nil, err
-		}
-		snapshots = append(snapshots, snap)
-	}
-	if err := snapshotRows.Err(); err != nil {
-		return nil, err
-	}
-
 	if usageRecords == nil {
 		usageRecords = []ExportUsageRecord{}
 	}
-	if snapshots == nil {
-		snapshots = []ExportSnapshot{}
-	}
 
 	return &DataExport{
-		ExportedAt:        time.Now().UTC().Format(time.RFC3339),
-		UserID:            userID,
-		UsageRecords:      usageRecords,
-		EfficiencyHistory: snapshots,
+		ExportedAt:   time.Now().UTC().Format(time.RFC3339),
+		UserID:       userID,
+		UsageRecords: usageRecords,
 	}, nil
 }

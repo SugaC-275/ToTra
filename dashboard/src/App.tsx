@@ -7,13 +7,11 @@ import { DashboardPage } from "./pages/admin/DashboardPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { ModelsPage } from "./pages/admin/ModelsPage";
 import { QuotaPage } from "./pages/admin/QuotaPage";
-import { KpiPage } from "./pages/admin/KpiPage";
 import { IntegrationsPage } from "./pages/admin/IntegrationsPage";
 import { DepartmentReportPage } from "./pages/admin/DepartmentReportPage";
 import { IPAllowlistPage } from "./pages/admin/IPAllowlistPage";
 import BotConfigPage from "./pages/admin/BotConfigPage";
 import HRSyncPage from "./pages/admin/HRSyncPage";
-import ROIReportPage from "./pages/admin/ROIReportPage";
 import { AgentTrackingPage } from "./pages/admin/AgentTrackingPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import GDPRPage from "./pages/admin/GDPRPage";
@@ -42,13 +40,11 @@ export default function App() {
             <Route path="admin/users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />
             <Route path="admin/models" element={<ProtectedRoute adminOnly><ModelsPage /></ProtectedRoute>} />
             <Route path="admin/quota" element={<QuotaPage />} />
-            <Route path="admin/kpi" element={<ProtectedRoute adminOnly><KpiPage /></ProtectedRoute>} />
             <Route path="admin/integrations" element={<ProtectedRoute adminOnly><IntegrationsPage /></ProtectedRoute>} />
             <Route path="admin/reports" element={<ProtectedRoute adminOnly><DepartmentReportPage /></ProtectedRoute>} />
             <Route path="admin/ip-allowlist" element={<ProtectedRoute adminOnly><IPAllowlistPage /></ProtectedRoute>} />
             <Route path="admin/bot-configs" element={<ProtectedRoute adminOnly><BotConfigPage /></ProtectedRoute>} />
             <Route path="admin/hr-sync" element={<ProtectedRoute adminOnly><HRSyncPage /></ProtectedRoute>} />
-            <Route path="admin/roi" element={<ProtectedRoute adminOnly><ROIReportPage /></ProtectedRoute>} />
             <Route path="admin/agent-tracking" element={<ProtectedRoute adminOnly><AgentTrackingPage /></ProtectedRoute>} />
             <Route path="admin/audit-log" element={<ProtectedRoute adminOnly><AuditLogPage /></ProtectedRoute>} />
             <Route path="admin/gdpr" element={<ProtectedRoute adminOnly><GDPRPage /></ProtectedRoute>} />

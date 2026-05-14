@@ -4,7 +4,6 @@ import {
   listBotConfigs,
   addBotConfig,
   deleteBotConfig,
-  sendKPISummary,
   sendTestBotMessage,
 } from "../../api/client";
 import type { BotConfig } from "../../api/client";
@@ -15,10 +14,6 @@ export default function BotConfigPage() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [label, setLabel] = useState("");
   const [addError, setAddError] = useState("");
-  const [summaryMonth, setSummaryMonth] = useState(
-    new Date().toISOString().slice(0, 7)
-  );
-  const [summaryMsg, setSummaryMsg] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["bot-configs"],
@@ -51,16 +46,6 @@ export default function BotConfigPage() {
     e.preventDefault();
     if (!webhookUrl) return;
     addMutation.mutate({ platform, webhook_url: webhookUrl, label });
-  };
-
-  const handleSendSummary = async () => {
-    try {
-      await sendKPISummary(summaryMonth);
-      setSummaryMsg("Summary sent successfully!");
-    } catch {
-      setSummaryMsg("Failed to send summary.");
-    }
-    setTimeout(() => setSummaryMsg(""), 3000);
   };
 
   const configs: BotConfig[] = data?.configs ?? [];
@@ -157,24 +142,6 @@ export default function BotConfigPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg border p-4 space-y-3">
-        <h2 className="font-semibold text-lg">Send KPI Summary</h2>
-        <div className="flex items-center gap-3">
-          <input
-            type="month"
-            value={summaryMonth}
-            onChange={(e) => setSummaryMonth(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-          <button
-            onClick={handleSendSummary}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Send Summary to All Bots
-          </button>
-        </div>
-        {summaryMsg && <p className="text-sm text-gray-600">{summaryMsg}</p>}
-      </div>
     </div>
   );
 }
