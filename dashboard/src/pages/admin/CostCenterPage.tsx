@@ -2,6 +2,35 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 
+interface EOYMonthlySpend {
+  month: string
+  total_usd: number
+}
+
+interface EOYBudgetForecast {
+  tenant_id: string
+  history: EOYMonthlySpend[]
+  forecasted_eoy_usd: number
+  generated_at: string
+}
+
+interface CostBenchmark {
+  year_month: string
+  tenant_per_user_usd: number
+  p25: number
+  p50: number
+  p75: number
+  tenant_count: number
+  percentile_rank: number
+  insufficient_data: boolean
+}
+
+interface ModelROI {
+  model: string
+  total_requests: number
+  usd_per_1k_requests: number
+}
+
 interface ModelCostItem {
   model: string
   model_tier: 'cheap' | 'standard' | 'premium'
@@ -79,6 +108,21 @@ export default function CostCenterPage() {
         }>(`/api/admin/cost/savings-report?month=${month}`)
         .then((r) => r.data),
   });
+
+  const { data: budgetForecast, isLoading: budgetForecastLoading } = useQuery<EOYBudgetForecast>({
+    queryKey: ['cost-budget-forecast'],
+    queryFn: () => apiClient.get('/api/admin/cost/budget-forecast').then(r => r.data),
+  })
+
+  const { data: costBenchmark, isLoading: costBenchmarkLoading } = useQuery<CostBenchmark>({
+    queryKey: ['cost-benchmark', month],
+    queryFn: () => apiClient.get(`/api/admin/cost/benchmark?month=${month}`).then(r => r.data),
+  })
+
+  const { data: modelROI = [], isLoading: modelROILoading } = useQuery<ModelROI[]>({
+    queryKey: ['cost-model-roi'],
+    queryFn: () => apiClient.get('/api/admin/cost/model-roi').then(r => r.data),
+  })
 
   const totalSavings = waste.reduce((sum, w) => sum + w.estimated_savings_usd, 0)
 
@@ -240,6 +284,122 @@ export default function CostCenterPage() {
         )}
         {savings && savings.routed_models.length === 0 && (
           <p className="text-sm text-gray-400">No routing events recorded this month.</p>
+        )}
+      </div>
+
+      {/* Budget Forecast (EOY Projection) */}
+      <div className="bg-white border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">年度支出预测 (EOY Forecast)</h2>
+        {budgetForecastLoading ? (
+          <p className="text-sm text-gray-400">Loading...</p>
+        ) : budgetForecast ? (
+          <>
+            <div className="mb-4">
+              <p className="text-sm text-gray-500">预测全年总支出</p>
+              <p className="text-3xl font-bold text-blue-600">
+                ${budgetForecast.forecasted_eoy_usd.toFixed(2)}
+              </p>
+            </div>
+            {budgetForecast.history.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['月份', '支出 (USD)'].map(h => (
+                      <th key={h} className="px-3 py-2 text-left font-medium text-gray-600">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {budgetForecast.history.map((row, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-3 py-2 font-mono text-xs">{row.month}</td>
+                      <td className="px-3 py-2 font-mono">${row.total_usd.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-sm text-gray-400">No spend history available.</p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-400">No forecast data available.</p>
+        )}
+      </div>
+
+      {/* Cost Benchmark */}
+      <div className="bg-white border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">成本基准对比 (Benchmark)</h2>
+        {costBenchmarkLoading ? (
+          <p className="text-sm text-gray-400">Loading...</p>
+        ) : costBenchmark ? (
+          costBenchmark.insufficient_data ? (
+            <p className="text-sm text-gray-400">Insufficient tenant data for benchmark comparison.</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500">你的人均支出</p>
+                  <p className="text-xl font-bold">${costBenchmark.tenant_per_user_usd.toFixed(2)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500">百分位排名</p>
+                  <p className={`text-xl font-bold ${costBenchmark.percentile_rank > 75 ? 'text-red-600' : 'text-green-600'}`}>
+                    {costBenchmark.percentile_rank.toFixed(1)}%
+                  </p>
+                  {costBenchmark.percentile_rank > 75 && (
+                    <p className="text-xs text-red-500 mt-1">高于 75% 同行</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center text-sm">
+                <div className="bg-green-50 rounded-lg p-2">
+                  <p className="text-xs text-gray-500">P25</p>
+                  <p className="font-mono font-medium">${costBenchmark.p25.toFixed(2)}</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-2">
+                  <p className="text-xs text-gray-500">P50 (中位)</p>
+                  <p className="font-mono font-medium">${costBenchmark.p50.toFixed(2)}</p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-2">
+                  <p className="text-xs text-gray-500">P75</p>
+                  <p className="font-mono font-medium">${costBenchmark.p75.toFixed(2)}</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">基于 {costBenchmark.tenant_count} 个租户数据 · {costBenchmark.year_month}</p>
+            </div>
+          )
+        ) : (
+          <p className="text-sm text-gray-400">No benchmark data available.</p>
+        )}
+      </div>
+
+      {/* Model ROI */}
+      <div className="bg-white border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">模型 ROI 排名 (过去 30 天)</h2>
+        {modelROILoading ? (
+          <p className="text-sm text-gray-400">Loading...</p>
+        ) : modelROI.length === 0 ? (
+          <p className="text-sm text-gray-400">No models with ≥100 requests in last 30 days.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                {['模型', '请求总数', '每千次请求 USD'].map(h => (
+                  <th key={h} className="px-3 py-2 text-left font-medium text-gray-600">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {modelROI.map((row, i) => (
+                <tr key={i} className="border-t">
+                  <td className="px-3 py-2 font-mono text-xs">{row.model}</td>
+                  <td className="px-3 py-2">{row.total_requests.toLocaleString()}</td>
+                  <td className="px-3 py-2 font-mono">${row.usd_per_1k_requests.toFixed(4)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
