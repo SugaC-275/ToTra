@@ -42,6 +42,7 @@ func main() {
 	pgUserLookup := storage.NewPGUserLookup(pool)
 	pgUserQuota := storage.NewPGUserQuota(pool)
 	piiStore := storage.NewPIIStore(pool, 256)
+	requestCache := storage.NewRequestCache(rdb)
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  30 * time.Second,
@@ -59,7 +60,7 @@ func main() {
 		middleware.NewAgentMiddleware(agentStore),
 	)
 
-	proxyHandler := makeProxyHandler(pool, usageStore, agentStore)
+	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache)
 	v1.Post("/chat/completions", proxyHandler)
 	v1.Post("/messages", proxyHandler)
 
@@ -67,12 +68,19 @@ func main() {
 	log.Fatal(app.Listen(":" + cfg.Port))
 }
 
-func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore) fiber.Handler {
+func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache) fiber.Handler {
 	modelLookup := storage.NewPGModelLookup(pool)
 
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*middleware.UserInfo)
 		start := time.Now()
+
+		cacheKey := storage.CacheKey(user.TenantID, string(c.Body()))
+		if cached, ok := cache.Get(c.Context(), cacheKey); ok {
+			cache.IncrHit(c.Context(), user.TenantID, time.Now().UTC().Format("2006-01"))
+			c.Set("X-Cache", "HIT")
+			return c.Status(200).Send(cached)
+		}
 
 		var reqBody struct {
 			Model string `json:"model"`
@@ -105,6 +113,10 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 		result, usage, err := fwd.Forward(c.Context(), c.Body())
 		if err != nil {
 			return c.Status(502).JSON(fiber.Map{"error": fiber.Map{"message": "upstream error: " + err.Error()}})
+		}
+
+		if result.StatusCode == 200 {
+			cache.Set(c.Context(), cacheKey, result.Body, 24*time.Hour)
 		}
 
 		responseMS := int(time.Since(start).Milliseconds())
