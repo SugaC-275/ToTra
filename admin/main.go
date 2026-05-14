@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -43,6 +44,10 @@ func main() {
 	webhookSvc := services.NewWebhookService(pool)
 	api.RegisterWebhookRoutes(app, webhookSvc, cfg.EncryptionKey)
 
+	complianceSvc := services.NewComplianceService(pool)
+	internalSecret := os.Getenv("INTERNAL_SECRET")
+	api.RegisterComplianceInternalRoutes(app, complianceSvc, botSvc, internalSecret)
+
 	protected := app.Group("/", jwtMiddleware)
 	protected.Use(services.IPAllowlistMiddleware(allowlistSvc))
 	api.RegisterUserRoutes(protected, services.NewUserService(pool))
@@ -58,6 +63,7 @@ func main() {
 	api.RegisterAgentRoutes(protected, agentSvc)
 	api.RegisterAuditRoutes(protected, auditSvc)
 	api.RegisterGDPRRoutes(protected, retentionSvc, deletionSvc)
+	api.RegisterComplianceRoutes(protected, complianceSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
