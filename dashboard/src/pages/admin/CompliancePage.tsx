@@ -2,6 +2,83 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 
+interface ComplianceBenchmark {
+  your_rate: number
+  p25: number
+  p50: number
+  p75: number
+  tenant_count: number
+  percentile_rank: number
+  insufficient_data: boolean
+}
+
+function BenchmarkCard() {
+  const { data, isLoading } = useQuery<ComplianceBenchmark>({
+    queryKey: ['compliance-benchmark'],
+    queryFn: () => apiClient.get('/api/admin/compliance/benchmark').then(r => r.data),
+  })
+
+  if (isLoading) return <div className="bg-white border rounded-xl p-4 text-gray-400 text-sm">Loading benchmark…</div>
+
+  if (!data) return null
+
+  if (data.insufficient_data) {
+    return (
+      <div className="bg-white border rounded-xl p-4">
+        <h2 className="font-semibold mb-2">Industry Benchmark</h2>
+        <p className="text-sm text-gray-400">
+          Insufficient data — need at least 3 tenants to compute benchmarks.
+          ({data.tenant_count} tenant{data.tenant_count === 1 ? '' : 's'} active)
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white border rounded-xl p-4">
+      <h2 className="font-semibold mb-3">Industry Benchmark</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Violation rate (per 1,000 requests) across {data.tenant_count} tenants — last 30 days
+      </p>
+      <div className="grid grid-cols-4 gap-4 mb-4">
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <p className="text-xs text-gray-500 mb-1">Your Rate</p>
+          <p className="text-xl font-bold text-indigo-600">{data.your_rate.toFixed(2)}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <p className="text-xs text-gray-500 mb-1">P25</p>
+          <p className="text-xl font-bold text-green-600">{data.p25.toFixed(2)}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <p className="text-xs text-gray-500 mb-1">Median (P50)</p>
+          <p className="text-xl font-bold text-yellow-600">{data.p50.toFixed(2)}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <p className="text-xs text-gray-500 mb-1">P75</p>
+          <p className="text-xl font-bold text-red-600">{data.p75.toFixed(2)}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-600">Your percentile rank:</span>
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+            data.percentile_rank <= 25
+              ? 'bg-green-100 text-green-800'
+              : data.percentile_rank <= 75
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {data.percentile_rank.toFixed(1)}th percentile
+        </span>
+        <span className="text-xs text-gray-400">
+          (lower = fewer violations than peers)
+        </span>
+      </div>
+    </div>
+  )
+}
+
 interface Violation {
   id: number
   user_name: string
@@ -170,6 +247,8 @@ export default function CompliancePage() {
           </tbody>
         </table>
       </div>
+
+      <BenchmarkCard />
     </div>
   )
 }

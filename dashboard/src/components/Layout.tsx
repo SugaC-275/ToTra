@@ -27,6 +27,7 @@ const adminNavItems = [
   { label: "GDPR & Compliance", href: "/admin/gdpr" },
   { label: "Compliance Center", href: "/admin/compliance" },
   { label: "EU AI Act", href: "/admin/compliance/checklist" },
+  { label: "Anomaly Alerts", href: "/admin/compliance/anomalies" },
   { label: "Cost Center", href: "/admin/cost" },
   { label: "My Usage", href: "/me" },
 ];
