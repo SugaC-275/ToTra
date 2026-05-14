@@ -18,6 +18,7 @@ import GDPRPage from "./pages/admin/GDPRPage";
 import CompliancePage from "./pages/admin/CompliancePage";
 import ComplianceChecklistPage from "./pages/admin/ComplianceChecklistPage";
 import ComplianceAnomalyPage from "./pages/admin/ComplianceAnomalyPage";
+import PolicyRulesPage from "./pages/admin/PolicyRulesPage";
 import CostCenterPage from "./pages/admin/CostCenterPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="admin/compliance" element={<ProtectedRoute adminOnly><CompliancePage /></ProtectedRoute>} />
             <Route path="admin/compliance/checklist" element={<ProtectedRoute adminOnly><ComplianceChecklistPage /></ProtectedRoute>} />
             <Route path="admin/compliance/anomalies" element={<ProtectedRoute adminOnly><ComplianceAnomalyPage /></ProtectedRoute>} />
+            <Route path="admin/compliance/policy-rules" element={<ProtectedRoute adminOnly><PolicyRulesPage /></ProtectedRoute>} />
             <Route path="admin/cost" element={<ProtectedRoute adminOnly><CostCenterPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
