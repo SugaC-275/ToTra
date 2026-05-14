@@ -2,6 +2,37 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 
+interface RiskPoint {
+  month: string;
+  violations: number;
+  requests: number;
+  rate_per_1k: number;
+  risk_score: number;
+}
+
+interface PIITypeStat {
+  pii_type: string;
+  count: number;
+}
+
+interface UserViolationStat {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  department: string;
+  count: number;
+}
+
+interface ComplianceDigest {
+  tenant_id: string;
+  period: string;
+  total_violations: number;
+  total_requests: number;
+  block_rate_per_1k: number;
+  by_pii_type: PIITypeStat[];
+  top_violators: UserViolationStat[];
+}
+
 interface ComplianceBenchmark {
   your_rate: number
   p25: number
@@ -131,6 +162,22 @@ export default function CompliancePage() {
     queryFn: () => apiClient.get(`/api/admin/compliance/risk-scores?month=${month}`).then(r => r.data),
   })
 
+  const { data: riskTrend } = useQuery({
+    queryKey: ["compliance-risk-trend"],
+    queryFn: (): Promise<{ points: RiskPoint[]; tenant_id: string }> =>
+      apiClient
+        .get("/api/admin/compliance/risk-trend")
+        .then((r) => r.data),
+  });
+
+  const { data: digest } = useQuery({
+    queryKey: ["compliance-digest"],
+    queryFn: (): Promise<ComplianceDigest> =>
+      apiClient
+        .get("/api/admin/compliance/digest")
+        .then((r) => r.data),
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -249,6 +296,115 @@ export default function CompliancePage() {
       </div>
 
       <BenchmarkCard />
+
+      {/* Risk Score Trend */}
+      <div className="mt-8 border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4">Risk Score Trend (Last 6 Months)</h2>
+        {!riskTrend || riskTrend.points.length === 0 ? (
+          <p className="text-gray-400 text-sm">No historical data yet.</p>
+        ) : (
+          <div>
+            <div className="flex items-end gap-2 h-24 mb-3">
+              {riskTrend.points.map((p) => {
+                const height = Math.max(p.risk_score, 2);
+                const color =
+                  p.risk_score >= 70
+                    ? "bg-red-500"
+                    : p.risk_score >= 40
+                    ? "bg-yellow-400"
+                    : "bg-green-500";
+                return (
+                  <div key={p.month} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs text-gray-500">{p.risk_score.toFixed(0)}</span>
+                    <div
+                      className={`w-full rounded-t ${color}`}
+                      style={{ height: `${height}%` }}
+                      title={`${p.month}: ${p.violations} violations / ${p.requests} requests`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              {riskTrend.points.map((p) => (
+                <div key={p.month} className="flex-1 text-center text-xs text-gray-400">
+                  {p.month.slice(5)}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-4 mt-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Low (&lt;40)
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> Medium (40–70)
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> High (&gt;70)
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Compliance Digest */}
+      <div className="mt-6 border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4">
+          Monthly Digest
+          {digest && <span className="ml-2 text-sm font-normal text-gray-400">{digest.period}</span>}
+        </h2>
+        {!digest ? (
+          <p className="text-gray-400 text-sm">Loading…</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Total violations blocked</span>
+                <span className="font-semibold">{digest.total_violations.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Total AI requests</span>
+                <span className="font-semibold">{digest.total_requests.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Block rate</span>
+                <span className="font-semibold">{digest.block_rate_per_1k.toFixed(2)} / 1K req</span>
+              </div>
+              {digest.by_pii_type.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">By PII Type</p>
+                  {digest.by_pii_type.map((t) => (
+                    <div key={t.pii_type} className="flex justify-between text-sm py-0.5">
+                      <span className="text-gray-600 font-mono text-xs">{t.pii_type}</span>
+                      <span>{t.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Top Violators</p>
+              {digest.top_violators.length === 0 ? (
+                <p className="text-sm text-gray-400">None this period</p>
+              ) : (
+                digest.top_violators.map((v, i) => (
+                  <div key={v.user_id} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                    <div>
+                      <span className="text-sm font-medium">{v.user_name || v.user_email || v.user_id}</span>
+                      {v.department && (
+                        <span className="ml-2 text-xs text-gray-400">{v.department}</span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-semibold ${i === 0 ? "text-red-600" : "text-gray-700"}`}>
+                      {v.count}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
