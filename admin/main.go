@@ -45,6 +45,7 @@ func main() {
 	api.RegisterWebhookRoutes(app, webhookSvc, cfg.EncryptionKey)
 
 	complianceSvc := services.NewComplianceService(pool)
+	checklistSvc := services.NewChecklistService(pool)
 	internalSecret := os.Getenv("INTERNAL_SECRET")
 	api.RegisterComplianceInternalRoutes(app, complianceSvc, botSvc, internalSecret)
 
@@ -66,6 +67,7 @@ func main() {
 	api.RegisterAuditRoutes(protected, auditSvc)
 	api.RegisterGDPRRoutes(protected, retentionSvc, deletionSvc)
 	api.RegisterComplianceRoutes(protected, complianceSvc)
+	api.RegisterChecklistRoutes(protected, checklistSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
