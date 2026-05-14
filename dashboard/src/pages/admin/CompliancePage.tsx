@@ -58,12 +58,37 @@ export default function CompliancePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">合规中心</h1>
-        <input
-          type="month"
-          value={month}
-          onChange={e => setMonth(e.target.value)}
-          className="border rounded px-3 py-1 text-sm"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="month"
+            value={month}
+            onChange={e => setMonth(e.target.value)}
+            className="border rounded px-3 py-1 text-sm"
+          />
+          <a
+            href={`/api/admin/compliance/audit-export?month=${month}`}
+            download
+            className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
+          >
+            Export CSV
+          </a>
+          <button
+            onClick={() =>
+              apiClient.get("/api/admin/compliance/soc2-report").then((r) => {
+                const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `soc2-report-${month}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              })
+            }
+            className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium"
+          >
+            SOC 2 Report
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
