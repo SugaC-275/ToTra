@@ -16,6 +16,7 @@ import { AgentTrackingPage } from "./pages/admin/AgentTrackingPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import GDPRPage from "./pages/admin/GDPRPage";
 import CompliancePage from "./pages/admin/CompliancePage";
+import CostCenterPage from "./pages/admin/CostCenterPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="admin/audit-log" element={<ProtectedRoute adminOnly><AuditLogPage /></ProtectedRoute>} />
             <Route path="admin/gdpr" element={<ProtectedRoute adminOnly><GDPRPage /></ProtectedRoute>} />
             <Route path="admin/compliance" element={<ProtectedRoute adminOnly><CompliancePage /></ProtectedRoute>} />
+            <Route path="admin/cost" element={<ProtectedRoute adminOnly><CostCenterPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />

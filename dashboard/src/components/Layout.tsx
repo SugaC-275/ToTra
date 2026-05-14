@@ -26,6 +26,7 @@ const adminNavItems = [
   { label: "Audit Log", href: "/admin/audit-log" },
   { label: "GDPR & Compliance", href: "/admin/gdpr" },
   { label: "Compliance Center", href: "/admin/compliance" },
+  { label: "Cost Center", href: "/admin/cost" },
   { label: "My Usage", href: "/me" },
 ];
 

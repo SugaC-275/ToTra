@@ -59,6 +59,8 @@ func main() {
 	api.RegisterIntegrationRoutes(protected, services.NewIntegrationService(pool), cfg.EncryptionKey)
 	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
 	api.RegisterBotRoutes(protected, botSvc)
+	costSvc := services.NewCostAnalysisService(pool)
+	api.RegisterCostAnalysisRoutes(protected, costSvc, botSvc)
 	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)
 	api.RegisterAuditRoutes(protected, auditSvc)
