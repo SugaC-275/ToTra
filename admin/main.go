@@ -80,6 +80,9 @@ func main() {
 	api.RegisterComplianceRoutes(protected, complianceSvc)
 	api.RegisterChecklistRoutes(protected, checklistSvc)
 	api.RegisterComplianceAdvancedRoutes(protected, anomalySvc, complianceBenchmarkSvc)
+	riskTrendSvc := services.NewRiskTrendService(pool)
+	complianceDigestSvc := services.NewComplianceDigestService(pool)
+	api.RegisterComplianceReportRoutes(protected, riskTrendSvc, complianceDigestSvc)
 	policyRulesSvc := services.NewPolicyRulesService(pool)
 	api.RegisterPolicyRulesRoutes(protected, policyRulesSvc)
 
