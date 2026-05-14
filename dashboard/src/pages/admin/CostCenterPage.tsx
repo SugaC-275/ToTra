@@ -104,6 +104,64 @@ interface OffHoursReport {
   generated_at: string
 }
 
+interface SpenderEntry {
+  user_id: string
+  email: string
+  current_usd: number
+  previous_usd: number
+  change_usd: number
+}
+
+interface TopSpendersReport {
+  year_month: string
+  entries: SpenderEntry[]
+}
+
+function TopSpendersTable({ entries }: { entries: SpenderEntry[] }) {
+  if (!entries || entries.length === 0)
+    return <p className="text-gray-400 text-sm">No spend data this month.</p>;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="text-left text-gray-400 border-b border-gray-700">
+            <th className="pb-2 pr-4">User</th>
+            <th className="pb-2 pr-4 text-right">This Month</th>
+            <th className="pb-2 pr-4 text-right">Last Month</th>
+            <th className="pb-2 text-right">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((e) => (
+            <tr key={e.user_id} className="border-b border-gray-800">
+              <td className="py-2 pr-4 font-mono text-xs text-gray-200">{e.email}</td>
+              <td className="py-2 pr-4 text-right text-gray-100">
+                ${e.current_usd.toFixed(2)}
+              </td>
+              <td className="py-2 pr-4 text-right text-gray-400">
+                ${e.previous_usd.toFixed(2)}
+              </td>
+              <td
+                className={`py-2 text-right font-semibold ${
+                  e.change_usd > 0
+                    ? "text-red-400"
+                    : e.change_usd < 0
+                    ? "text-green-400"
+                    : "text-gray-400"
+                }`}
+              >
+                {e.change_usd > 0 ? "+" : ""}
+                {e.change_usd.toFixed(2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function BudgetSettingsForm({ settings, onSaved }: { settings: CostSettings | undefined; onSaved: () => void }) {
   const queryClient = useQueryClient()
   const [budgetInput, setBudgetInput] = useState<string>(
@@ -254,6 +312,21 @@ export default function CostCenterPage() {
   const { data: offHoursReport, isLoading: offHoursLoading } = useQuery<OffHoursReport>({
     queryKey: ['cost-off-hours'],
     queryFn: () => apiClient.get(`/api/admin/cost/off-hours?month=${month}`).then(r => r.data),
+  })
+
+  const { data: topSpenders } = useQuery<TopSpendersReport>({
+    queryKey: ["topSpenders"],
+    queryFn: () =>
+      apiClient
+        .get<TopSpendersReport>("/api/admin/cost/top-spenders")
+        .then((r) => r.data),
+  })
+
+  const alertCheckMutation = useMutation({
+    mutationFn: () =>
+      apiClient
+        .post("/api/admin/cost/budget-alert/check")
+        .then((r) => r.data),
   })
 
   const [settingsSaved, setSettingsSaved] = useState(false)
@@ -627,6 +700,36 @@ export default function CostCenterPage() {
           )
         ) : (
           <p className="text-sm text-gray-400">No off-hours data available.</p>
+        )}
+      </div>
+
+      {/* Top Spenders */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <h2 className="text-lg font-semibold mb-4">
+          Top Spenders — {topSpenders?.year_month ?? "…"}
+        </h2>
+        <TopSpendersTable entries={topSpenders?.entries ?? []} />
+      </div>
+
+      {/* Budget Alerts */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <h2 className="text-lg font-semibold mb-4">Budget Alerts</h2>
+        <p className="text-sm text-gray-400 mb-4">
+          Check current month spend against thresholds (50%, 80%, 100%) and send bot
+          notifications for newly crossed thresholds.
+        </p>
+        <button
+          onClick={() => alertCheckMutation.mutate()}
+          disabled={alertCheckMutation.isPending}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-sm font-medium"
+        >
+          {alertCheckMutation.isPending ? "Checking…" : "Check Budget Alerts"}
+        </button>
+        {alertCheckMutation.isSuccess && (
+          <p className="mt-3 text-green-400 text-sm">Done — alerts sent for any newly crossed thresholds.</p>
+        )}
+        {alertCheckMutation.isError && (
+          <p className="mt-3 text-red-400 text-sm">Error checking alerts.</p>
         )}
       </div>
     </div>
