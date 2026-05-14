@@ -62,6 +62,8 @@ func main() {
 	api.RegisterBotRoutes(protected, botSvc)
 	costSvc := services.NewCostAnalysisService(pool)
 	api.RegisterCostAnalysisRoutes(protected, costSvc, botSvc)
+	costSavingsSvc := services.NewCostSavingsReportService(pool)
+	api.RegisterCostSavingsRoutes(protected, costSavingsSvc)
 	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)
 	api.RegisterAuditRoutes(protected, auditSvc)

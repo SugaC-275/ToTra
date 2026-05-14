@@ -68,6 +68,18 @@ export default function CostCenterPage() {
     queryFn: () => apiClient.get(`/api/admin/cost/suggestions?month=${month}`).then(r => r.data),
   })
 
+  const { data: savings } = useQuery({
+    queryKey: ["cost-savings", month],
+    queryFn: () =>
+      apiClient
+        .get<{
+          routing_event_count: number;
+          routed_models: { original_model: string; routed_model: string; count: number }[];
+          generated_at: string;
+        }>(`/api/admin/cost/savings-report?month=${month}`)
+        .then((r) => r.data),
+  });
+
   const totalSavings = waste.reduce((sum, w) => sum + w.estimated_savings_usd, 0)
 
   return (
@@ -196,6 +208,40 @@ export default function CostCenterPage() {
           </div>
         </div>
       )}
+
+      {/* Auto-Routing Savings */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold mb-4">Auto-Routing Events This Month</h2>
+        <div className="mb-4 px-4 py-3 bg-green-50 border border-green-100 rounded-lg text-sm text-green-700">
+          <span className="font-semibold">{savings?.routing_event_count ?? 0}</span> requests
+          automatically downgraded to a cheaper model
+        </div>
+        {savings && savings.routed_models.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border rounded-lg overflow-hidden">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <tr>
+                  <th className="px-4 py-2 text-left">Original Model</th>
+                  <th className="px-4 py-2 text-left">Routed To</th>
+                  <th className="px-4 py-2 text-right">Requests</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {savings.routed_models.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-mono text-xs">{row.original_model}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-green-600">{row.routed_model}</td>
+                    <td className="px-4 py-2 text-right font-medium">{row.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {savings && savings.routed_models.length === 0 && (
+          <p className="text-sm text-gray-400">No routing events recorded this month.</p>
+        )}
+      </div>
     </div>
   )
 }
