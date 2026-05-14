@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -31,7 +30,6 @@ func main() {
 	jwtMiddleware := api.NewJWTMiddleware(jwtSvc)
 	allowlistSvc := services.NewIPAllowlistService(pool)
 	botSvc := services.NewBotService(pool, cfg.EncryptionKey)
-	insightsSvc := services.NewAIInsightsService(pool, os.Getenv("ANTHROPIC_API_KEY"))
 	hrSyncSvc := services.NewHRSyncService(pool)
 	roiSvc := services.NewROIService(pool)
 	agentSvc := services.NewAgentServiceFromPool(pool)
@@ -63,7 +61,6 @@ func main() {
 	api.RegisterFuelRoutes(protected, fuelSvc)
 	api.RegisterIPAllowlistRoutes(protected, allowlistSvc)
 	api.RegisterBotRoutes(protected, botSvc)
-	api.RegisterAIInsightsRoutes(protected, insightsSvc)
 	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
 	api.RegisterROIRoutes(protected, roiSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)

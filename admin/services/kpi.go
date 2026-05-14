@@ -125,51 +125,6 @@ func IsAnomalySCU(currentSCU float64, priorSCUs []float64) bool {
 	return hard
 }
 
-// PillarWeights holds the three KPI pillar weights (must sum to 1.0).
-// Exported so tests in package services_test can construct test maps.
-type PillarWeights struct {
-	AIQ float64
-	OSS float64
-	GTS float64
-}
-
-// ResolveWeights returns pillar weights for the given integration level.
-// If ml contains a trained weight for level, it is used; otherwise falls back to AdaptiveWeights.
-// Exported for unit testing; called inside RunMonthlySnapshot.
-func ResolveWeights(level int, hasGTS bool, ml map[int]PillarWeights) (float64, float64, float64) {
-	if w, ok := ml[level]; ok {
-		if !hasGTS {
-			return w.AIQ + w.GTS, w.OSS, 0
-		}
-		return w.AIQ, w.OSS, w.GTS
-	}
-	return AdaptiveWeights(level, hasGTS)
-}
-
-// loadMLWeights reads active trained pillar weights from ml_model_weights.
-// Returns an empty map (not an error) if the table is missing or empty — callers fall back to v3.
-func (s *KPIService) loadMLWeights(ctx context.Context) map[int]PillarWeights {
-	rows, err := s.pool.Query(ctx,
-		`SELECT integration_level, w_aiq, w_oss, w_gts FROM ml_model_weights WHERE is_active=TRUE`)
-	if err != nil {
-		return map[int]PillarWeights{}
-	}
-	defer rows.Close()
-	result := map[int]PillarWeights{}
-	for rows.Next() {
-		var lvl int
-		var w PillarWeights
-		if err := rows.Scan(&lvl, &w.AIQ, &w.OSS, &w.GTS); err != nil {
-			continue
-		}
-		result[lvl] = w
-	}
-	if rows.Err() != nil {
-		return map[int]PillarWeights{}
-	}
-	return result
-}
-
 // SessionDepthData holds raw session counts for one user (exported for unit tests).
 type SessionDepthData struct {
 	TotalSessions     int
