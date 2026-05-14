@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -131,6 +132,21 @@ func (s *BotService) SendTestMessage(ctx context.Context, tenantID, id string) e
 		return err
 	}
 	return SendBotMessage(platform, url, "ToTra bot notification test — connection successful!")
+}
+
+// BroadcastAlert sends a message to all enabled bot configs for a tenant.
+func (s *BotService) BroadcastAlert(ctx context.Context, tenantID, message string) error {
+	configs, err := s.loadEnabledConfigs(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, cfg := range configs {
+		if err := SendBotMessage(cfg.platform, cfg.webhookURL, message); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // SendBotMessage posts a text message to a Feishu or Slack webhook URL.
