@@ -46,6 +46,10 @@ func main() {
 	requestCache := storage.NewRequestCache(rdb)
 	routingStore := storage.NewRoutingStore(pool)
 	policyRuleStore := storage.NewPolicyRuleStore(pool, rdb)
+	siemGatewayStore := storage.NewSIEMGatewayStore(pool)
+	siemChan := make(chan middleware.SIEMEvent, 1000)
+	enqueuer := &siemEnqueuer{ch: siemChan, store: siemGatewayStore}
+	go enqueuer.run(context.Background())
 	parserClient := storage.NewParserClient(cfg.ParserURL)
 	fileLookup := storage.NewPGModelLookup(pool)
 
@@ -61,8 +65,8 @@ func main() {
 	v1 := app.Group("/v1",
 		middleware.NewAuthMiddleware(pgUserLookup),
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
-		middleware.NewPIIMiddleware(piiStore, ""),
-		middleware.NewPolicyMiddleware(policyRuleStore),
+		middleware.NewPIIMiddleware(piiStore, "", siemChan),
+		middleware.NewPolicyMiddleware(policyRuleStore, siemChan),
 		middleware.NewAutoRouterMiddleware(routingStore),
 		middleware.NewAgentMiddleware(agentStore),
 	)
@@ -159,5 +163,30 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 			}
 		}
 		return c.Status(result.StatusCode).Send(result.Body)
+	}
+}
+
+type siemEnqueuer struct {
+	ch    <-chan middleware.SIEMEvent
+	store *storage.SIEMGatewayStore
+}
+
+func (e *siemEnqueuer) run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case ev := <-e.ch:
+			configs, err := e.store.GetActiveConfigs(ctx, ev.TenantID, ev.EventType)
+			if err != nil {
+				log.Printf("siem enqueuer: get configs: %v", err)
+				continue
+			}
+			for _, cfg := range configs {
+				if err := e.store.EnqueueDelivery(ctx, ev.TenantID, cfg.ID, ev.EventType, ev.Payload); err != nil {
+					log.Printf("siem enqueuer: enqueue config %s: %v", cfg.ID, err)
+				}
+			}
+		}
 	}
 }
