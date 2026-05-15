@@ -47,11 +47,13 @@ func (p *PGUserQuota) GetUserQuota(ctx context.Context, tenantID, userID string)
 }
 
 type ModelConfig struct {
-	ID       string
-	Provider string
-	APIKey   string
-	BaseURL  string
-	SCURate  float64
+	ID              string
+	Provider        string
+	APIKey          string
+	BaseURL         string
+	SCURate         float64
+	PricePerMInput  *float64 // nil when not configured
+	PricePerMOutput *float64 // nil when not configured
 }
 
 type PGModelLookup struct{ pool *pgxpool.Pool }
@@ -61,10 +63,10 @@ func NewPGModelLookup(pool *pgxpool.Pool) *PGModelLookup { return &PGModelLookup
 func (p *PGModelLookup) GetByName(ctx context.Context, tenantID, modelName string) (*ModelConfig, error) {
 	var m ModelConfig
 	err := p.pool.QueryRow(ctx,
-		`SELECT id, provider, COALESCE(api_key_encrypted,''), base_url, scu_rate
+		`SELECT id, provider, COALESCE(api_key_encrypted,''), base_url, scu_rate, price_per_m_input, price_per_m_output
 		 FROM model_configs WHERE tenant_id = $1 AND name = $2 AND is_active = true`,
 		tenantID, modelName,
-	).Scan(&m.ID, &m.Provider, &m.APIKey, &m.BaseURL, &m.SCURate)
+	).Scan(&m.ID, &m.Provider, &m.APIKey, &m.BaseURL, &m.SCURate, &m.PricePerMInput, &m.PricePerMOutput)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
