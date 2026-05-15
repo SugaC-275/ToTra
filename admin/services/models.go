@@ -9,12 +9,14 @@ import (
 )
 
 type ModelConfig struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	Provider string  `json:"provider"`
-	BaseURL  string  `json:"base_url"`
-	SCURate  float64 `json:"scu_rate"`
-	IsActive bool    `json:"is_active"`
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	Provider        string   `json:"provider"`
+	BaseURL         string   `json:"base_url"`
+	SCURate         float64  `json:"scu_rate"`
+	IsActive        bool     `json:"is_active"`
+	PricePerMInput  *float64 `json:"price_per_m_input"`
+	PricePerMOutput *float64 `json:"price_per_m_output"`
 }
 
 type CreateModelRequest struct {
@@ -35,7 +37,7 @@ func NewModelService(pool *pgxpool.Pool) *ModelService {
 
 func (s *ModelService) List(ctx context.Context, tenantID string) ([]*ModelConfig, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, name, provider, base_url, scu_rate, is_active FROM model_configs WHERE tenant_id = $1 ORDER BY name`,
+		`SELECT id, name, provider, base_url, scu_rate, is_active, price_per_m_input, price_per_m_output FROM model_configs WHERE tenant_id = $1 ORDER BY name`,
 		tenantID,
 	)
 	if err != nil {
@@ -45,10 +47,26 @@ func (s *ModelService) List(ctx context.Context, tenantID string) ([]*ModelConfi
 	var models []*ModelConfig
 	for rows.Next() {
 		m := &ModelConfig{}
-		rows.Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive)
+		rows.Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.PricePerMInput, &m.PricePerMOutput)
 		models = append(models, m)
 	}
 	return models, nil
+}
+
+// UpdatePricing sets per-million-token pricing for a model config.
+func (s *ModelService) UpdatePricing(ctx context.Context, tenantID, modelID string, inputPrice, outputPrice float64) (*ModelConfig, error) {
+	var m ModelConfig
+	err := s.pool.QueryRow(ctx,
+		`UPDATE model_configs
+		 SET price_per_m_input=$1, price_per_m_output=$2
+		 WHERE id=$3 AND tenant_id=$4
+		 RETURNING id, name, provider, base_url, scu_rate, is_active, price_per_m_input, price_per_m_output`,
+		inputPrice, outputPrice, modelID, tenantID,
+	).Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.PricePerMInput, &m.PricePerMOutput)
+	if err != nil {
+		return nil, fmt.Errorf("update model pricing: %w", err)
+	}
+	return &m, nil
 }
 
 func (s *ModelService) Create(ctx context.Context, tenantID string, req CreateModelRequest) (*ModelConfig, error) {
