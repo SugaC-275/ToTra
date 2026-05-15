@@ -49,6 +49,12 @@ services:
       timeout: 3s
       retries: 10
 
+  parser:
+    build: ./parser
+    ports:
+      - "${PARSER_PORT:-8090}:8090"
+    profiles: ["app"]
+
   gateway:
     build: ./gateway
     ports:

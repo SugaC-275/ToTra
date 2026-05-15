@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/yourorg/totra/gateway/config"
+	"github.com/yourorg/totra/gateway/handlers"
 	"github.com/yourorg/totra/gateway/middleware"
 	"github.com/yourorg/totra/gateway/providers"
 	"github.com/yourorg/totra/gateway/storage"
@@ -45,6 +46,8 @@ func main() {
 	requestCache := storage.NewRequestCache(rdb)
 	routingStore := storage.NewRoutingStore(pool)
 	policyRuleStore := storage.NewPolicyRuleStore(pool, rdb)
+	parserClient := storage.NewParserClient(cfg.ParserURL)
+	fileLookup := storage.NewPGModelLookup(pool)
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  30 * time.Second,
@@ -67,6 +70,12 @@ func main() {
 	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache)
 	v1.Post("/chat/completions", proxyHandler)
 	v1.Post("/messages", proxyHandler)
+
+	app.Post("/v1/files/chat",
+		middleware.NewAuthMiddleware(pgUserLookup),
+		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
+		handlers.NewFileChatHandler(fileLookup, parserClient, piiStore, usageStore),
+	)
 
 	log.Printf("Gateway listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
