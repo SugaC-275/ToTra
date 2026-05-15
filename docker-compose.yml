@@ -31,6 +31,7 @@ services:
       - ./infra/postgres/020_cost_settings.sql:/docker-entrypoint-initdb.d/020_cost_settings.sql:ro
       - ./infra/postgres/021_budget_alert_log.sql:/docker-entrypoint-initdb.d/021_budget_alert_log.sql:ro
       - ./infra/postgres/022_siem.sql:/docker-entrypoint-initdb.d/022_siem.sql:ro
+      - ./infra/postgres/023_smart_routing_cost.sql:/docker-entrypoint-initdb.d/023_smart_routing_cost.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
