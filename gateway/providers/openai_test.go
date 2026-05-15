@@ -2,6 +2,7 @@ package providers_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,4 +29,16 @@ func TestOpenAIAdapter_ForwardRequest(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Equal(t, 10, usage.PromptTokens)
 	assert.Equal(t, 5, usage.CompletionTokens)
+}
+
+func TestOpenAIAdapter_BuildFilePrompt(t *testing.T) {
+	a := providers.NewOpenAIAdapter("http://x", "key")
+	body := a.BuildFilePrompt("gpt-4o", "doc content here", "summarize it")
+	var got map[string]interface{}
+	require.NoError(t, json.Unmarshal(body, &got))
+	assert.Equal(t, "gpt-4o", got["model"])
+	msgs := got["messages"].([]interface{})
+	require.Len(t, msgs, 2)
+	assert.Equal(t, "system", msgs[0].(map[string]interface{})["role"])
+	assert.Equal(t, "user", msgs[1].(map[string]interface{})["role"])
 }

@@ -56,3 +56,21 @@ func extractOpenAIUsage(body []byte) *Usage {
 	}
 	return &Usage{PromptTokens: r.Usage.PromptTokens, CompletionTokens: r.Usage.CompletionTokens}
 }
+
+func init() {
+	Register("openai", func(baseURL, apiKey string) Adapter {
+		return NewOpenAIAdapter(baseURL, apiKey)
+	})
+}
+
+func (a *OpenAIAdapter) BuildFilePrompt(model, docText, userMessage string) []byte {
+	body := map[string]interface{}{
+		"model": model,
+		"messages": []map[string]string{
+			{"role": "system", "content": "以下是用户上传的文档内容：\n\n" + docText},
+			{"role": "user", "content": userMessage},
+		},
+	}
+	b, _ := json.Marshal(body)
+	return b
+}
