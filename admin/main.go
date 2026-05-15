@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -88,6 +89,12 @@ func main() {
 	api.RegisterComplianceReportRoutes(protected, riskTrendSvc, complianceDigestSvc)
 	policyRulesSvc := services.NewPolicyRulesService(pool)
 	api.RegisterPolicyRulesRoutes(protected, policyRulesSvc)
+
+	siemCfgSvc := services.NewSIEMConfigService(pool, cfg.EncryptionKey)
+	siemDelivSvc := services.NewSIEMDeliveryService(pool, cfg.EncryptionKey)
+	siemPullSvc := services.NewSIEMPullService(pool)
+	go siemDelivSvc.RunWorker(context.Background())
+	api.RegisterSIEMRoutes(protected, siemCfgSvc, siemDelivSvc, siemPullSvc)
 
 	log.Printf("Admin service listening on :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
