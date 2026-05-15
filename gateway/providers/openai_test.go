@@ -41,4 +41,8 @@ func TestOpenAIAdapter_BuildFilePrompt(t *testing.T) {
 	require.Len(t, msgs, 2)
 	assert.Equal(t, "system", msgs[0].(map[string]interface{})["role"])
 	assert.Equal(t, "user", msgs[1].(map[string]interface{})["role"])
+	systemContent := msgs[0].(map[string]interface{})["content"].(string)
+	assert.Contains(t, systemContent, "doc content here")
+	userContent := msgs[1].(map[string]interface{})["content"].(string)
+	assert.Equal(t, "summarize it", userContent)
 }

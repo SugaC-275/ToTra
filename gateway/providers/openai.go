@@ -71,6 +71,6 @@ func (a *OpenAIAdapter) BuildFilePrompt(model, docText, userMessage string) []by
 			{"role": "user", "content": userMessage},
 		},
 	}
-	b, _ := json.Marshal(body)
+	b, _ := json.Marshal(body) // cannot fail: map has only string keys and basic value types
 	return b
 }
