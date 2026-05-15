@@ -2,6 +2,7 @@ package providers_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,4 +30,16 @@ func TestAnthropicAdapter_ForwardRequest(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Equal(t, 8, usage.PromptTokens)
 	assert.Equal(t, 3, usage.CompletionTokens)
+}
+
+func TestAnthropicAdapter_BuildFilePrompt(t *testing.T) {
+	a := providers.NewAnthropicAdapter("http://x", "key")
+	body := a.BuildFilePrompt("claude-3-5-sonnet-20241022", "doc content", "summarize")
+	var got map[string]interface{}
+	require.NoError(t, json.Unmarshal(body, &got))
+	assert.Equal(t, "claude-3-5-sonnet-20241022", got["model"])
+	assert.Contains(t, got["system"].(string), "doc content")
+	msgs := got["messages"].([]interface{})
+	require.Len(t, msgs, 1)
+	assert.Equal(t, "user", msgs[0].(map[string]interface{})["role"])
 }

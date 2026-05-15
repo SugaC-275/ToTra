@@ -57,3 +57,21 @@ func extractAnthropicUsage(body []byte) *Usage {
 	}
 	return &Usage{PromptTokens: r.Usage.InputTokens, CompletionTokens: r.Usage.OutputTokens}
 }
+
+func init() {
+	Register("anthropic", func(baseURL, apiKey string) Adapter {
+		return NewAnthropicAdapter(baseURL, apiKey)
+	})
+}
+
+func (a *AnthropicAdapter) BuildFilePrompt(model, docText, userMessage string) []byte {
+	body := map[string]interface{}{
+		"model":  model,
+		"system": "以下是用户上传的文档内容：\n\n" + docText,
+		"messages": []map[string]string{
+			{"role": "user", "content": userMessage},
+		},
+	}
+	b, _ := json.Marshal(body) // cannot fail: map has only string keys and basic value types
+	return b
+}
