@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -35,19 +36,42 @@ type ViolationRecorder interface {
 // recorder may be nil (no persistence). tenantID is used as a fallback when
 // no authenticated user is present in the context; pass "" to always pull from
 // the "user" local set by NewAuthMiddleware.
-func NewPIIMiddleware(recorder ViolationRecorder, tenantID string) fiber.Handler {
+// siemChan is an optional channel for non-blocking SIEM event delivery; pass
+// nil to disable SIEM integration.
+func NewPIIMiddleware(recorder ViolationRecorder, tenantID string, siemChan chan<- SIEMEvent) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		body := string(c.Body())
 		for _, rule := range piiPatterns {
 			if rule.re.MatchString(body) {
+				tid := tenantID
+				uid := ""
+				if user, ok := c.Locals("user").(*UserInfo); ok && user != nil {
+					tid = user.TenantID
+					uid = user.UserID
+				}
 				if recorder != nil {
-					tid := tenantID
-					uid := ""
-					if user, ok := c.Locals("user").(*UserInfo); ok && user != nil {
-						tid = user.TenantID
-						uid = user.UserID
-					}
 					recorder.RecordViolation(tid, uid, rule.name, "blocked", c.Path())
+				}
+				if siemChan != nil {
+					select {
+					case siemChan <- SIEMEvent{
+						TenantID:  tid,
+						EventType: "pii_violation",
+						Payload: map[string]any{
+							"source":      "totra",
+							"tenant_id":   tid,
+							"event_type":  "pii_violation",
+							"occurred_at": time.Now().UTC().Format(time.RFC3339),
+							"detail": map[string]any{
+								"user_id":  uid,
+								"pii_type": rule.name,
+								"action":   "blocked",
+								"path":     c.Path(),
+							},
+						},
+					}:
+					default: // drop if full
+					}
 				}
 				return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
 					"error": fiber.Map{

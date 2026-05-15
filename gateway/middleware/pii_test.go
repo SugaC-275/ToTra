@@ -8,12 +8,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yourorg/totra/gateway/middleware"
 )
 
 func setupPIIApp() *fiber.App {
 	app := fiber.New()
-	app.Use(middleware.NewPIIMiddleware(nil, "test-tenant"))
+	app.Use(middleware.NewPIIMiddleware(nil, "test-tenant", nil))
 	app.Post("/v1/chat/completions", func(c *fiber.Ctx) error {
 		return c.SendStatus(200)
 	})
@@ -49,7 +50,7 @@ func TestPIIMiddleware_ChinaIDCard(t *testing.T) {
 
 func TestPIIMiddleware_EmailBlocked(t *testing.T) {
 	app := fiber.New()
-	app.Use(middleware.NewPIIMiddleware(nil, "tenant-1"))
+	app.Use(middleware.NewPIIMiddleware(nil, "tenant-1", nil))
 	app.Post("/", func(c *fiber.Ctx) error { return c.SendString("ok") })
 	body := `{"messages":[{"content":"联系我 foo@example.com 获取报价"}]}`
 	req := httptest.NewRequest("POST", "/", strings.NewReader(body))
@@ -60,7 +61,7 @@ func TestPIIMiddleware_EmailBlocked(t *testing.T) {
 
 func TestPIIMiddleware_CleanRequestPasses(t *testing.T) {
 	app := fiber.New()
-	app.Use(middleware.NewPIIMiddleware(nil, "tenant-1"))
+	app.Use(middleware.NewPIIMiddleware(nil, "tenant-1", nil))
 	app.Post("/", func(c *fiber.Ctx) error { return c.SendString("ok") })
 	body := `{"messages":[{"content":"帮我写一个排序算法"}]}`
 	req := httptest.NewRequest("POST", "/", strings.NewReader(body))
@@ -120,4 +121,38 @@ func TestScanForPII_IDCard(t *testing.T) {
 	piiType, found := middleware.ScanForPII("身份证: 110101199001011234")
 	assert.True(t, found)
 	assert.Equal(t, "china_id_card", piiType)
+}
+
+func TestPIIMiddleware_SIEMChannelFired(t *testing.T) {
+	ch := make(chan middleware.SIEMEvent, 1)
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("user", &middleware.UserInfo{TenantID: "t1", UserID: "u1"})
+		return c.Next()
+	})
+	app.Use(middleware.NewPIIMiddleware(nil, "", ch))
+	app.Post("/", func(c *fiber.Ctx) error { return c.SendStatus(200) })
+
+	body := `{"messages":[{"content":"call 13800001234"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+
+	require.Len(t, ch, 1)
+	ev := <-ch
+	assert.Equal(t, "t1", ev.TenantID)
+	assert.Equal(t, "pii_violation", ev.EventType)
+}
+
+func TestPIIMiddleware_SIEMChannelNilSafe(t *testing.T) {
+	app := fiber.New()
+	app.Use(middleware.NewPIIMiddleware(nil, "t1", nil))
+	app.Post("/", func(c *fiber.Ctx) error { return c.SendStatus(200) })
+
+	body := `{"messages":[{"content":"call 13800001234"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode) // must not panic with nil channel
 }
