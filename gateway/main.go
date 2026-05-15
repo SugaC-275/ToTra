@@ -71,7 +71,7 @@ func main() {
 		middleware.NewAgentMiddleware(agentStore),
 	)
 
-	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache)
+	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache, routingStore)
 	v1.Post("/chat/completions", proxyHandler)
 	v1.Post("/messages", proxyHandler)
 
@@ -85,7 +85,7 @@ func main() {
 	log.Fatal(app.Listen(":" + cfg.Port))
 }
 
-func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache) fiber.Handler {
+func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache, routingStore *storage.RoutingStore) fiber.Handler {
 	modelLookup := storage.NewPGModelLookup(pool)
 
 	return func(c *fiber.Ctx) error {
@@ -128,6 +128,31 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 
 		if result.StatusCode == 200 {
 			cache.Set(c.Context(), cacheKey, result.Body, 24*time.Hour)
+		}
+
+		// Back-fill token counts and USD savings for routed requests.
+		if routingEventID, ok := c.Locals("routing_event_id").(int64); ok && routingEventID > 0 {
+			if originalModelName, ok := c.Locals("original_model_name").(string); ok && originalModelName != "" && usage != nil {
+				origModelCfg, _ := modelLookup.GetByName(c.Context(), user.TenantID, originalModelName)
+				var origPrice, routedPrice *storage.ModelPrice
+				if origModelCfg != nil && origModelCfg.PricePerMInput != nil && origModelCfg.PricePerMOutput != nil {
+					origPrice = &storage.ModelPrice{
+						PricePerMInput:  *origModelCfg.PricePerMInput,
+						PricePerMOutput: *origModelCfg.PricePerMOutput,
+					}
+				}
+				if modelCfg.PricePerMInput != nil && modelCfg.PricePerMOutput != nil {
+					routedPrice = &storage.ModelPrice{
+						PricePerMInput:  *modelCfg.PricePerMInput,
+						PricePerMOutput: *modelCfg.PricePerMOutput,
+					}
+				}
+				go routingStore.UpdateTokensAndSavings(
+					context.Background(), routingEventID,
+					usage.PromptTokens, usage.CompletionTokens,
+					origPrice, routedPrice,
+				)
+			}
 		}
 
 		responseMS := int(time.Since(start).Milliseconds())
