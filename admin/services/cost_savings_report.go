@@ -10,6 +10,8 @@ import (
 type MonthlySavingsReport struct {
 	YearMonth          string            `json:"year_month"`
 	RoutingEventCount  int64             `json:"routing_event_count"`
+	TotalUSDSaved      *float64          `json:"total_usd_saved"`
+	AvgComplexityScore *float64          `json:"avg_complexity_score"`
 	RoutingEventModels []RoutedModelStat `json:"routed_models"`
 	GeneratedAt        string            `json:"generated_at"`
 }
@@ -29,8 +31,8 @@ func NewCostSavingsReportService(pool *pgxpool.Pool) *CostSavingsReportService {
 func (s *CostSavingsReportService) GetMonthlySavings(ctx context.Context, tenantID, yearMonth string) (*MonthlySavingsReport, error) {
 	report := &MonthlySavingsReport{YearMonth: yearMonth, GeneratedAt: time.Now().UTC().Format(time.RFC3339)}
 	err := s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM gateway_routing_events WHERE tenant_id=$1 AND to_char(routed_at AT TIME ZONE 'UTC','YYYY-MM')=$2`,
-		tenantID, yearMonth).Scan(&report.RoutingEventCount)
+		`SELECT COUNT(*), SUM(usd_saved), AVG(complexity_score::float) FROM gateway_routing_events WHERE tenant_id=$1 AND to_char(routed_at AT TIME ZONE 'UTC','YYYY-MM')=$2`,
+		tenantID, yearMonth).Scan(&report.RoutingEventCount, &report.TotalUSDSaved, &report.AvgComplexityScore)
 	if err != nil {
 		return nil, err
 	}
