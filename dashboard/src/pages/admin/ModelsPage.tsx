@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listModels, createModel } from "../../api/client";
+import { listModels, createModel, updateModelPricing } from "../../api/client";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -20,6 +20,9 @@ export function ModelsPage() {
     api_key: "",
     scu_rate: "1.0",
   });
+  const [pricingModelId, setPricingModelId] = useState<string | null>(null);
+  const [inputPrice, setInputPrice] = useState("");
+  const [outputPrice, setOutputPrice] = useState("");
 
   const { data } = useQuery({
     queryKey: ["models"],
@@ -32,6 +35,16 @@ export function ModelsPage() {
       qc.invalidateQueries({ queryKey: ["models"] });
       setOpen(false);
       setForm({ name: "", provider: "openai", base_url: "", api_key: "", scu_rate: "1.0" });
+    },
+  });
+
+  const pricingMutation = useMutation({
+    mutationFn: ({ id, input, output }: { id: string; input: number; output: number }) =>
+      updateModelPricing(id, { price_per_m_input: input, price_per_m_output: output }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["models"] });
+      setPricingModelId(null);
+      setInputPrice(""); setOutputPrice("");
     },
   });
 
@@ -120,6 +133,7 @@ export function ModelsPage() {
                 <th className="text-left py-2 font-medium">Provider</th>
                 <th className="text-left py-2 font-medium">Base URL</th>
                 <th className="text-right py-2 font-medium">SCU Rate</th>
+                <th className="text-right py-2 font-medium">Pricing</th>
                 <th className="text-right py-2 font-medium">Status</th>
               </tr>
             </thead>
@@ -133,6 +147,14 @@ export function ModelsPage() {
                   <td className="text-zinc-400 text-xs truncate max-w-[200px]">{m.base_url}</td>
                   <td className="text-right">{m.scu_rate}</td>
                   <td className="text-right">
+                    <button
+                      onClick={() => { setPricingModelId(m.id); setInputPrice(m.price_per_m_input?.toString() ?? ""); setOutputPrice(m.price_per_m_output?.toString() ?? ""); }}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {m.price_per_m_input != null ? `$${m.price_per_m_input}/M` : "Set Price"}
+                    </button>
+                  </td>
+                  <td className="text-right">
                     <Badge variant={m.is_active ? "default" : "secondary"}>
                       {m.is_active ? "Active" : "Inactive"}
                     </Badge>
@@ -143,6 +165,44 @@ export function ModelsPage() {
           </table>
         </CardContent>
       </Card>
+
+      {pricingModelId && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 space-y-4 w-80">
+            <h3 className="font-semibold">Set Model Pricing (per 1M tokens)</h3>
+            <div className="space-y-2">
+              <label className="block text-sm">
+                Input Price ($)
+                <input
+                  type="number" step="0.01" value={inputPrice}
+                  onChange={(e) => setInputPrice(e.target.value)}
+                  className="block w-full border rounded px-3 py-2 mt-1"
+                  placeholder="e.g. 5.00"
+                />
+              </label>
+              <label className="block text-sm">
+                Output Price ($)
+                <input
+                  type="number" step="0.01" value={outputPrice}
+                  onChange={(e) => setOutputPrice(e.target.value)}
+                  className="block w-full border rounded px-3 py-2 mt-1"
+                  placeholder="e.g. 15.00"
+                />
+              </label>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setPricingModelId(null)} className="px-4 py-2 border rounded">Cancel</button>
+              <button
+                disabled={pricingMutation.isPending}
+                onClick={() => pricingMutation.mutate({ id: pricingModelId, input: parseFloat(inputPrice), output: parseFloat(outputPrice) })}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

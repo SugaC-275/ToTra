@@ -36,6 +36,14 @@ export const listModels = () =>
 export const createModel = (data: CreateModelPayload) =>
   apiClient.post<ModelConfig>("/api/models", data);
 
+export const updateModelPricing = async (
+  id: string,
+  pricing: { price_per_m_input: number; price_per_m_output: number }
+): Promise<any> => {
+  const { data } = await apiClient.put(`/api/admin/models/${id}/pricing`, pricing);
+  return data;
+};
+
 export const getMonthlySummary = (month: string) =>
   apiClient.get<{ month: string; summaries: UserSummary[] }>(`/api/usage/summary?month=${month}`);
 
@@ -66,6 +74,8 @@ export interface ModelConfig {
   base_url: string;
   scu_rate: number;
   is_active: boolean;
+  price_per_m_input?: number | null;
+  price_per_m_output?: number | null;
 }
 export interface CreateModelPayload {
   name: string;

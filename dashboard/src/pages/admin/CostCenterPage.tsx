@@ -278,6 +278,8 @@ export default function CostCenterPage() {
       apiClient
         .get<{
           routing_event_count: number;
+          total_usd_saved: number | null;
+          avg_complexity_score: number | null;
           routed_models: { original_model: string; routed_model: string; count: number }[];
           generated_at: string;
         }>(`/api/admin/cost/savings-report?month=${month}`)
@@ -466,6 +468,28 @@ export default function CostCenterPage() {
         <div className="mb-4 px-4 py-3 bg-green-50 border border-green-100 rounded-lg text-sm text-green-700">
           <span className="font-semibold">{savings?.routing_event_count ?? 0}</span> requests
           automatically downgraded to a cheaper model
+        </div>
+        {/* New stat cards for USD savings + complexity */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="px-4 py-3 bg-blue-50 border border-blue-100 rounded-lg">
+            <p className="text-sm text-gray-500">本月节省</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {savings?.total_usd_saved != null
+                ? `$${savings.total_usd_saved.toFixed(2)}`
+                : <span className="text-gray-400">—</span>}
+            </p>
+            {savings?.total_usd_saved == null && (
+              <p className="text-xs text-gray-400 mt-1">请在模型配置中填写价格</p>
+            )}
+          </div>
+          <div className="px-4 py-3 bg-purple-50 border border-purple-100 rounded-lg">
+            <p className="text-sm text-gray-500">平均复杂度</p>
+            <p className="text-2xl font-bold text-purple-600">
+              {savings?.avg_complexity_score != null
+                ? `${savings.avg_complexity_score.toFixed(0)} / 100`
+                : <span className="text-gray-400">—</span>}
+            </p>
+          </div>
         </div>
         {savings && savings.routed_models.length > 0 && (
           <div className="overflow-x-auto">
