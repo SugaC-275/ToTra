@@ -14,6 +14,7 @@ type Config struct {
 	EncryptionKey  string
 	JWTSecret      string
 	AgentLoopLimit int64
+	ParserURL      string
 }
 
 func Load() (*Config, error) {
@@ -39,6 +40,7 @@ func Load() (*Config, error) {
 		EncryptionKey:  mustGetEnv("GATEWAY_ENCRYPTION_KEY"),
 		JWTSecret:      mustGetEnv("JWT_SECRET"),
 		AgentLoopLimit: loopLimit,
+		ParserURL:      getEnv("PARSER_URL", "http://localhost:8090"),
 	}, nil
 }
 
