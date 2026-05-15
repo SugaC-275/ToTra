@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -184,6 +185,10 @@ func (s *SIEMDeliveryService) processQueue(ctx context.Context) {
 			continue
 		}
 		pending = append(pending, r)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("siem: processQueue rows: %v", err)
+		return
 	}
 	rows.Close()
 
