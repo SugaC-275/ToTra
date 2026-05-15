@@ -53,6 +53,11 @@ services:
     build: ./parser
     ports:
       - "${PARSER_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8090/docs')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     profiles: ["app"]
 
   gateway:
@@ -67,6 +72,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      parser:
         condition: service_healthy
     profiles: ["app"]
 
