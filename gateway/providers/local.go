@@ -38,3 +38,13 @@ func (a *LocalAdapter) Forward(ctx context.Context, body []byte) (*ForwardResult
 	return &ForwardResult{StatusCode: resp.StatusCode, Headers: resp.Header, Body: respBody},
 		extractOpenAIUsage(respBody), nil
 }
+
+func init() {
+	Register("local", func(baseURL, _ string) Adapter {
+		return NewLocalAdapter(baseURL)
+	})
+}
+
+// BuildFilePrompt returns nil — local models run on-prem so file upload
+// scanning is unnecessary. The FileChatHandler checks for nil and returns 400.
+func (a *LocalAdapter) BuildFilePrompt(_, _, _ string) []byte { return nil }
