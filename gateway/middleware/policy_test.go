@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yourorg/totra/gateway/middleware"
 )
 
@@ -26,7 +27,7 @@ func setupPolicyApp(rules []*middleware.PolicyRule) *fiber.App {
 		c.Locals("user", &middleware.UserInfo{TenantID: "t1", UserID: "u1"})
 		return c.Next()
 	})
-	app.Use(middleware.NewPolicyMiddleware(&stubPolicyStore{rules: rules}))
+	app.Use(middleware.NewPolicyMiddleware(&stubPolicyStore{rules: rules}, nil))
 	app.Post("/", func(c *fiber.Ctx) error { return c.SendStatus(200) })
 	return app
 }
@@ -70,4 +71,48 @@ func TestPolicyMiddleware_LogRule_Passes(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := app.Test(req)
 	assert.Equal(t, 200, resp.StatusCode)
+}
+
+func TestPolicyMiddleware_SIEMChannelFired(t *testing.T) {
+	ch := make(chan middleware.SIEMEvent, 1)
+	rules := []*middleware.PolicyRule{
+		{Name: "no-ssn", Pattern: `\b\d{3}-\d{2}-\d{4}\b`, Action: "block"},
+	}
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("user", &middleware.UserInfo{TenantID: "t1", UserID: "u1"})
+		return c.Next()
+	})
+	app.Use(middleware.NewPolicyMiddleware(&stubPolicyStore{rules: rules}, ch))
+	app.Post("/", func(c *fiber.Ctx) error { return c.SendStatus(200) })
+
+	body := `{"content":"SSN: 123-45-6789"}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+
+	require.Len(t, ch, 1)
+	ev := <-ch
+	assert.Equal(t, "t1", ev.TenantID)
+	assert.Equal(t, "policy_block", ev.EventType)
+}
+
+func TestPolicyMiddleware_SIEMChannelNilSafe(t *testing.T) {
+	rules := []*middleware.PolicyRule{
+		{Name: "no-ssn", Pattern: `\b\d{3}-\d{2}-\d{4}\b`, Action: "block"},
+	}
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("user", &middleware.UserInfo{TenantID: "t1", UserID: "u1"})
+		return c.Next()
+	})
+	app.Use(middleware.NewPolicyMiddleware(&stubPolicyStore{rules: rules}, nil))
+	app.Post("/", func(c *fiber.Ctx) error { return c.SendStatus(200) })
+
+	body := `{"content":"SSN: 123-45-6789"}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode) // must not panic
 }
