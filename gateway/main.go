@@ -100,18 +100,12 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 			}})
 		}
 
-		var fwd interface {
-			Forward(ctx context.Context, body []byte) (*providers.ForwardResult, *providers.Usage, error)
-		}
-		switch modelCfg.Provider {
-		case "openai":
-			fwd = providers.NewOpenAIAdapter(modelCfg.BaseURL, modelCfg.APIKey)
-		case "anthropic":
-			fwd = providers.NewAnthropicAdapter(modelCfg.BaseURL, modelCfg.APIKey)
-		case "local":
-			fwd = providers.NewLocalAdapter(modelCfg.BaseURL)
-		default:
-			return c.Status(400).JSON(fiber.Map{"error": fiber.Map{"message": "unsupported provider"}})
+		var fwd providers.Adapter
+		fwd, err = providers.New(modelCfg.Provider, modelCfg.BaseURL, modelCfg.APIKey)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": fiber.Map{
+				"message": fmt.Sprintf("unsupported provider %q for model %q", modelCfg.Provider, reqBody.Model),
+			}})
 		}
 
 		result, usage, err := fwd.Forward(c.Context(), c.Body())
