@@ -13,6 +13,7 @@ type CostSavingsServiceIface interface {
 
 func RegisterCostSavingsRoutes(app fiber.Router, svc CostSavingsServiceIface) {
 	app.Get("/api/admin/cost/savings-report", getCostSavingsReport(svc))
+	app.Get("/api/admin/cost/savings", getCostSavingsReport(svc))
 }
 
 func getCostSavingsReport(svc CostSavingsServiceIface) fiber.Handler {

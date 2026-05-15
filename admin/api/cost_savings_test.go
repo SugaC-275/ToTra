@@ -16,11 +16,15 @@ import (
 type stubSavingsSvc struct{}
 
 func (s *stubSavingsSvc) GetMonthlySavings(_ context.Context, _, _ string) (*services.MonthlySavingsReport, error) {
+	usd := 42.50
+	cplx := 38.0
 	return &services.MonthlySavingsReport{
 		YearMonth:          "2026-05",
 		RoutingEventCount:  10,
 		RoutingEventModels: []services.RoutedModelStat{},
 		GeneratedAt:        time.Now().UTC().Format(time.RFC3339),
+		TotalUSDSaved:      &usd,
+		AvgComplexityScore: &cplx,
 	}, nil
 }
 
@@ -37,6 +41,13 @@ func setupSavingsApp(svc api.CostSavingsServiceIface) *fiber.App {
 func TestGetCostSavingsReport_OK(t *testing.T) {
 	app := setupSavingsApp(&stubSavingsSvc{})
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/cost/savings-report", nil)
+	resp, _ := app.Test(req)
+	assert.Equal(t, 200, resp.StatusCode)
+}
+
+func TestGetCostSavings_Alias_OK(t *testing.T) {
+	app := setupSavingsApp(&stubSavingsSvc{})
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/cost/savings", nil)
 	resp, _ := app.Test(req)
 	assert.Equal(t, 200, resp.StatusCode)
 }
