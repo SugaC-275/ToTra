@@ -12,8 +12,8 @@ type piiRule struct {
 }
 
 var piiPatterns = []*piiRule{
-	{name: "china_phone", re: regexp.MustCompile(`1[3-9]\d{9}`)},
 	{name: "china_id_card", re: regexp.MustCompile(`\b\d{17}[\dXx]\b`)},
+	{name: "china_phone", re: regexp.MustCompile(`1[3-9]\d{9}`)},
 	{name: "credit_card", re: regexp.MustCompile(`\b(?:\d[ -]?){13,16}\b`)},
 	{name: "email", re: regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)},
 	{name: "bank_account", re: regexp.MustCompile(`\b\d{16,19}\b`)},
@@ -59,4 +59,15 @@ func NewPIIMiddleware(recorder ViolationRecorder, tenantID string) fiber.Handler
 		}
 		return c.Next()
 	}
+}
+
+// ScanForPII scans text against all PII patterns. Returns the matched PII type
+// name and true on the first match; returns ("", false) if no PII is found.
+func ScanForPII(text string) (piiType string, found bool) {
+	for _, rule := range piiPatterns {
+		if rule.re.MatchString(text) {
+			return rule.name, true
+		}
+	}
+	return "", false
 }

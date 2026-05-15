@@ -104,3 +104,20 @@ func TestPIIMiddleware_ICDCode(t *testing.T) {
 	resp, _ := app.Test(req)
 	assert.Equal(t, 422, resp.StatusCode)
 }
+
+func TestScanForPII_Phone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("please call 13812345678 for details")
+	assert.True(t, found)
+	assert.Equal(t, "china_phone", piiType)
+}
+
+func TestScanForPII_Clean(t *testing.T) {
+	_, found := middleware.ScanForPII("this text contains no sensitive information")
+	assert.False(t, found)
+}
+
+func TestScanForPII_IDCard(t *testing.T) {
+	piiType, found := middleware.ScanForPII("身份证: 110101199001011234")
+	assert.True(t, found)
+	assert.Equal(t, "china_id_card", piiType)
+}
