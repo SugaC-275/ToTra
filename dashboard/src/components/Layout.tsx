@@ -30,6 +30,7 @@ const adminNavItems = [
   { label: "Anomaly Alerts", href: "/admin/compliance/anomalies" },
   { label: "Policy Rules", href: "/admin/compliance/policy-rules" },
   { label: "Cost Center", href: "/admin/cost" },
+  { label: "SIEM Integration", href: "/admin/siem" },
   { label: "My Usage", href: "/me" },
 ];
 

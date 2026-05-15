@@ -394,3 +394,51 @@ export const downloadMyDataExport = async (): Promise<void> => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+// ---- SIEM ----
+
+export interface SIEMConfig {
+  id: string;
+  tenant_id: string;
+  name: string;
+  endpoint_url: string;
+  event_types: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DeliveryLogRow {
+  id: number;
+  event_type: string;
+  status: string;
+  attempts: number;
+  created_at: string;
+}
+
+export const listSIEMConfigs = async (): Promise<{ configs: SIEMConfig[] }> => {
+  const { data } = await apiClient.get("/api/admin/siem/configs");
+  return data;
+};
+
+export const createSIEMConfig = async (payload: {
+  name: string;
+  endpoint_url: string;
+  api_key: string;
+  event_types: string[];
+}): Promise<SIEMConfig> => {
+  const { data } = await apiClient.post("/api/admin/siem/configs", payload);
+  return data;
+};
+
+export const deleteSIEMConfig = async (id: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/siem/configs/${id}`);
+};
+
+export const sendSIEMTest = async (id: string): Promise<void> => {
+  await apiClient.post(`/api/admin/siem/configs/${id}/test`);
+};
+
+export const getSIEMDeliveryLog = async (): Promise<{ log: DeliveryLogRow[] }> => {
+  const { data } = await apiClient.get("/api/admin/siem/delivery-log?limit=50");
+  return data;
+};
