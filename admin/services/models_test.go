@@ -8,7 +8,7 @@ import (
 )
 
 func TestModelService_NewReturnsNonNil(t *testing.T) {
-	svc := services.NewModelService(nil)
+	svc := services.NewModelService(nil, "")
 	assert.NotNil(t, svc)
 }
 

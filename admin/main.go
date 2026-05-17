@@ -55,7 +55,7 @@ func main() {
 	protected := app.Group("/", jwtMiddleware)
 	protected.Use(services.IPAllowlistMiddleware(allowlistSvc))
 	api.RegisterUserRoutes(protected, services.NewUserService(pool))
-	api.RegisterModelRoutes(protected, services.NewModelService(pool))
+	api.RegisterModelRoutes(protected, services.NewModelService(pool, cfg.EncryptionKey))
 	usageSvc := services.NewUsageService(pool)
 	api.RegisterUsageRoutes(protected, usageSvc)
 	api.RegisterUsageAdminRoutes(protected, usageSvc)

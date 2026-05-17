@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/yourorg/totra/gateway/tokenizer"
 )
 
 type QuotaChecker interface {
@@ -31,7 +32,7 @@ func NewQuotaMiddleware(qs QuotaChecker, uq UserQuotaFetcher) fiber.Handler {
 			})
 		}
 
-		estimatedCost := 100
+		estimatedCost := tokenizer.EstimateTokensFromBody(c.Body())
 		allowed, remaining, err := qs.CheckAndIncrement(c.Context(), user.TenantID, user.UserID, yearMonth, quotaLimit, estimatedCost)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

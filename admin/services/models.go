@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yourorg/totra/admin/crypto"
 )
 
 type ModelConfig struct {
@@ -28,11 +29,12 @@ type CreateModelRequest struct {
 }
 
 type ModelService struct {
-	pool *pgxpool.Pool
+	pool          *pgxpool.Pool
+	encryptionKey string
 }
 
-func NewModelService(pool *pgxpool.Pool) *ModelService {
-	return &ModelService{pool: pool}
+func NewModelService(pool *pgxpool.Pool, encryptionKey string) *ModelService {
+	return &ModelService{pool: pool, encryptionKey: encryptionKey}
 }
 
 func (s *ModelService) List(ctx context.Context, tenantID string) ([]*ModelConfig, error) {
@@ -70,11 +72,15 @@ func (s *ModelService) UpdatePricing(ctx context.Context, tenantID, modelID stri
 }
 
 func (s *ModelService) Create(ctx context.Context, tenantID string, req CreateModelRequest) (*ModelConfig, error) {
+	encryptedKey, err := crypto.Encrypt(req.APIKey, s.encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt api key: %w", err)
+	}
 	var id string
-	err := s.pool.QueryRow(ctx,
+	err = s.pool.QueryRow(ctx,
 		`INSERT INTO model_configs (id, tenant_id, name, provider, api_key_encrypted, base_url, scu_rate)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-		uuid.New().String(), tenantID, req.Name, req.Provider, req.APIKey, req.BaseURL, req.SCURate,
+		uuid.New().String(), tenantID, req.Name, req.Provider, encryptedKey, req.BaseURL, req.SCURate,
 	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("create model config: %w", err)
