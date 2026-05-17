@@ -32,6 +32,8 @@ services:
       - ./infra/postgres/021_budget_alert_log.sql:/docker-entrypoint-initdb.d/021_budget_alert_log.sql:ro
       - ./infra/postgres/022_siem.sql:/docker-entrypoint-initdb.d/022_siem.sql:ro
       - ./infra/postgres/023_smart_routing_cost.sql:/docker-entrypoint-initdb.d/023_smart_routing_cost.sql:ro
+      - ./infra/postgres/024_add_password_hash.sql:/docker-entrypoint-initdb.d/024_add_password_hash.sql:ro
+      - ./infra/postgres/025_prompt_compression.sql:/docker-entrypoint-initdb.d/025_prompt_compression.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s

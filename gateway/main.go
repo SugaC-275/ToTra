@@ -67,6 +67,7 @@ func main() {
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
 		middleware.NewPIIMiddleware(piiStore, "", siemChan),
 		middleware.NewPolicyMiddleware(policyRuleStore, siemChan),
+		middleware.NewCompressMiddleware(),
 		middleware.NewAutoRouterMiddleware(routingStore),
 		middleware.NewAgentMiddleware(agentStore),
 	)
@@ -159,16 +160,22 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 		scuCost := tokenizer.ToSCU(usage.PromptTokens, usage.CompletionTokens, modelCfg.SCURate)
 		conversationID := c.Get("X-Conversation-ID") // empty string if absent
 
+		promptBytesOriginal, _ := c.Locals("compression_original_bytes").(int)
+		promptBytesSaved, _ := c.Locals("compression_saved_bytes").(int)
+		promptBytesCompressed := promptBytesOriginal - promptBytesSaved
+
 		usageStore.Record(&storage.UsageRecord{
-			TenantID:         user.TenantID,
-			UserID:           user.UserID,
-			ModelConfigID:    modelCfg.ID,
-			ConversationID:   conversationID,
-			PromptTokens:     usage.PromptTokens,
-			CompletionTokens: usage.CompletionTokens,
-			SCUCost:          scuCost,
-			USDCost:          0,
-			ResponseMS:       responseMS,
+			TenantID:              user.TenantID,
+			UserID:                user.UserID,
+			ModelConfigID:         modelCfg.ID,
+			ConversationID:        conversationID,
+			PromptTokens:          usage.PromptTokens,
+			CompletionTokens:      usage.CompletionTokens,
+			SCUCost:               scuCost,
+			USDCost:               0,
+			ResponseMS:            responseMS,
+			PromptBytesOriginal:   promptBytesOriginal,
+			PromptBytesCompressed: promptBytesCompressed,
 		})
 
 		if agentMode, _ := c.Locals("agent_mode").(bool); agentMode && conversationID != "" {

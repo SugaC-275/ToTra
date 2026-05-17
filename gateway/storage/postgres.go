@@ -11,15 +11,17 @@ import (
 )
 
 type UsageRecord struct {
-	TenantID         string
-	UserID           string
-	ModelConfigID    string
-	ConversationID   string // empty string → stored as NULL
-	PromptTokens     int
-	CompletionTokens int
-	SCUCost          float64
-	USDCost          float64
-	ResponseMS       int
+	TenantID               string
+	UserID                 string
+	ModelConfigID          string
+	ConversationID         string // empty string → stored as NULL
+	PromptTokens           int
+	CompletionTokens       int
+	SCUCost                float64
+	USDCost                float64
+	ResponseMS             int
+	PromptBytesOriginal    int // 0 when compression was not applied
+	PromptBytesCompressed  int // 0 when compression was not applied
 }
 
 type UsageStore struct {
@@ -66,11 +68,13 @@ func (u *UsageStore) write(ctx context.Context, r *UsageRecord) error {
 	_, err := u.pool.Exec(ctx, `
 		INSERT INTO usage_records
 			(tenant_id, user_id, model_config_id, conversation_id,
-			 prompt_tokens, completion_tokens, scu_cost, usd_cost, response_ms)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+			 prompt_tokens, completion_tokens, scu_cost, usd_cost, response_ms,
+			 prompt_bytes_original, prompt_bytes_compressed)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		r.TenantID, r.UserID, r.ModelConfigID, convID,
 		r.PromptTokens, r.CompletionTokens,
 		r.SCUCost, r.USDCost, r.ResponseMS,
+		r.PromptBytesOriginal, r.PromptBytesCompressed,
 	)
 	if err != nil {
 		return fmt.Errorf("insert usage record: %w", err)
