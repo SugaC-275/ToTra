@@ -77,6 +77,8 @@ func main() {
 	topSpendersSvc := services.NewTopSpendersService(pool)
 	budgetAlertSvc := services.NewBudgetAlertService(pool)
 	api.RegisterCostReportsRoutes(protected, topSpendersSvc, budgetAlertSvc, botSvc)
+	optSuggestionsSvc := services.NewOptimizationSuggestionService(pool)
+	api.RegisterCostOptimizationRoutes(protected, optSuggestionsSvc)
 	api.RegisterHRSyncRoutes(protected, hrSyncSvc)
 	api.RegisterAgentRoutes(protected, agentSvc)
 	api.RegisterAuditRoutes(protected, auditSvc)

@@ -117,6 +117,21 @@ interface TopSpendersReport {
   entries: SpenderEntry[]
 }
 
+interface OptSuggestion {
+  category: string
+  title: string
+  description: string
+  estimated_savings_usd: number
+  priority: 'high' | 'medium' | 'low'
+}
+
+interface OptimizationReport {
+  tenant_id: string
+  year_month: string
+  suggestions: OptSuggestion[]
+  generated_at: string
+}
+
 function TopSpendersTable({ entries }: { entries: SpenderEntry[] }) {
   if (!entries || entries.length === 0)
     return <p className="text-gray-400 text-sm">No spend data this month.</p>;
@@ -329,6 +344,11 @@ export default function CostCenterPage() {
       apiClient
         .post("/api/admin/cost/budget-alert/check")
         .then((r) => r.data),
+  })
+
+  const { data: optReport } = useQuery<OptimizationReport>({
+    queryKey: ['cost-optimization-suggestions'],
+    queryFn: () => apiClient.get('/api/admin/cost/optimization-suggestions').then(r => r.data),
   })
 
   const [settingsSaved, setSettingsSaved] = useState(false)
@@ -756,6 +776,59 @@ export default function CostCenterPage() {
           <p className="mt-3 text-red-400 text-sm">Error checking alerts.</p>
         )}
       </div>
+
+      {/* Optimization Suggestions */}
+      {optReport && optReport.suggestions.length > 0 && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-1">Optimization Suggestions</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Actionable recommendations based on your usage patterns for {optReport.year_month}.
+          </p>
+          <div className="space-y-3">
+            {optReport.suggestions.map((s, i) => (
+              <div
+                key={i}
+                className={`border rounded-lg p-4 ${
+                  s.priority === 'high'
+                    ? 'border-red-700 bg-red-900/20'
+                    : s.priority === 'medium'
+                    ? 'border-yellow-700 bg-yellow-900/20'
+                    : 'border-gray-600 bg-gray-700/30'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase ${
+                          s.priority === 'high'
+                            ? 'bg-red-800 text-red-200'
+                            : s.priority === 'medium'
+                            ? 'bg-yellow-800 text-yellow-200'
+                            : 'bg-gray-600 text-gray-300'
+                        }`}
+                      >
+                        {s.priority}
+                      </span>
+                      <span className="text-xs text-gray-400 capitalize">{s.category}</span>
+                    </div>
+                    <p className="font-medium text-gray-100">{s.title}</p>
+                    <p className="text-sm text-gray-400 mt-1">{s.description}</p>
+                  </div>
+                  {s.estimated_savings_usd > 0 && (
+                    <div className="text-right shrink-0">
+                      <p className="text-green-400 font-bold text-lg">
+                        ~${s.estimated_savings_usd.toFixed(0)}
+                      </p>
+                      <p className="text-xs text-gray-500">est. savings/mo</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

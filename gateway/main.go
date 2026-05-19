@@ -44,6 +44,7 @@ func main() {
 	pgUserQuota := storage.NewPGUserQuota(pool)
 	piiStore := storage.NewPIIStore(pool, 256)
 	requestCache := storage.NewRequestCache(rdb)
+	semanticCache := storage.NewSemanticCache(rdb)
 	routingStore := storage.NewRoutingStore(pool)
 	policyRuleStore := storage.NewPolicyRuleStore(pool, rdb)
 	siemGatewayStore := storage.NewSIEMGatewayStore(pool)
@@ -72,7 +73,7 @@ func main() {
 		middleware.NewAgentMiddleware(agentStore),
 	)
 
-	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache, routingStore)
+	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache, semanticCache, routingStore)
 	v1.Post("/chat/completions", proxyHandler)
 	v1.Post("/messages", proxyHandler)
 
@@ -86,23 +87,31 @@ func main() {
 	log.Fatal(app.Listen(":" + cfg.Port))
 }
 
-func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache, routingStore *storage.RoutingStore) fiber.Handler {
+func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache, semCache *storage.SemanticCache, routingStore *storage.RoutingStore) fiber.Handler {
 	modelLookup := storage.NewPGModelLookup(pool)
 
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*middleware.UserInfo)
 		start := time.Now()
+		body := string(c.Body())
+		yearMonth := time.Now().UTC().Format("2006-01")
 
-		cacheKey := storage.CacheKey(user.TenantID, string(c.Body()))
+		// Exact cache check.
+		cacheKey := storage.CacheKey(user.TenantID, body)
 		if cached, ok := cache.Get(c.Context(), cacheKey); ok {
-			cache.IncrHit(c.Context(), user.TenantID, time.Now().UTC().Format("2006-01"))
+			cache.IncrHit(c.Context(), user.TenantID, yearMonth)
 			c.Set("X-Cache", "HIT")
 			return c.Status(200).Send(cached)
 		}
 
-		var reqBody struct {
-			Model string `json:"model"`
+		// Semantic cache check (similar but not identical requests).
+		if cached, ok := semCache.Get(c.Context(), user.TenantID, body); ok {
+			semCache.IncrHit(c.Context(), user.TenantID, yearMonth)
+			c.Set("X-Cache", "SEMANTIC-HIT")
+			return c.Status(200).Send(cached)
 		}
+
+		var reqBody struct{ Model string `json:"model"` }
 		if err := c.BodyParser(&reqBody); err != nil || reqBody.Model == "" {
 			return c.Status(400).JSON(fiber.Map{"error": fiber.Map{"message": "model field required"}})
 		}
@@ -129,6 +138,7 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 
 		if result.StatusCode == 200 {
 			cache.Set(c.Context(), cacheKey, result.Body, 24*time.Hour)
+			semCache.Set(c.Context(), user.TenantID, body, result.Body)
 		}
 
 		// Back-fill token counts and USD savings for routed requests.
