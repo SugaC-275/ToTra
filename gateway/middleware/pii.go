@@ -21,6 +21,12 @@ var piiPatterns = []*piiRule{
 	// Finance industry
 	{name: "contract_amount", re: regexp.MustCompile(`(?:合同金额|合同价款)[：:\s]*[¥￥]?\d[\d,\.]*(?:万|千万|亿)?元?`)},
 	{name: "transaction_id", re: regexp.MustCompile(`(?:交易流水号|流水号|交易编号)[：:\s]*[A-Za-z0-9\-]{8,}`)},
+	{name: "swift_bic", re: regexp.MustCompile(`(?i)(?:swift|bic)[\s:：码代号]*[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?`)},
+	{name: "iban", re: regexp.MustCompile(`\b[A-Z]{2}\d{2}[A-Z0-9]{11,29}\b`)},
+	{name: "loan_account", re: regexp.MustCompile(`(?:贷款合同[号编]|借款合同编号|贷款账[户号])[：:\s]*[A-Za-z0-9\-]{6,30}`)},
+	{name: "securities_account", re: regexp.MustCompile(`(?:证券账[户号]|股票账[户号]|基金账[户号])[：:\s]*[A-Za-z0-9]{6,12}`)},
+	{name: "china_unified_credit", re: regexp.MustCompile(`\b[0-9A-HJ-NP-RT-Y]{2}\d{6}[0-9A-HJ-NP-RT-Y]{10}\b`)},
+	{name: "insurance_policy", re: regexp.MustCompile(`(?:保险单号|保单号|保单编号)[：:\s]*[A-Za-z0-9\-]{8,25}`)},
 	// Medical industry
 	{name: "patient_id", re: regexp.MustCompile(`(?:患者[Ii][Dd]|患者编号|病历号|住院号)[：:\s]*[A-Za-z0-9\-]{4,20}`)},
 	{name: "icd_code", re: regexp.MustCompile(`\bICD[-–]?(?:10|11)[-–]\s*[A-Z]\d{2}(?:\.\d{1,4})?\b`)},

@@ -106,6 +106,87 @@ func TestPIIMiddleware_ICDCode(t *testing.T) {
 	assert.Equal(t, 422, resp.StatusCode)
 }
 
+func TestPIIMiddleware_SWIFTBIC(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"请转账至SWIFT: DEUTDEDB，金额1000欧元"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_IBAN(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"对方账户 GB29NWBK60161331926819 请核实后转款"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_LoanAccount(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"贷款合同号: LN20260514-AB12345，请查询还款进度"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_SecuritiesAccount(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"我的证券账号: A123456789，帮我分析持仓"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_ChinaUnifiedCredit(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"企业统一社会信用代码: 91310000MA1FL3GJ5X"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_InsurancePolicy(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"保单号: PAIC2026051400123，请查询理赔状态"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 422, resp.StatusCode)
+}
+
+func TestPIIMiddleware_FinanceCleanPasses(t *testing.T) {
+	app := setupPIIApp()
+	body := `{"messages":[{"content":"请帮我分析这季度的财务报告趋势"}]}`
+	req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := app.Test(req)
+	assert.Equal(t, 200, resp.StatusCode)
+}
+
+func TestScanForPII_SWIFTBIC(t *testing.T) {
+	piiType, found := middleware.ScanForPII("wire to BIC: CHASUS33XXX for settlement")
+	assert.True(t, found)
+	assert.Equal(t, "swift_bic", piiType)
+}
+
+func TestScanForPII_IBAN(t *testing.T) {
+	piiType, found := middleware.ScanForPII("please credit DE89370400440532013000 immediately")
+	assert.True(t, found)
+	assert.Equal(t, "iban", piiType)
+}
+
+func TestScanForPII_ChinaUnifiedCredit(t *testing.T) {
+	piiType, found := middleware.ScanForPII("供应商信用代码 91310000MA1FL3GJ5X 请核实")
+	assert.True(t, found)
+	assert.Equal(t, "china_unified_credit", piiType)
+}
+
 func TestScanForPII_Phone(t *testing.T) {
 	piiType, found := middleware.ScanForPII("please call 13812345678 for details")
 	assert.True(t, found)
