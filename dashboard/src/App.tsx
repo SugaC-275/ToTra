@@ -20,6 +20,7 @@ import ComplianceChecklistPage from "./pages/admin/ComplianceChecklistPage";
 import ComplianceAnomalyPage from "./pages/admin/ComplianceAnomalyPage";
 import PolicyRulesPage from "./pages/admin/PolicyRulesPage";
 import CostCenterPage from "./pages/admin/CostCenterPage";
+import ProcurementPage from "./pages/admin/ProcurementPage";
 import SIEMPage from "./pages/admin/SIEMPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
 
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="admin/compliance/anomalies" element={<ProtectedRoute adminOnly><ComplianceAnomalyPage /></ProtectedRoute>} />
             <Route path="admin/compliance/policy-rules" element={<ProtectedRoute adminOnly><PolicyRulesPage /></ProtectedRoute>} />
             <Route path="admin/cost" element={<ProtectedRoute adminOnly><CostCenterPage /></ProtectedRoute>} />
+            <Route path="admin/cost/procurement" element={<ProtectedRoute adminOnly><ProcurementPage /></ProtectedRoute>} />
             <Route path="admin/siem" element={<ProtectedRoute adminOnly><SIEMPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
           </Route>
