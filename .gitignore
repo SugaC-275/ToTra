@@ -12,3 +12,17 @@ vendor/
 __pycache__/
 .pytest_cache/
 .coverage
+
+# Local tooling / runtime artifacts (claude-flow, ruflo, MCP, code-review-graph)
+.claude-flow/
+.swarm/
+.code-review-graph/
+.mcp.json
+claude-flow.config.json
+CLAUDE.md
+ruvector.db
+.claude/agents/
+.claude/commands/
+.claude/helpers/
+.claude/skills/
+.claude/memory.db
