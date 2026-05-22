@@ -49,8 +49,9 @@ export default function AlertConfigPage() {
       setEventTypes([]);
       setFormError("");
     },
-    onError: (err: any) => {
-      setFormError(err?.response?.data?.error ?? "Failed to create config");
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { error?: string } } } | null;
+      setFormError(apiErr?.response?.data?.error ?? "Failed to create config");
     },
   });
 

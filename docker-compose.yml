@@ -1,8 +1,7 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -34,6 +33,13 @@ services:
       - ./infra/postgres/023_smart_routing_cost.sql:/docker-entrypoint-initdb.d/023_smart_routing_cost.sql:ro
       - ./infra/postgres/024_add_password_hash.sql:/docker-entrypoint-initdb.d/024_add_password_hash.sql:ro
       - ./infra/postgres/025_prompt_compression.sql:/docker-entrypoint-initdb.d/025_prompt_compression.sql:ro
+      - ./infra/postgres/026_fallback_model.sql:/docker-entrypoint-initdb.d/026_fallback_model.sql:ro
+      - ./infra/postgres/027_rate_limits.sql:/docker-entrypoint-initdb.d/027_rate_limits.sql:ro
+      - ./infra/postgres/028_oidc_config.sql:/docker-entrypoint-initdb.d/028_oidc_config.sql:ro
+      - ./infra/postgres/029_rbac_roles.sql:/docker-entrypoint-initdb.d/029_rbac_roles.sql:ro
+      - ./infra/postgres/030_alert_configs.sql:/docker-entrypoint-initdb.d/030_alert_configs.sql:ro
+      - ./infra/postgres/031_quota_requests.sql:/docker-entrypoint-initdb.d/031_quota_requests.sql:ro
+      - ./infra/postgres/032_retention_cleanup_log.sql:/docker-entrypoint-initdb.d/032_retention_cleanup_log.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -42,6 +48,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: redis-server --requirepass "${REDIS_PASSWORD:-}"
     ports:
       - "${REDIS_PORT}:6379"
@@ -55,17 +62,20 @@ services:
 
   parser:
     build: ./parser
+    restart: unless-stopped
     ports:
       - "${PARSER_PORT:-8090}:8090"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8090/docs')\""]
-      interval: 5s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health')\""]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 10s
     profiles: ["app"]
 
   gateway:
     build: ./gateway
+    restart: unless-stopped
     ports:
       - "${GATEWAY_PORT}:8080"
     env_file: .env
@@ -79,10 +89,17 @@ services:
         condition: service_healthy
       parser:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     profiles: ["app"]
 
   admin:
     build: ./admin
+    restart: unless-stopped
     ports:
       - "${ADMIN_PORT}:8081"
     env_file: .env
@@ -93,16 +110,29 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     profiles: ["app"]
 
   dashboard:
     build: ./dashboard
+    restart: unless-stopped
     ports:
       - "${DASHBOARD_PORT}:3000"
     env_file: .env
     depends_on:
       admin:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     profiles: ["app"]
 
 volumes:

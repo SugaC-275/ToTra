@@ -28,8 +28,9 @@ export default function BotConfigPage() {
       setLabel("");
       setAddError("");
     },
-    onError: (err: any) => {
-      setAddError(err?.response?.data?.error ?? "Failed to add bot config");
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { error?: string } } } | null;
+      setAddError(apiErr?.response?.data?.error ?? "Failed to add bot config");
     },
   });
 

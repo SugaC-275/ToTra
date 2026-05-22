@@ -846,61 +846,8 @@ VALUES
    'bbbbbbbb-0000-0000-0000-000000000506',
    652, 1623, 4.55, 0.00455, 1140, '2026-05-15 10:30:00+00');
 
--- ─────────────────────────────────────────────
--- Pre-seeded efficiency_snapshots
--- (provides GTS history context for live May computation)
--- ─────────────────────────────────────────────
-
--- Alice March 2026 (solo peer group → Z-scores all 0 → AIQ=50)
-INSERT INTO efficiency_snapshots
-  (id, tenant_id, user_id, year_month,
-   total_scu, total_output_weight, efficiency_score,
-   aiq_score, oss_score, gts_score,
-   integration_level, peer_group, rank, peer_count, snapshot_at)
-VALUES (
-  'ee000000-0000-0000-0000-000000000301',
-  '00000000-0000-0000-0000-000000000001',
-  '00000000-0000-0000-0000-000000000011',
-  '2026-03',
-  38.5, 0, 37.8,
-  50.0, 1.0, 0,
-  1, 'engineer', 1, 1, '2026-04-01 02:00:00+00'
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Alice April 2026 (higher AIQ than Bob)
-INSERT INTO efficiency_snapshots
-  (id, tenant_id, user_id, year_month,
-   total_scu, total_output_weight, efficiency_score,
-   aiq_score, oss_score, gts_score,
-   integration_level, peer_group, rank, peer_count, snapshot_at)
-VALUES (
-  'ee000000-0000-0000-0000-000000000411',
-  '00000000-0000-0000-0000-000000000001',
-  '00000000-0000-0000-0000-000000000011',
-  '2026-04',
-  82.0, 0, 47.5,
-  63.0, 1.02, 0,
-  1, 'engineer', 1, 2, '2026-05-01 02:00:00+00'
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Bob April 2026 (lower AIQ than Alice)
-INSERT INTO efficiency_snapshots
-  (id, tenant_id, user_id, year_month,
-   total_scu, total_output_weight, efficiency_score,
-   aiq_score, oss_score, gts_score,
-   integration_level, peer_group, rank, peer_count, snapshot_at)
-VALUES (
-  'ee000000-0000-0000-0000-000000000412',
-  '00000000-0000-0000-0000-000000000001',
-  '00000000-0000-0000-0000-000000000012',
-  '2026-04',
-  50.0, 0, 28.0,
-  37.0, 0.97, 0,
-  1, 'engineer', 2, 2, '2026-05-01 02:00:00+00'
-)
-ON CONFLICT (id) DO NOTHING;
+-- NOTE: efficiency_snapshots seed data was removed — that table belonged to the
+-- retired KPI feature and is dropped by 016_drop_kpi_tables.sql.
 
 -- ─────────────────────────────────────────────
 -- TENANT 2: Beta Corp (isolation test)

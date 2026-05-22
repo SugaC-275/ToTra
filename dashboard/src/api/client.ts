@@ -39,7 +39,7 @@ export const createModel = (data: CreateModelPayload) =>
 export const updateModelPricing = async (
   id: string,
   pricing: { price_per_m_input: number; price_per_m_output: number }
-): Promise<any> => {
+) => {
   const { data } = await apiClient.put(`/api/admin/models/${id}/pricing`, pricing);
   return data;
 };

@@ -18,7 +18,7 @@ fail() { echo "  FAIL  $1 — $2"; FAIL=$((FAIL+1)); }
 # ── 1. Start services ───────────────────────────────────────────────────────
 if [ "${NO_START}" != "--no-start" ]; then
   echo "Starting docker compose..."
-  docker compose -f "${ROOT}/docker-compose.yml" up -d --wait 2>&1 | tail -5
+  docker-compose -f "${ROOT}/docker-compose.yml" up -d --wait 2>&1 | tail -5
 fi
 
 # ── 2. Wait helper ──────────────────────────────────────────────────────────

@@ -18,8 +18,9 @@ export default function HRSyncPage() {
     try {
       const res = await syncHRCSV(file);
       setResult(res);
-    } catch (err: any) {
-      setError(err?.response?.data?.error ?? "Sync failed");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { error?: string } } } | null;
+      setError(apiErr?.response?.data?.error ?? "Sync failed");
     } finally {
       setLoading(false);
     }

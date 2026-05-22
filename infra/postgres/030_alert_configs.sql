@@ -1,8 +1,16 @@
 -- Migration 030: alert delivery configurations
 -- Stores per-tenant channel configs for push alert delivery (Slack, email, webhook).
 
-CREATE TYPE IF NOT EXISTS alert_channel AS ENUM ('slack', 'email', 'webhook');
-CREATE TYPE IF NOT EXISTS alert_event_type AS ENUM ('budget_exceeded', 'budget_warning', 'compliance_violation', 'pii_spike');
+-- PostgreSQL has no "CREATE TYPE IF NOT EXISTS"; use the idempotent DO-block idiom.
+DO $$ BEGIN
+    CREATE TYPE alert_channel AS ENUM ('slack', 'email', 'webhook');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE alert_event_type AS ENUM ('budget_exceeded', 'budget_warning', 'compliance_violation', 'pii_spike');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS alert_delivery_configs (
     id          UUID            PRIMARY KEY DEFAULT gen_random_uuid(),

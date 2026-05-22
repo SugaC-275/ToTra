@@ -48,8 +48,9 @@ export default function SIEMPage() {
       queryClient.invalidateQueries({ queryKey: ["siem-configs"] });
       setName(""); setEndpointURL(""); setApiKey(""); setEventTypes([]); setFormError("");
     },
-    onError: (err: any) => {
-      setFormError(err?.response?.data?.error ?? "Failed to create config");
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { error?: string } } } | null;
+      setFormError(apiErr?.response?.data?.error ?? "Failed to create config");
     },
   });
 

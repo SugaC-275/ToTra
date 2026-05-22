@@ -21,7 +21,7 @@ export function LoginPage() {
       let role = "";
       try {
         role = JSON.parse(atob(token!.split(".")[1])).role;
-      } catch {}
+      } catch { /* malformed token — fall back to default role */ }
       navigate(role === "admin" ? "/admin/dashboard" : "/me");
     }
   };

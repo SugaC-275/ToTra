@@ -7,3 +7,8 @@ vendor/
 *.test
 .DS_Store
 .worktrees/
+
+# Python (parser test suite)
+__pycache__/
+.pytest_cache/
+.coverage
