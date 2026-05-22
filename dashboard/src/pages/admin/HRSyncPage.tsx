@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { syncHRCSV } from "../../api/client";
 import type { SyncResult } from "../../api/client";
+import { apiErrorMessage } from "../../lib/utils";
 
 export default function HRSyncPage() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -19,8 +20,7 @@ export default function HRSyncPage() {
       const res = await syncHRCSV(file);
       setResult(res);
     } catch (err: unknown) {
-      const apiErr = err as { response?: { data?: { error?: string } } } | null;
-      setError(apiErr?.response?.data?.error ?? "Sync failed");
+      setError(apiErrorMessage(err, "Sync failed"));
     } finally {
       setLoading(false);
     }

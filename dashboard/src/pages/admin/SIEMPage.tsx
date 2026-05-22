@@ -8,6 +8,7 @@ import {
   getSIEMDeliveryLog,
 } from "../../api/client";
 import type { SIEMConfig, DeliveryLogRow } from "../../api/client";
+import { apiErrorMessage } from "../../lib/utils";
 
 const ALL_EVENT_TYPES = [
   "pii_violation",
@@ -49,8 +50,7 @@ export default function SIEMPage() {
       setName(""); setEndpointURL(""); setApiKey(""); setEventTypes([]); setFormError("");
     },
     onError: (err: unknown) => {
-      const apiErr = err as { response?: { data?: { error?: string } } } | null;
-      setFormError(apiErr?.response?.data?.error ?? "Failed to create config");
+      setFormError(apiErrorMessage(err, "Failed to create config"));
     },
   });
 

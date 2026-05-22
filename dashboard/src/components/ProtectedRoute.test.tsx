@@ -3,10 +3,7 @@ import type { ReactNode } from 'react'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
-
-function makeToken(payload: object): string {
-  return `header.${btoa(JSON.stringify(payload))}.signature`
-}
+import { makeToken } from '../test/helpers'
 
 /** Render `ui` at /secret, with stub /login and /me routes to observe redirects. */
 function renderAt(ui: ReactNode) {

@@ -7,6 +7,7 @@ import {
   sendTestAlertConfig,
 } from "../../api/client";
 import type { AlertDeliveryConfig } from "../../api/client";
+import { apiErrorMessage } from "../../lib/utils";
 
 const ALL_EVENT_TYPES = [
   "budget_exceeded",
@@ -50,8 +51,7 @@ export default function AlertConfigPage() {
       setFormError("");
     },
     onError: (err: unknown) => {
-      const apiErr = err as { response?: { data?: { error?: string } } } | null;
-      setFormError(apiErr?.response?.data?.error ?? "Failed to create config");
+      setFormError(apiErrorMessage(err, "Failed to create config"));
     },
   });
 

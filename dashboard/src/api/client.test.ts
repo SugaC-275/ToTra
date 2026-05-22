@@ -1,10 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getMyUID } from './client'
-
-/** Build a JWT-shaped string with the given payload (header/signature are dummies). */
-function makeToken(payload: object): string {
-  return `header.${btoa(JSON.stringify(payload))}.signature`
-}
+import { makeToken } from '../test/helpers'
 
 describe('getMyUID', () => {
   beforeEach(() => {

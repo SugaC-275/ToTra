@@ -7,6 +7,7 @@ import {
   sendTestBotMessage,
 } from "../../api/client";
 import type { BotConfig } from "../../api/client";
+import { apiErrorMessage } from "../../lib/utils";
 
 export default function BotConfigPage() {
   const queryClient = useQueryClient();
@@ -29,8 +30,7 @@ export default function BotConfigPage() {
       setAddError("");
     },
     onError: (err: unknown) => {
-      const apiErr = err as { response?: { data?: { error?: string } } } | null;
-      setAddError(apiErr?.response?.data?.error ?? "Failed to add bot config");
+      setAddError(apiErrorMessage(err, "Failed to add bot config"));
     },
   });
 
