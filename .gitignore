@@ -21,8 +21,4 @@ __pycache__/
 claude-flow.config.json
 CLAUDE.md
 ruvector.db
-.claude/agents/
-.claude/commands/
-.claude/helpers/
-.claude/skills/
-.claude/memory.db
+.claude/
