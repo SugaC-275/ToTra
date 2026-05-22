@@ -10,8 +10,12 @@ import (
 )
 
 const (
-	semCacheTTL       = 15 * time.Minute
-	semCacheThreshold = 4 // max Hamming distance to count as a hit
+	semCacheTTL = 15 * time.Minute
+	// semCacheThreshold is the max SimHash Hamming distance for a cache hit.
+	// A one-word paraphrase of a short query (~8 tokens) measures a distance
+	// of ~6, so 8 catches single-word rewrites with margin while still
+	// rejecting unrelated queries (which measure ~25+).
+	semCacheThreshold = 8
 	semCacheBands     = 4 // number of 16-bit bands for LSH indexing
 )
 
