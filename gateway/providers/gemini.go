@@ -57,6 +57,39 @@ func (a *GeminiAdapter) Forward(ctx context.Context, body []byte) (*ForwardResul
 		extractGeminiUsage(respBody), nil
 }
 
+// ForwardStream sends the request to Gemini via streamGenerateContent and delivers
+// each SSE data line to onChunk. Empty lines and [DONE] markers are skipped.
+func (a *GeminiAdapter) ForwardStream(ctx context.Context, body []byte, onChunk func([]byte) error) error {
+	var reqFields struct {
+		Model string `json:"model"`
+	}
+	if err := json.Unmarshal(body, &reqFields); err != nil || reqFields.Model == "" {
+		return fmt.Errorf("gemini: model field missing in stream request body")
+	}
+
+	url := fmt.Sprintf("%s/v1beta/models/%s:streamGenerateContent?key=%s&alt=sse",
+		a.baseURL, reqFields.Model, a.apiKey)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("gemini: create stream request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+
+	resp, err := a.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("gemini: stream forward: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("gemini: stream upstream status %d: %s", resp.StatusCode, errBody)
+	}
+
+	return readSSEChunks(resp.Body, onChunk)
+}
+
 func (a *GeminiAdapter) BuildFilePrompt(model, docText, userMessage string) []byte {
 	body := map[string]interface{}{
 		"model": model,

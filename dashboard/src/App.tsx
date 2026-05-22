@@ -22,7 +22,11 @@ import PolicyRulesPage from "./pages/admin/PolicyRulesPage";
 import CostCenterPage from "./pages/admin/CostCenterPage";
 import ProcurementPage from "./pages/admin/ProcurementPage";
 import SIEMPage from "./pages/admin/SIEMPage";
+import { SSOPage } from "./pages/admin/SSOPage";
+import DataRetentionPage from "./pages/admin/DataRetentionPage";
+import AlertConfigPage from "./pages/admin/AlertConfigPage";
 import { MyUsagePage } from "./pages/employee/MyUsagePage";
+import { SelfServicePage } from "./pages/employee/SelfServicePage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -62,7 +66,11 @@ export default function App() {
             <Route path="admin/cost" element={<ProtectedRoute adminOnly><CostCenterPage /></ProtectedRoute>} />
             <Route path="admin/cost/procurement" element={<ProtectedRoute adminOnly><ProcurementPage /></ProtectedRoute>} />
             <Route path="admin/siem" element={<ProtectedRoute adminOnly><SIEMPage /></ProtectedRoute>} />
+            <Route path="admin/sso" element={<ProtectedRoute adminOnly><SSOPage /></ProtectedRoute>} />
+            <Route path="admin/data-retention" element={<ProtectedRoute adminOnly><DataRetentionPage /></ProtectedRoute>} />
+            <Route path="admin/alert-configs" element={<ProtectedRoute adminOnly><AlertConfigPage /></ProtectedRoute>} />
             <Route path="me" element={<MyUsagePage />} />
+            <Route path="me/self-service" element={<SelfServicePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

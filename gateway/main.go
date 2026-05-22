@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"github.com/yourorg/totra/gateway/config"
 	"github.com/yourorg/totra/gateway/handlers"
@@ -53,6 +54,9 @@ func main() {
 	go enqueuer.run(context.Background())
 	parserClient := storage.NewParserClient(cfg.ParserURL)
 	fileLookup := storage.NewPGModelLookup(pool)
+	rateLimitStore := storage.NewRateLimitStore(rdb, pool)
+	gatewayMetrics := middleware.NewGatewayMetrics(prometheus.DefaultRegisterer)
+	modelLookup := storage.NewPGModelLookup(pool)
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  30 * time.Second,
@@ -62,9 +66,12 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
+	app.Get("/metrics", handlers.MetricsHandler(prometheus.DefaultGatherer))
 
 	v1 := app.Group("/v1",
+		middleware.NewMetricsMiddleware(gatewayMetrics),
 		middleware.NewAuthMiddleware(pgUserLookup),
+		middleware.NewRateLimiterMiddleware(rateLimitStore),
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
 		middleware.NewPIIMiddleware(piiStore, "", siemChan),
 		middleware.NewPolicyMiddleware(policyRuleStore, siemChan),
@@ -74,8 +81,10 @@ func main() {
 	)
 
 	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache, semanticCache, routingStore)
-	v1.Post("/chat/completions", proxyHandler)
-	v1.Post("/messages", proxyHandler)
+	fallbackMw := middleware.NewFallbackMiddleware(modelLookup, proxyHandler)
+	v1.Post("/chat/completions", fallbackMw, proxyHandler)
+	v1.Post("/messages", fallbackMw, proxyHandler)
+	v1.Post("/chat/completions/stream", handlers.NewStreamProxyHandler(pool, usageStore))
 
 	app.Post("/v1/files/chat",
 		middleware.NewAuthMiddleware(pgUserLookup),

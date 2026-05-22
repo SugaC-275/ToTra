@@ -19,6 +19,7 @@ const adminNavItems = [
   { label: "Quota Requests", href: "/admin/quota" },
   { label: "Reports", href: "/admin/reports" },
   { label: "Integrations", href: "/admin/integrations" },
+  { label: "SSO / OIDC", href: "/admin/sso" },
   { label: "IP Allowlist", href: "/admin/ip-allowlist" },
   { label: "Bot Notifications", href: "/admin/bot-configs" },
   { label: "HR Sync", href: "/admin/hr-sync" },
@@ -32,11 +33,14 @@ const adminNavItems = [
   { label: "Cost Center", href: "/admin/cost" },
   { label: "Procurement", href: "/admin/cost/procurement" },
   { label: "SIEM Integration", href: "/admin/siem" },
+  { label: "Alert Configs", href: "/admin/alert-configs" },
+  { label: "Data Retention", href: "/admin/data-retention" },
   { label: "My Usage", href: "/me" },
 ];
 
 const employeeNavItems = [
   { label: "My Usage", href: "/me" },
+  { label: "Self Service", href: "/me/self-service" },
   { label: "Quota Requests", href: "/admin/quota" },
 ];
 

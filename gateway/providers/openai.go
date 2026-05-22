@@ -42,6 +42,33 @@ func (a *OpenAIAdapter) Forward(ctx context.Context, body []byte) (*ForwardResul
 		extractOpenAIUsage(respBody), nil
 }
 
+// ForwardStream sends the request to OpenAI with stream=true and delivers each
+// SSE data line to onChunk. Empty lines and the terminal [DONE] marker are skipped.
+func (a *OpenAIAdapter) ForwardStream(ctx context.Context, body []byte, onChunk func([]byte) error) error {
+	body = injectStreamTrue(body)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("openai: create stream request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+a.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("openai: stream forward: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("openai: stream upstream status %d: %s", resp.StatusCode, errBody)
+	}
+
+	return readSSEChunks(resp.Body, onChunk)
+}
+
 type openAIResponse struct {
 	Usage struct {
 		PromptTokens     int `json:"prompt_tokens"`

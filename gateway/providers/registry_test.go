@@ -14,6 +14,9 @@ type fakeAdapter struct{}
 func (a *fakeAdapter) Forward(_ context.Context, _ []byte) (*providers.ForwardResult, *providers.Usage, error) {
 	return &providers.ForwardResult{StatusCode: 200}, &providers.Usage{}, nil
 }
+func (a *fakeAdapter) ForwardStream(_ context.Context, _ []byte, _ func([]byte) error) error {
+	return nil
+}
 func (a *fakeAdapter) BuildFilePrompt(_, _, _ string) []byte { return []byte("{}") }
 
 func TestRegistry_RegisterAndNew(t *testing.T) {

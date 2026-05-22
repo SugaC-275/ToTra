@@ -43,6 +43,34 @@ func (a *AnthropicAdapter) Forward(ctx context.Context, body []byte) (*ForwardRe
 		extractAnthropicUsage(respBody), nil
 }
 
+// ForwardStream sends the request to Anthropic with stream=true and delivers
+// each SSE data line to onChunk. Empty lines and [DONE] markers are skipped.
+func (a *AnthropicAdapter) ForwardStream(ctx context.Context, body []byte, onChunk func([]byte) error) error {
+	body = injectStreamTrue(body)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+"/v1/messages", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("anthropic: create stream request: %w", err)
+	}
+	req.Header.Set("x-api-key", a.apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("anthropic: stream forward: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("anthropic: stream upstream status %d: %s", resp.StatusCode, errBody)
+	}
+
+	return readSSEChunks(resp.Body, onChunk)
+}
+
 type anthropicResponse struct {
 	Usage struct {
 		InputTokens  int `json:"input_tokens"`

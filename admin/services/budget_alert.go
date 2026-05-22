@@ -12,10 +12,25 @@ type BotBroadcaster interface {
 	BroadcastAlert(ctx context.Context, tenantID, message string) error
 }
 
-type BudgetAlertService struct{ pool *pgxpool.Pool }
+type BudgetAlertService struct {
+	pool    *pgxpool.Pool
+	pushSvc *AlertPushService
+}
 
-func NewBudgetAlertService(pool *pgxpool.Pool) *BudgetAlertService {
-	return &BudgetAlertService{pool: pool}
+// NewBudgetAlertService creates a new BudgetAlertService.
+// An optional *AlertPushService may be provided as the second argument to
+// enable push delivery; pass nil to disable.
+func NewBudgetAlertService(pool *pgxpool.Pool, pushSvc ...*AlertPushService) *BudgetAlertService {
+	svc := &BudgetAlertService{pool: pool}
+	if len(pushSvc) > 0 {
+		svc.pushSvc = pushSvc[0]
+	}
+	return svc
+}
+
+// SetPushService attaches a push delivery service after construction.
+func (s *BudgetAlertService) SetPushService(pushSvc *AlertPushService) {
+	s.pushSvc = pushSvc
 }
 
 // CheckAndNotify checks the current month budget usage and sends alerts for each
@@ -61,6 +76,28 @@ func (s *BudgetAlertService) CheckAndNotify(ctx context.Context, tenantID string
 			tenantID, usedPercent, spentUSD, *budgetUSD, pct)
 		if err := bot.BroadcastAlert(ctx, tenantID, msg); err != nil {
 			return fmt.Errorf("budget alert: broadcast: %w", err)
+		}
+		if s.pushSvc != nil {
+			eventType := "budget_warning"
+			severity := "warning"
+			if pct >= 100 {
+				eventType = "budget_exceeded"
+				severity = "critical"
+			}
+			go s.pushSvc.Deliver(context.Background(), AlertEvent{ //nolint:contextcheck
+				TenantID:  tenantID,
+				EventType: eventType,
+				Title:     "Budget Alert",
+				Message:   msg,
+				Severity:  severity,
+				Timestamp: time.Now(),
+				Metadata: map[string]any{
+					"threshold_pct": pct,
+					"spent_usd":     spentUSD,
+					"budget_usd":    *budgetUSD,
+					"year_month":    yearMonth,
+				},
+			})
 		}
 	}
 	return nil

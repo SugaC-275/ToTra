@@ -452,3 +452,38 @@ export const getSIEMDeliveryLog = async (): Promise<{ log: DeliveryLogRow[] }> =
   const { data } = await apiClient.get("/api/admin/siem/delivery-log?limit=50");
   return data;
 };
+
+// ---- Alert Delivery Configs ----
+
+export interface AlertDeliveryConfig {
+  id: string;
+  tenant_id: string;
+  channel: "slack" | "email" | "webhook";
+  destination: string;
+  event_types: string[];
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const listAlertConfigs = async (): Promise<{ configs: AlertDeliveryConfig[] }> => {
+  const { data } = await apiClient.get("/api/admin/alert-configs/");
+  return data;
+};
+
+export const createAlertConfig = async (payload: {
+  channel: string;
+  destination: string;
+  event_types: string[];
+  enabled?: boolean;
+}): Promise<void> => {
+  await apiClient.post("/api/admin/alert-configs/", payload);
+};
+
+export const deleteAlertConfig = async (id: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/alert-configs/${id}`);
+};
+
+export const sendTestAlertConfig = async (): Promise<void> => {
+  await apiClient.post("/api/admin/alert-configs/test");
+};

@@ -8,6 +8,10 @@ import (
 // Adapter is the interface every LLM provider must implement.
 type Adapter interface {
 	Forward(ctx context.Context, body []byte) (*ForwardResult, *Usage, error)
+	// ForwardStream streams response chunks to onChunk for requests where stream=true.
+	// Each call to onChunk delivers one raw SSE line. Returning a non-nil error from
+	// onChunk aborts the stream. The provider must return an error on upstream failure.
+	ForwardStream(ctx context.Context, body []byte, onChunk func([]byte) error) error
 	BuildFilePrompt(model, docText, userMessage string) []byte
 }
 

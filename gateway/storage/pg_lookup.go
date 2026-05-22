@@ -75,3 +75,23 @@ func (p *PGModelLookup) GetByName(ctx context.Context, tenantID, modelName strin
 	}
 	return &m, nil
 }
+
+// GetFallbackModel returns the fallback model config for the given primary model.
+// Returns (nil, nil) when no fallback is configured.
+func (p *PGModelLookup) GetFallbackModel(ctx context.Context, tenantID, primaryModelName string) (*middleware.ModelConfig, error) {
+	var m middleware.ModelConfig
+	err := p.pool.QueryRow(ctx,
+		`SELECT fb.id, fb.name, fb.provider, COALESCE(fb.api_key_encrypted,''), fb.base_url
+		 FROM model_configs pm
+		 JOIN model_configs fb ON fb.id = pm.fallback_model_config_id
+		 WHERE pm.tenant_id = $1 AND pm.name = $2 AND pm.is_active = true AND fb.is_active = true`,
+		tenantID, primaryModelName,
+	).Scan(&m.ID, &m.Name, &m.Provider, &m.APIKey, &m.BaseURL)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get fallback model: %w", err)
+	}
+	return &m, nil
+}
