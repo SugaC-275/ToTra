@@ -226,6 +226,301 @@ func TestPIIMiddleware_SIEMChannelFired(t *testing.T) {
 	assert.Equal(t, "pii_violation", ev.EventType)
 }
 
+// --- English PII tests ---
+
+func TestScanForPII_EnUSSSN(t *testing.T) {
+	piiType, found := middleware.ScanForPII("my SSN is 123-45-6789 please verify")
+	assert.True(t, found)
+	assert.Equal(t, "en_us_ssn", piiType)
+}
+
+func TestScanForPII_EnUSPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("call me at 555-123-4567 tomorrow")
+	assert.True(t, found)
+	assert.Equal(t, "en_us_phone", piiType)
+}
+
+func TestScanForPII_EnUKPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("reach me on +44 7700 900123")
+	assert.True(t, found)
+	assert.Equal(t, "en_uk_phone", piiType)
+}
+
+func TestScanForPII_EnUKNI(t *testing.T) {
+	piiType, found := middleware.ScanForPII("NI number: AB 12 34 56 C")
+	assert.True(t, found)
+	assert.Equal(t, "en_uk_ni", piiType)
+}
+
+func TestScanForPII_EnSSNKeyword(t *testing.T) {
+	piiType, found := middleware.ScanForPII("social security number: 234-56-7890")
+	assert.True(t, found)
+	assert.Contains(t, []string{"en_us_ssn", "en_ssn_keyword"}, piiType)
+}
+
+func TestScanForPII_EnDOB(t *testing.T) {
+	piiType, found := middleware.ScanForPII("date of birth: 15/03/1990")
+	assert.True(t, found)
+	assert.Equal(t, "en_dob", piiType)
+}
+
+func TestScanForPII_EnMedicalRecord(t *testing.T) {
+	piiType, found := middleware.ScanForPII("patient id: MRN-20260501A")
+	assert.True(t, found)
+	assert.Equal(t, "en_medical_record", piiType)
+}
+
+// --- Japanese PII tests ---
+
+func TestScanForPII_JpMyNumber(t *testing.T) {
+	piiType, found := middleware.ScanForPII("マイナンバー: 1234-5678-9012")
+	assert.True(t, found)
+	assert.Equal(t, "jp_my_number", piiType)
+}
+
+func TestScanForPII_JpPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("連絡先は090-1234-5678です")
+	assert.True(t, found)
+	assert.Equal(t, "jp_phone", piiType)
+}
+
+func TestScanForPII_JpPostal(t *testing.T) {
+	piiType, found := middleware.ScanForPII("住所: 〒100-0001 東京都")
+	assert.True(t, found)
+	assert.Equal(t, "jp_postal", piiType)
+}
+
+func TestScanForPII_JpBankAccount(t *testing.T) {
+	piiType, found := middleware.ScanForPII("口座番号: 1234567 に振り込んでください")
+	assert.True(t, found)
+	assert.Equal(t, "jp_bank_account", piiType)
+}
+
+// --- Korean PII tests ---
+
+func TestScanForPII_KrRRN(t *testing.T) {
+	piiType, found := middleware.ScanForPII("주민등록번호: 900101-1234567")
+	assert.True(t, found)
+	// keyword rule fires first
+	assert.Contains(t, []string{"kr_rrn_keyword", "kr_rrn"}, piiType)
+}
+
+func TestScanForPII_KrPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("전화번호: 010-1234-5678")
+	assert.True(t, found)
+	assert.Equal(t, "kr_phone", piiType)
+}
+
+func TestScanForPII_KrBusinessReg(t *testing.T) {
+	piiType, found := middleware.ScanForPII("사업자등록번호: 123-45-67890")
+	assert.True(t, found)
+	assert.Equal(t, "kr_business_reg", piiType)
+}
+
+// --- European PII tests ---
+
+func TestScanForPII_FrPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("appelez le +33 6 12 34 56 78")
+	assert.True(t, found)
+	assert.Equal(t, "fr_phone", piiType)
+}
+
+func TestScanForPII_DePhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("Ruf mich an: +49 170 12345678")
+	assert.True(t, found)
+	assert.Equal(t, "de_phone", piiType)
+}
+
+func TestScanForPII_EsDNI(t *testing.T) {
+	piiType, found := middleware.ScanForPII("mi DNI es 12345678Z")
+	assert.True(t, found)
+	assert.Equal(t, "es_dni_nie", piiType)
+}
+
+func TestScanForPII_EsPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("llámame al +34 612 345 678")
+	assert.True(t, found)
+	assert.Equal(t, "es_phone", piiType)
+}
+
+// --- More European countries ---
+
+func TestScanForPII_ItCodiceFiscale(t *testing.T) {
+	piiType, found := middleware.ScanForPII("codice fiscale: RSSMRA85T10A562S")
+	assert.True(t, found)
+	assert.Contains(t, []string{"it_codice_fiscale", "it_cf_keyword"}, piiType)
+}
+
+func TestScanForPII_ItPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("chiamami al +39 345 1234567")
+	assert.True(t, found)
+	assert.Equal(t, "it_phone", piiType)
+}
+
+func TestScanForPII_NlBSN(t *testing.T) {
+	piiType, found := middleware.ScanForPII("mijn BSN: 123456782")
+	assert.True(t, found)
+	assert.Equal(t, "nl_bsn", piiType)
+}
+
+func TestScanForPII_NlPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("bel me op +31 6 12345678")
+	assert.True(t, found)
+	assert.Equal(t, "nl_phone", piiType)
+}
+
+func TestScanForPII_PlPesel(t *testing.T) {
+	piiType, found := middleware.ScanForPII("PESEL: 85010112345")
+	assert.True(t, found)
+	assert.Equal(t, "pl_pesel", piiType)
+}
+
+func TestScanForPII_SePersonnummer(t *testing.T) {
+	piiType, found := middleware.ScanForPII("personnummer: 850101-1234")
+	assert.True(t, found)
+	assert.Contains(t, []string{"se_personnummer", "se_personnummer_keyword"}, piiType)
+}
+
+func TestScanForPII_SePhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("ring mig på +46 70 123 45 67")
+	assert.True(t, found)
+	assert.Equal(t, "se_phone", piiType)
+}
+
+func TestScanForPII_PtNIF(t *testing.T) {
+	piiType, found := middleware.ScanForPII("NIF: 123456789")
+	assert.True(t, found)
+	assert.Equal(t, "pt_nif", piiType)
+}
+
+func TestScanForPII_BeNationalNr(t *testing.T) {
+	piiType, found := middleware.ScanForPII("numéro national: 85.01.01-123.45")
+	assert.True(t, found)
+	assert.Contains(t, []string{"be_national_nr", "be_national_keyword"}, piiType)
+}
+
+func TestScanForPII_ChAHV(t *testing.T) {
+	piiType, found := middleware.ScanForPII("AHV-Nr: 756.1234.5678.90")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ch_ahv", "ch_ahv_keyword"}, piiType)
+}
+
+func TestScanForPII_DkCPR(t *testing.T) {
+	// DK CPR and SE personnummer share the same 6-digit-hyphen-4-digit format;
+	// keyword rule disambiguates, bare-number rule may fire as either.
+	piiType, found := middleware.ScanForPII("CPR-nummer: 010185-1234")
+	assert.True(t, found)
+	assert.Contains(t, []string{"dk_cpr", "dk_cpr_keyword", "se_personnummer", "se_personnummer_keyword"}, piiType)
+}
+
+func TestScanForPII_FiHETU(t *testing.T) {
+	piiType, found := middleware.ScanForPII("henkilötunnus: 010185-123A")
+	assert.True(t, found)
+	assert.Contains(t, []string{"fi_hetu", "fi_hetu_keyword"}, piiType)
+}
+
+func TestScanForPII_NoFodselsnummer(t *testing.T) {
+	// "01018512345" also matches ar_eg_phone (010 prefix); keyword ensures PII is caught.
+	piiType, found := middleware.ScanForPII("fødselsnummer: 01018512345")
+	assert.True(t, found)
+	assert.Contains(t, []string{"no_fodselsnummer", "ar_eg_phone"}, piiType)
+}
+
+func TestScanForPII_NoPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("ring meg på +47 912 34 567")
+	assert.True(t, found)
+	assert.Equal(t, "no_phone", piiType)
+}
+
+// --- Arabic PII tests ---
+
+func TestScanForPII_ArSaNationalID(t *testing.T) {
+	piiType, found := middleware.ScanForPII("رقم الهوية: 1234567890")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ar_sa_national_id", "ar_sa_id_bare"}, piiType)
+}
+
+func TestScanForPII_ArSaIqama(t *testing.T) {
+	piiType, found := middleware.ScanForPII("رقم الإقامة: 2123456789")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ar_sa_national_id", "ar_sa_id_bare"}, piiType)
+}
+
+func TestScanForPII_ArUaeEmiratesID(t *testing.T) {
+	piiType, found := middleware.ScanForPII("Emirates ID: 784-1990-1234567-8")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ar_uae_emirates_id", "ar_uae_id_keyword"}, piiType)
+}
+
+func TestScanForPII_ArEgNationalID(t *testing.T) {
+	// 14-digit EG ID also matches credit_card (13-16 digit rule fires first).
+	piiType, found := middleware.ScanForPII("الرقم القومي: 29001011234567")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ar_eg_national_id", "ar_eg_id_bare", "credit_card"}, piiType)
+}
+
+func TestScanForPII_ArKwCivilID(t *testing.T) {
+	piiType, found := middleware.ScanForPII("الرقم المدني: 123456789012")
+	assert.True(t, found)
+	assert.Equal(t, "ar_kw_civil_id", piiType)
+}
+
+func TestScanForPII_ArQaQID(t *testing.T) {
+	piiType, found := middleware.ScanForPII("رقم القيد: 28123456789")
+	assert.True(t, found)
+	assert.Equal(t, "ar_qa_qid", piiType)
+}
+
+func TestScanForPII_ArPassport(t *testing.T) {
+	// A + 8-digit format also matches en_us_passport; keyword ensures PII is caught.
+	piiType, found := middleware.ScanForPII("رقم جواز السفر: A12345678")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ar_passport", "en_us_passport"}, piiType)
+}
+
+func TestScanForPII_ArBankAccount(t *testing.T) {
+	// SA IBAN format — IBAN rule or ar_bank_account may fire
+	_, found := middleware.ScanForPII("رقم الحساب البنكي: SA1234567890123456789012")
+	assert.True(t, found)
+}
+
+func TestScanForPII_ArSaPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("اتصل بي على +966 51 2345 6789")
+	assert.True(t, found)
+	assert.Equal(t, "ar_sa_phone", piiType)
+}
+
+func TestScanForPII_ArUaePhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("call me at +971 50 123 4567")
+	assert.True(t, found)
+	assert.Equal(t, "ar_uae_phone", piiType)
+}
+
+func TestScanForPII_ArEgPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("رقم الهاتف: +20 10 1234 5678")
+	assert.True(t, found)
+	assert.Equal(t, "ar_eg_phone", piiType)
+}
+
+func TestScanForPII_ArQaPhone(t *testing.T) {
+	piiType, found := middleware.ScanForPII("contact: +974 5123 4567")
+	assert.True(t, found)
+	assert.Equal(t, "ar_qa_phone", piiType)
+}
+
+func TestScanForPII_ArMaCIN(t *testing.T) {
+	piiType, found := middleware.ScanForPII("رقم بطاقة التعريف الوطنية: AB123456")
+	assert.True(t, found)
+	assert.Equal(t, "ar_ma_cin", piiType)
+}
+
+func TestScanForPII_ArDzNIN(t *testing.T) {
+	// 18-digit NIN may also trigger china_id_card (18-digit rule); both are valid PII detections.
+	piiType, found := middleware.ScanForPII("رقم التعريف الوطني: 123456789012345678")
+	assert.True(t, found)
+	assert.Contains(t, []string{"ar_dz_nin", "china_id_card"}, piiType)
+}
+
 func TestPIIMiddleware_SIEMChannelNilSafe(t *testing.T) {
 	app := fiber.New()
 	app.Use(middleware.NewPIIMiddleware(nil, "t1", nil))
