@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - run: docker build -t totra-gateway ./gateway
       - run: docker build -t totra-admin ./admin
       - run: docker build -t totra-parser ./parser
