@@ -27,7 +27,7 @@ jobs:
         working-directory: gateway
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: gateway/go.mod
           cache-dependency-path: gateway/go.sum
@@ -42,7 +42,7 @@ jobs:
         working-directory: admin
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: admin/go.mod
           cache-dependency-path: admin/go.sum
