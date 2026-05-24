@@ -551,7 +551,7 @@ export default function CostCenterPage() {
                 ${budgetForecast.forecasted_eoy_usd.toFixed(2)}
               </p>
             </div>
-            {budgetForecast.history.length > 0 ? (
+            {(budgetForecast.history ?? []).length > 0 ? (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
@@ -561,7 +561,7 @@ export default function CostCenterPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {budgetForecast.history.map((row, i) => (
+                  {(budgetForecast.history ?? []).map((row, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-3 py-2 font-mono text-xs">{row.month}</td>
                       <td className="px-3 py-2 font-mono">${row.total_usd.toFixed(2)}</td>

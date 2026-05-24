@@ -26,3 +26,6 @@ ruvector.db
 # AI-generated planning docs (not part of the project)
 docs/superpowers/
 docs/agent-team/
+
+# SSL certificates (never commit)
+infra/nginx/certs/

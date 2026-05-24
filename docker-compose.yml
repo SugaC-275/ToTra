@@ -134,6 +134,23 @@ services:
       start_period: 10s
     profiles: ["app"]
 
+  # nginx — SSL termination + reverse proxy. Enable with --profile ssl.
+  # Requires cert/key at ./infra/nginx/certs/fullchain.pem and privkey.pem.
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - dashboard
+      - admin
+      - gateway
+    profiles: ["ssl"]
+
 volumes:
   postgres_data:
   redis_data:
