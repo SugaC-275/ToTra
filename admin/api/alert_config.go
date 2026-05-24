@@ -38,7 +38,7 @@ func listAlertConfigs(svc AlertPushServiceIface) fiber.Handler {
 		}
 		configs, err := svc.GetConfigs(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if configs == nil {
 			configs = []services.AlertDeliveryConfig{}
@@ -77,7 +77,7 @@ func createAlertConfig(svc AlertPushServiceIface) fiber.Handler {
 			Enabled:     enabled,
 		}
 		if err := svc.CreateConfig(c.Context(), claims.TenantID, cfg); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(fiber.Map{"ok": true})
 	}
@@ -113,7 +113,7 @@ func sendTestAlert(svc AlertPushServiceIface) fiber.Handler {
 			Metadata:  map[string]any{"test": true},
 		}
 		if err := svc.Deliver(c.Context(), event); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"ok": true})
 	}

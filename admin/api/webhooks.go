@@ -48,7 +48,7 @@ func githubWebhook(svc webhookServiceIface, encKey string) fiber.Handler {
 		event.Weight = services.EventWeight("github", event.EventType, weights)
 		userID, _ := svc.MatchUser(c.Context(), tenantID, event)
 		if err := svc.SaveEvent(c.Context(), tenantID, userID, event, body); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(200).JSON(fiber.Map{"status": "ok"})
 	}
@@ -79,7 +79,7 @@ func jiraWebhook(svc webhookServiceIface, encKey string) fiber.Handler {
 		event.Weight = services.EventWeight("jira", event.EventType, weights)
 		userID, _ := svc.MatchUser(c.Context(), tenantID, event)
 		if err := svc.SaveEvent(c.Context(), tenantID, userID, event, body); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(200).JSON(fiber.Map{"status": "ok"})
 	}
@@ -111,7 +111,7 @@ func feishuWebhook(svc webhookServiceIface, encKey string) fiber.Handler {
 		event.Weight = services.EventWeight("feishu", event.EventType, weights)
 		userID, _ := svc.MatchUser(c.Context(), tenantID, event)
 		if err := svc.SaveEvent(c.Context(), tenantID, userID, event, body); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(200).JSON(fiber.Map{"status": "ok"})
 	}
@@ -143,7 +143,7 @@ func gitlabWebhook(svc webhookServiceIface, encKey string) fiber.Handler {
 		event.Weight = services.EventWeight("gitlab", event.EventType, weights)
 		userID, _ := svc.MatchUser(c.Context(), tenantID, event)
 		if err := svc.SaveEvent(c.Context(), tenantID, userID, event, body); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(200).JSON(fiber.Map{"status": "ok"})
 	}
@@ -175,7 +175,7 @@ func confluenceWebhook(svc webhookServiceIface, encKey string) fiber.Handler {
 		event.Weight = services.EventWeight("confluence", event.EventType, weights)
 		userID, _ := svc.MatchUser(c.Context(), tenantID, event)
 		if err := svc.SaveEvent(c.Context(), tenantID, userID, event, body); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(200).JSON(fiber.Map{"status": "ok"})
 	}

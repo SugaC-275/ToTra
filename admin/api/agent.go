@@ -31,7 +31,7 @@ func getAdminAgentSessions(svc AgentServiceInterface) fiber.Handler {
 		}
 		sessions, err := svc.GetAgentSessions(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if sessions == nil {
 			sessions = []*services.AgentSession{}
@@ -49,7 +49,7 @@ func getMyAgentSessions(svc AgentServiceInterface) fiber.Handler {
 		}
 		sessions, err := svc.GetMyAgentSessions(c.Context(), claims.UserID, month)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if sessions == nil {
 			sessions = []*services.AgentSession{}

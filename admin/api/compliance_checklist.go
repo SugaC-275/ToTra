@@ -31,7 +31,7 @@ func getChecklist(svc ChecklistServiceIface) fiber.Handler {
 		}
 		items, err := svc.GetChecklist(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"items": items})
 	}
@@ -66,7 +66,7 @@ func exportViolationsCSV(svc ChecklistServiceIface) fiber.Handler {
 		month := c.Query("month", currentYearMonth())
 		csv, err := svc.ExportViolationsCSV(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		c.Set("Content-Type", "text/csv")
 		c.Set("Content-Disposition", `attachment; filename="compliance-violations-`+month+`.csv"`)
@@ -82,7 +82,7 @@ func getSOC2Report(svc ChecklistServiceIface) fiber.Handler {
 		}
 		report, err := svc.GetSOC2Report(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(report)
 	}

@@ -58,7 +58,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
-      <aside className="w-56 border-r border-zinc-800 flex flex-col py-6 px-4 gap-1 shrink-0">
+      <aside className="w-56 flex flex-col py-6 px-4 gap-1 shrink-0 border-r border-zinc-800">
         <div className="mb-6 px-2">
           <span className="font-bold text-lg text-indigo-400">ToTra</span>
         </div>
@@ -85,7 +85,7 @@ export function Layout() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 p-8 overflow-auto bg-zinc-950">
         <Outlet />
       </main>
     </div>

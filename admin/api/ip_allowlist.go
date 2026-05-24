@@ -27,7 +27,7 @@ func listIPAllowlist(svc IPAllowlistServiceIface) fiber.Handler {
 		}
 		entries, err := svc.List(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if entries == nil {
 			entries = []*services.IPAllowlistEntry{}
@@ -71,7 +71,7 @@ func deleteIPAllowlist(svc IPAllowlistServiceIface) fiber.Handler {
 			return c.Status(400).JSON(fiber.Map{"error": "id param required"})
 		}
 		if err := svc.Delete(c.Context(), claims.TenantID, id); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "deleted"})
 	}

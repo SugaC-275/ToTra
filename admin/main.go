@@ -3,7 +3,13 @@ package main
 import (
 	"context"
 	"log"
+	"net"
+	"net/http"
 	"os"
+	"os/signal"
+	"strconv"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,6 +24,76 @@ import (
 	adminmiddleware "github.com/yourorg/totra/admin/middleware"
 	"github.com/yourorg/totra/admin/services"
 )
+
+// loginRateLimiter enforces max 10 attempts per IP per 15 minutes.
+type loginRateLimiter struct {
+	mu      sync.Mutex
+	entries map[string]*rateLimitEntry
+}
+
+type rateLimitEntry struct {
+	count     int
+	windowEnd time.Time
+}
+
+const (
+	loginRateWindow   = 15 * time.Minute
+	loginRateMaxHits  = 10
+)
+
+func newLoginRateLimiter() *loginRateLimiter {
+	rl := &loginRateLimiter{entries: make(map[string]*rateLimitEntry)}
+	go rl.evict()
+	return rl
+}
+
+// evict removes stale entries every 15 minutes to prevent unbounded growth.
+func (rl *loginRateLimiter) evict() {
+	ticker := time.NewTicker(loginRateWindow)
+	defer ticker.Stop()
+	for range ticker.C {
+		now := time.Now()
+		rl.mu.Lock()
+		for ip, e := range rl.entries {
+			if now.After(e.windowEnd) {
+				delete(rl.entries, ip)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
+
+// Allow returns (allowed bool, retryAfter duration).
+func (rl *loginRateLimiter) Allow(ip string) (bool, time.Duration) {
+	now := time.Now()
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	e, ok := rl.entries[ip]
+	if !ok || now.After(e.windowEnd) {
+		rl.entries[ip] = &rateLimitEntry{count: 1, windowEnd: now.Add(loginRateWindow)}
+		return true, 0
+	}
+	e.count++
+	if e.count > loginRateMaxHits {
+		return false, time.Until(e.windowEnd)
+	}
+	return true, 0
+}
+
+// clientIP extracts the real IP from X-Forwarded-For or the remote address.
+func clientIP(c *fiber.Ctx) string {
+	if xff := c.Get("X-Forwarded-For"); xff != "" {
+		if host, _, err := net.SplitHostPort(xff); err == nil {
+			return host
+		}
+		return xff
+	}
+	host, _, err := net.SplitHostPort(c.IP())
+	if err != nil {
+		return c.IP()
+	}
+	return host
+}
 
 func main() {
 	cfg := config.Load()
@@ -48,16 +124,44 @@ func main() {
 
 	adminMetrics := adminmiddleware.NewAdminMetrics(prometheus.DefaultRegisterer)
 
-	app := fiber.New()
-	app.Use(cors.New(cors.Config{AllowOrigins: "*"}))
+	// B4: HTTP timeouts
+	app := fiber.New(fiber.Config{
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	})
+
+	// W3: CORS origin from env, safe default for dev
+	corsOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
+	if corsOrigin == "" {
+		corsOrigin = "http://localhost:3000"
+	}
+	app.Use(cors.New(cors.Config{AllowOrigins: corsOrigin}))
 	app.Use(adminmiddleware.NewAdminMetricsMiddleware(adminMetrics))
 
+	// W7: health checks DB connectivity
 	app.Get("/health", func(c *fiber.Ctx) error {
+		if err := pool.Ping(context.Background()); err != nil {
+			return c.Status(http.StatusServiceUnavailable).JSON(fiber.Map{"status": "unavailable"})
+		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 	app.Get("/metrics", adminhandlers.MetricsHandler(prometheus.DefaultGatherer))
 
-	app.Post("/api/auth/login", api.LoginHandler(pool, jwtSvc))
+	// W5: rate-limit login — max 10 attempts per IP per 15 minutes
+	loginRL := newLoginRateLimiter()
+	app.Post("/api/auth/login", func(c *fiber.Ctx) error {
+		ip := clientIP(c)
+		ok, retryAfter := loginRL.Allow(ip)
+		if !ok {
+			c.Set("Retry-After", strconv.FormatInt(int64(retryAfter.Seconds()), 10))
+			return c.Status(http.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "too many login attempts, please try again later",
+			})
+		}
+		return api.LoginHandler(pool, jwtSvc)(c)
+	})
+
 	// Public OIDC routes (no JWT required — login redirect and callback)
 	api.RegisterOIDCPublicRoutes(app, oidcSvc, userSvc, jwtSvc)
 
@@ -68,8 +172,8 @@ func main() {
 	checklistSvc := services.NewChecklistService(pool)
 	anomalySvc := services.NewAnomalyService(pool)
 	complianceBenchmarkSvc := services.NewComplianceBenchmarkService(pool)
-	internalSecret := os.Getenv("INTERNAL_SECRET")
-	api.RegisterComplianceInternalRoutes(app, complianceSvc, botSvc, internalSecret)
+	// B2: InternalSecret is now required at startup (validated in config.Load via mustGetEnv)
+	api.RegisterComplianceInternalRoutes(app, complianceSvc, botSvc, cfg.InternalSecret)
 
 	protected := app.Group("/", jwtMiddleware)
 	protected.Use(services.IPAllowlistMiddleware(allowlistSvc))
@@ -131,8 +235,22 @@ func main() {
 	api.RegisterEmployeeSelfServiceRoutes(protected, empSelfSvc, quotaSvc)
 	api.RegisterDataRetentionRoutes(protected, retentionSvc, retentionMeta)
 
-	log.Printf("Admin service listening on :%s", cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	// W8: graceful shutdown on SIGTERM/SIGINT
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	go func() {
+		log.Printf("Admin service listening on :%s", cfg.Port)
+		if err := app.Listen(":" + cfg.Port); err != nil {
+			log.Printf("listen: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("Shutting down admin service...")
+	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
+		log.Printf("shutdown: %v", err)
+	}
 }
 
 // pgCleanupMeta implements api.RetentionCleanupMetaStore backed by tenant_cost_settings.

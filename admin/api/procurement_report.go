@@ -26,7 +26,7 @@ func RegisterProcurementRoutes(r fiber.Router, svc ProcurementReportServiceIface
 		}
 		report, err := svc.GetProcurementReport(c.Context(), claims.TenantID, months)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(report)
 	})

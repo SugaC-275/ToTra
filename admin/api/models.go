@@ -24,7 +24,7 @@ func listModels(svc ModelServiceInterface) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		models, err := svc.List(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"total": len(models), "models": models})
 	}
@@ -42,7 +42,7 @@ func createModel(svc ModelServiceInterface) fiber.Handler {
 		}
 		model, err := svc.Create(c.Context(), claims.TenantID, req)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(model)
 	}
@@ -69,7 +69,7 @@ func updateModelPricing(svc ModelServiceInterface) fiber.Handler {
 		}
 		model, err := svc.UpdatePricing(c.Context(), claims.TenantID, modelID, *body.PricePerMInput, *body.PricePerMOutput)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(model)
 	}

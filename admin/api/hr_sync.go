@@ -40,7 +40,7 @@ func hrSync(svc HRSyncServiceIface) fiber.Handler {
 
 		result, err := svc.SyncFromCSV(c.Context(), claims.TenantID, records)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	}

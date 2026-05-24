@@ -33,7 +33,7 @@ func (h *CostAnalysisHandler) getBreakdown(c *fiber.Ctx) error {
 	month := c.Query("month", costAPICurrentYearMonth())
 	data, err := h.svc.GetCostBreakdown(c.Context(), claims.TenantID, month)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return serverError(c, err)
 	}
 	return c.JSON(data)
 }
@@ -46,7 +46,7 @@ func (h *CostAnalysisHandler) getWaste(c *fiber.Ctx) error {
 	month := c.Query("month", costAPICurrentYearMonth())
 	data, err := h.svc.GetWasteReport(c.Context(), claims.TenantID, month)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return serverError(c, err)
 	}
 	if data == nil {
 		data = []*services.WasteItem{}
@@ -62,7 +62,7 @@ func (h *CostAnalysisHandler) getSuggestions(c *fiber.Ctx) error {
 	month := c.Query("month", costAPICurrentYearMonth())
 	data, err := h.svc.GetOptimizationSuggestions(c.Context(), claims.TenantID, month)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return serverError(c, err)
 	}
 	if data == nil {
 		data = []*services.OptimizationSuggestion{}
@@ -78,11 +78,11 @@ func (h *CostAnalysisHandler) testAlert(c *fiber.Ctx) error {
 	month := costAPICurrentYearMonth()
 	breakdown, err := h.svc.GetCostBreakdown(c.Context(), claims.TenantID, month)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return serverError(c, err)
 	}
 	suggestions, err := h.svc.GetOptimizationSuggestions(c.Context(), claims.TenantID, month)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return serverError(c, err)
 	}
 	msg := formatCostAlertMsg(month, breakdown.TotalUSD, suggestions)
 	if h.botSvc != nil {

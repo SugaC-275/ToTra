@@ -23,7 +23,7 @@ func RegisterComplianceReportRoutes(r fiber.Router, trendSvc RiskTrendServiceIfa
 		}
 		result, err := trendSvc.GetRiskTrend(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})
@@ -36,7 +36,7 @@ func RegisterComplianceReportRoutes(r fiber.Router, trendSvc RiskTrendServiceIfa
 		yearMonth := c.Query("month")
 		result, err := digestSvc.GetDigest(c.Context(), claims.TenantID, yearMonth)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})

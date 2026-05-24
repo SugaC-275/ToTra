@@ -28,7 +28,7 @@ func getDataRetention(svc services.DataRetentionServiceIface) fiber.Handler {
 		}
 		months, err := svc.GetRetentionMonths(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"data_retention_months": months})
 	}
@@ -47,7 +47,7 @@ func putDataRetention(svc services.DataRetentionServiceIface) fiber.Handler {
 			return c.Status(400).JSON(fiber.Map{"error": "data_retention_months must be >= 1"})
 		}
 		if err := svc.SetRetentionMonths(c.Context(), claims.TenantID, body.Months); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"data_retention_months": body.Months})
 	}
@@ -61,7 +61,7 @@ func runRetentionCleanup(svc services.DataRetentionServiceIface) fiber.Handler {
 		}
 		deleted, err := svc.RunRetentionCleanup(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"deleted_count": deleted})
 	}
@@ -75,7 +75,7 @@ func listDeletionRequests(svc services.DeletionRequestServiceIface) fiber.Handle
 		}
 		reqs, err := svc.ListPending(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if reqs == nil {
 			reqs = []*services.DeletionRequest{}
@@ -91,7 +91,7 @@ func approveDeletionRequest(svc services.DeletionRequestServiceIface) fiber.Hand
 			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
 		}
 		if err := svc.Approve(c.Context(), claims.TenantID, c.Params("id")); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "approved"})
 	}
@@ -104,7 +104,7 @@ func rejectDeletionRequest(svc services.DeletionRequestServiceIface) fiber.Handl
 			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
 		}
 		if err := svc.Reject(c.Context(), claims.TenantID, c.Params("id")); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "rejected"})
 	}
@@ -118,7 +118,7 @@ func exportMyData(svc services.DeletionRequestServiceIface) fiber.Handler {
 		}
 		export, err := svc.ExportUserData(c.Context(), claims.TenantID, claims.UserID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(export)
 	}

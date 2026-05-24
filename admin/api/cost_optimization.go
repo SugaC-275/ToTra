@@ -19,7 +19,7 @@ func RegisterCostOptimizationRoutes(r fiber.Router, svc OptimizationSuggestionSe
 		}
 		report, err := svc.GetSuggestions(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(report)
 	})

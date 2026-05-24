@@ -17,7 +17,7 @@ func listUsers(svc services.UserServiceInterface) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		users, err := svc.List(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"total": len(users), "users": users})
 	}
@@ -38,7 +38,7 @@ func createUser(svc services.UserServiceInterface) fiber.Handler {
 		}
 		user, err := svc.Create(c.Context(), claims.TenantID, req)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(fiber.Map{
 			"id": user.ID, "name": user.Name, "email": user.Email,
@@ -52,7 +52,7 @@ func getMyProfile(svc services.UserServiceInterface) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		users, err := svc.List(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		for _, u := range users {
 			if u.ID == claims.UserID {
@@ -71,7 +71,7 @@ func updateMyProfile(svc services.UserServiceInterface) fiber.Handler {
 			return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
 		}
 		if err := svc.UpdateProfile(c.Context(), claims.UserID, req); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	}

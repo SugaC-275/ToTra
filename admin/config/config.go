@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	Port          string
-	PostgresDSN   string
-	JWTSecret     string
-	JWTExpiry     time.Duration
-	EncryptionKey string
+	Port           string
+	PostgresDSN    string
+	JWTSecret      string
+	JWTExpiry      time.Duration
+	EncryptionKey  string
+	InternalSecret string
 }
 
 func Load() *Config {
@@ -22,13 +23,16 @@ func Load() *Config {
 	pgDB := mustGetEnv("POSTGRES_DB")
 	pgUser := mustGetEnv("POSTGRES_USER")
 	pgPass := mustGetEnv("POSTGRES_PASSWORD")
+	pgSSLMode := getEnv("POSTGRES_SSLMODE", "disable")
+	internalSecret := mustGetEnv("INTERNAL_SECRET")
 
 	return &Config{
-		Port:          getEnv("ADMIN_PORT", "8081"),
-		PostgresDSN:   fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", pgHost, pgPort, pgDB, pgUser, pgPass),
-		JWTSecret:     mustGetEnv("JWT_SECRET"),
-		JWTExpiry:     time.Duration(hours) * time.Hour,
-		EncryptionKey: mustGetEnv("ENCRYPTION_KEY"),
+		Port:           getEnv("ADMIN_PORT", "8081"),
+		PostgresDSN:    fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", pgHost, pgPort, pgDB, pgUser, pgPass, pgSSLMode),
+		JWTSecret:      mustGetEnv("JWT_SECRET"),
+		JWTExpiry:      time.Duration(hours) * time.Hour,
+		EncryptionKey:  mustGetEnv("ENCRYPTION_KEY"),
+		InternalSecret: internalSecret,
 	}
 }
 

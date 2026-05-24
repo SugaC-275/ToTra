@@ -21,7 +21,7 @@ func listUserRoles(svc services.RBACServiceIface) fiber.Handler {
 		}
 		roles, err := svc.GetUserRoles(c.Context(), claims.TenantID, userID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"user_id": userID, "roles": roles})
 	}
@@ -54,7 +54,7 @@ func assignUserRole(svc services.RBACServiceIface) fiber.Handler {
 			return c.Status(400).JSON(fiber.Map{"error": "invalid role: " + req.Role})
 		}
 		if err := svc.AssignRole(c.Context(), claims.TenantID, userID, role, req.Department, claims.UserID); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(fiber.Map{"status": "assigned", "user_id": userID, "role": req.Role})
 	}
@@ -73,7 +73,7 @@ func revokeUserRole(svc services.RBACServiceIface) fiber.Handler {
 		// Fetch current roles to find the matching entry.
 		roles, err := svc.GetUserRoles(c.Context(), claims.TenantID, userID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		var found *services.UserRole
 		for i := range roles {
@@ -86,7 +86,7 @@ func revokeUserRole(svc services.RBACServiceIface) fiber.Handler {
 			return c.Status(404).JSON(fiber.Map{"error": "role assignment not found"})
 		}
 		if err := svc.RevokeRole(c.Context(), claims.TenantID, userID, found.Role, found.Department); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "revoked"})
 	}

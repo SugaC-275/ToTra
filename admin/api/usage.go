@@ -24,7 +24,7 @@ func getMonthlySummary(svc services.UsageServiceInterface) fiber.Handler {
 		}
 		summaries, err := svc.GetMonthlySummary(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"month": month, "summaries": summaries})
 	}
@@ -39,7 +39,7 @@ func getAdoptionRate(svc services.UsageServiceInterface) fiber.Handler {
 		}
 		stats, err := svc.GetAdoptionRate(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(stats)
 	}
@@ -64,7 +64,7 @@ func getDepartmentSummary(svc *services.UsageService) fiber.Handler {
 		}
 		summaries, err := svc.GetDepartmentSummary(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"month": month, "departments": summaries})
 	}
@@ -82,7 +82,7 @@ func exportDepartmentCSV(svc *services.UsageService) fiber.Handler {
 		}
 		summaries, err := svc.GetDepartmentSummary(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		var buf bytes.Buffer
 		w := csv.NewWriter(&buf)
@@ -116,7 +116,7 @@ func getBudgetForecast(svc *services.UsageService) fiber.Handler {
 		}
 		forecast, err := svc.GetBudgetForecast(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(forecast)
 	}
@@ -138,7 +138,7 @@ func getInactiveUsers(svc *services.UsageService) fiber.Handler {
 		}
 		users, err := svc.GetInactiveUsers(c.Context(), claims.TenantID, month, maxDays)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"month": month, "max_days": maxDays, "users": users})
 	}

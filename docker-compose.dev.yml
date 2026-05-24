@@ -1,0 +1,8 @@
+services:
+  postgres:
+    volumes:
+      - ./infra/postgres/002_seed_dev.sql:/docker-entrypoint-initdb.d/002_seed_dev.sql:ro
+
+  parser:
+    ports:
+      - "${PARSER_PORT:-8090}:8090"

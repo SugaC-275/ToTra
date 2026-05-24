@@ -29,7 +29,7 @@ func listBotConfigs(svc BotServiceIface) fiber.Handler {
 		}
 		configs, err := svc.List(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if configs == nil {
 			configs = []services.BotConfig{}
@@ -57,7 +57,7 @@ func addBotConfig(svc BotServiceIface) fiber.Handler {
 		}
 		cfg, err := svc.Add(c.Context(), claims.TenantID, body.Platform, body.WebhookURL, body.Label)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(cfg)
 	}
@@ -83,7 +83,7 @@ func sendBotTestMessage(svc BotServiceIface) fiber.Handler {
 			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
 		}
 		if err := svc.SendTestMessage(c.Context(), claims.TenantID, c.Params("id")); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	}

@@ -8,6 +8,55 @@ def test_health(client):
     assert resp.json() == {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# Internal-secret auth tests
+# ---------------------------------------------------------------------------
+
+def test_health_requires_no_auth(client, monkeypatch):
+    """Health endpoint must remain open even when INTERNAL_SECRET is set."""
+    monkeypatch.setattr(main, "INTERNAL_SECRET", "super-secret")
+    resp = client.get("/health")
+    assert resp.status_code == 200
+
+
+def test_parse_missing_secret_returns_401(client, monkeypatch, pdf_bytes):
+    monkeypatch.setattr(main, "INTERNAL_SECRET", "super-secret")
+    resp = client.post(
+        "/parse", files={"file": ("doc.pdf", pdf_bytes, "application/pdf")}
+    )
+    assert resp.status_code == 401
+
+
+def test_parse_wrong_secret_returns_401(client, monkeypatch, pdf_bytes):
+    monkeypatch.setattr(main, "INTERNAL_SECRET", "super-secret")
+    resp = client.post(
+        "/parse",
+        files={"file": ("doc.pdf", pdf_bytes, "application/pdf")},
+        headers={"X-Internal-Secret": "wrong-secret"},
+    )
+    assert resp.status_code == 401
+
+
+def test_parse_correct_secret_passes(client, monkeypatch, pdf_bytes):
+    monkeypatch.setattr(main, "INTERNAL_SECRET", "super-secret")
+    resp = client.post(
+        "/parse",
+        files={"file": ("doc.pdf", pdf_bytes, "application/pdf")},
+        headers={"X-Internal-Secret": "super-secret"},
+    )
+    assert resp.status_code == 200
+    assert "hello pdf" in resp.json()["text"]
+
+
+def test_parse_no_secret_env_skips_check(client, monkeypatch, pdf_bytes):
+    """When INTERNAL_SECRET is empty the header check is bypassed (local dev)."""
+    monkeypatch.setattr(main, "INTERNAL_SECRET", "")
+    resp = client.post(
+        "/parse", files={"file": ("doc.pdf", pdf_bytes, "application/pdf")}
+    )
+    assert resp.status_code == 200
+
+
 def test_parse_pdf(client, pdf_bytes):
     resp = client.post(
         "/parse", files={"file": ("doc.pdf", pdf_bytes, "application/pdf")}

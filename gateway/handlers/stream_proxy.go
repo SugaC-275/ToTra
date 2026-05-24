@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -104,16 +105,16 @@ func newStreamProxyHandler(modelLookup StreamModelLookup, usageStore UsageRecord
 		})
 
 		if streamErr != nil {
+			slog.Error("upstream stream error", "tenant", user.TenantID, "model", reqFields.Model, "err", streamErr)
 			// If nothing has been written yet we can still return a JSON error.
 			// Once the stream has started we cannot change the status code.
 			if completionBytes == 0 {
 				return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
-					"error": fiber.Map{"message": "upstream error: " + streamErr.Error(), "type": "upstream_error"},
+					"error": "upstream unavailable",
 				})
 			}
-			// Stream already started — write an SSE error event so the client knows.
-			errLine := fmt.Sprintf("data: {\"error\":{\"message\":%q}}\n\n", streamErr.Error())
-			_, _ = w.Write([]byte(errLine))
+			// Stream already started — write a generic SSE error event so the client knows.
+			_, _ = w.Write([]byte("data: {\"error\":{\"message\":\"upstream unavailable\"}}\n\n"))
 		}
 
 		// Estimate completion tokens from response byte count (~4 bytes/token).

@@ -1,291 +1,285 @@
-# ToTra
+<h1 align="center">ToTra — AI Spend Management & LLM Gateway</h1>
 
-**ToTra** is an open-source LLM gateway and AI spend-management platform. It sits between your applications and LLM providers (OpenAI, Anthropic, Gemini, local models), enforcing quota, PII, and policy controls while giving you deep cost analytics, compliance reporting, budget management, and an employee self-service portal — all in one self-hosted stack.
+<p align="center">
+  Open-source AI gateway for enterprises. One line of code to add quota, PII protection, cost tracking, and compliance to any LLM.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
+  <a href="docker-compose.yml"><img src="https://img.shields.io/badge/deploy-Docker%20Compose-2496ED" alt="Docker"></a>
+  <a href="../../issues"><img src="https://img.shields.io/github/issues/yourorg/totra" alt="Issues"></a>
+</p>
+
+<p align="center">
+  <a href="docs/gateway.md">Gateway Docs</a> · <a href="docs/admin.md">Admin API</a> · <a href="docs/quickstart.md">Quick Start</a> · <a href="https://yourorg.github.io/totra">Website</a>
+</p>
+
+---
+
+![ToTra Demo](docs/assets/demo.gif)
+
+---
+
+## What is ToTra
+
+ToTra is an open-source LLM gateway and AI governance platform that sits between your applications and any LLM provider.
+
+Point your apps at ToTra instead of OpenAI or Anthropic — get spend tracking, per-user quota, PII blocking, and a full compliance audit trail with **zero changes to your existing code**.
+
+---
+
+## Why ToTra
+
+- **One gateway, any model** — OpenAI, Anthropic, Gemini, local models — all behind one OpenAI-compatible endpoint
+- **Hard budget caps** — per-user and per-team quota; requests over limit get `429` before touching any provider
+- **PII blocked at the edge** — 18 language groups scanned in real time; sensitive data never reaches the LLM
+- **Compliance out of the box** — GDPR workflows, EU AI Act checklist, immutable audit chain, data retention policies
+- **Finance-ready reporting** — department chargeback CSV, budget forecasts, procurement analytics, anomaly alerts
+- **Self-hosted** — your data stays on your infrastructure
+
+---
+
+## Screenshots
+
+| Admin Dashboard | Department Reports |
+|---|---|
+| ![Dashboard](docs/assets/02-dashboard.png) | ![Reports](docs/assets/07-reports.png) |
+
+| Employee Management | Employee Self-Service |
+|---|---|
+| ![Employees](docs/assets/04-users.png) | ![My Usage](docs/assets/08-myusage.png) |
+
+---
+
+## Get Started in 5 Minutes
+
+```bash
+git clone https://github.com/yourorg/totra.git
+cd totra
+cp .env.example .env
+docker-compose --profile app up -d --wait
+```
+
+Open **http://localhost:3000** → sign in with `admin@acme.com` / `totra123`
+
+---
+
+## Connect Your Apps
+
+Change one line. Everything else stays the same.
+
+<details open>
+<summary><b>Python (OpenAI SDK)</b></summary>
+
+```python
+import openai
+
+# Before
+client = openai.OpenAI(api_key="sk-...")
+
+# After — zero other changes
+client = openai.OpenAI(
+    api_key="your-totra-api-key",
+    base_url="http://your-totra-host:8080/v1"
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+</details>
+
+<details>
+<summary><b>Node.js (OpenAI SDK)</b></summary>
+
+```javascript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "your-totra-api-key",
+  baseURL: "http://your-totra-host:8080/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+```
+
+</details>
+
+<details>
+<summary><b>curl</b></summary>
+
+```bash
+curl http://your-totra-host:8080/v1/chat/completions \
+  -H "Authorization: Bearer your-totra-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+</details>
+
+Once connected, every request flows through quota enforcement, PII scanning, and cost tracking automatically.
 
 ---
 
 ## Features
 
-**Gateway / Proxy**
+<details open>
+<summary><b>Cost & Spend Management</b></summary>
+
+- Per-user, per-team, per-model token and USD cost tracking
+- Budget caps with configurable alert thresholds (Slack / webhook)
+- Monthly budget forecast based on current burn rate
+- Department chargeback reports with CSV export
+- Procurement analytics and ROI reports
+- Anomaly detection on spend spikes
+
+Admin dashboard:
+
+```
+http://localhost:3000/admin/cost
+http://localhost:3000/admin/reports
+```
+
+</details>
+
+<details>
+<summary><b>PII Protection — 18 Language Groups</b></summary>
+
+Every request body is scanned before it reaches any LLM. Blocked requests return `422` and emit a SIEM event.
+
+| Language | Detected types |
+|----------|----------------|
+| Universal | Email, credit card, IBAN, SWIFT/BIC, ICD medical codes |
+| Chinese | ID card, phone, bank account, unified credit code, securities account |
+| English | US SSN, phone, NI number, passport, driver's license, medical record number |
+| Japanese | My Number (個人番号), phone, postal code, health insurance number |
+| Korean | RRN (주민등록번호), phone, passport, business registration number |
+| EU (DE/FR/ES/IT/NL/PL/SE/PT/BE/CH/DK/FI/NO) | National IDs, tax numbers, social security numbers, phone |
+| Arabic (GCC + MENA) | National ID, Iqama, Emirates ID, QID, CIN, NIN, phone |
+
+</details>
+
+<details>
+<summary><b>Compliance & Audit</b></summary>
+
+- **GDPR** — data-subject export and deletion request workflows
+- **EU AI Act** — compliance checklist with status tracking
+- **Audit chain** — hash-chained immutable log; every request is traceable
+- **Data retention** — configurable policies with automated cleanup
+- **Industry frameworks** — extensible compliance framework support
+- **SIEM** — configurable webhook targets for security event forwarding
+
+</details>
+
+<details>
+<summary><b>Gateway & Routing</b></summary>
+
 - OpenAI-compatible and Anthropic-compatible API endpoints
 - Multi-provider routing — OpenAI, Anthropic, Gemini, local models
-- Per-tenant token quota with Redis-backed enforcement
-- Real-time multilingual PII detection and blocking before requests reach any LLM
-- Policy rule engine (allow/deny/transform based on prompt content)
-- Prompt compression to reduce token spend
 - Intelligent model auto-routing and fallback
-- Rate limiting, API-key auth, IP allowlist
+- Per-tenant Redis-backed quota enforcement
+- Prompt compression to reduce token spend
+- Semantic cache (SimHash LSH) to deduplicate repeated prompts
 - Streaming (`text/event-stream`) proxy
 - File upload → parse → chat pipeline (PDF / DOCX / PPTX)
-- SIEM event emission per request
+- Rate limiting, IP allowlist, API-key auth
 
-**Cost & Analytics**
-- Per-tenant, per-model, per-user cost tracking
-- Cost optimization recommendations and savings reports
-- Budget planner with alert thresholds
-- ROI reports and procurement analytics
-- Smart-routing cost analysis
-- Anomaly detection on spend
+</details>
 
-**Compliance**
-- GDPR compliance workflows and data-subject request handling
-- Industry-specific compliance frameworks
-- PII violation logging
-- Data retention policies with automated cleanup
-- Full audit log
+<details>
+<summary><b>Administration</b></summary>
 
-**Administration**
 - JWT authentication + OIDC / SSO integration
-- Role-based access control (RBAC)
+- Role-based access control (admin / employee)
 - User and team management
-- Model catalogue management
-- Bot and integration configurations (Slack, Feishu, GitLab, Confluence, …)
-- HR sync connector
+- Model catalogue — enable / disable / configure providers
 - Quota request / approval workflow
-- Alert configuration with webhook and SIEM targets
+- Bot notifications (Slack, Feishu, webhook)
+- HR sync connector (CSV-based)
+- Agent session tracking and dead-loop detection
 
-**Observability**
-- Prometheus metrics on every service (`/metrics`)
-- Per-request routing and usage events stored in PostgreSQL
-
-**PII Detection — Language Coverage**
-
-The gateway scans every request body before it reaches any LLM provider. Blocked requests return `422` and emit a SIEM event. Covered languages and data types:
-
-| Language | Detected PII types |
-|----------|--------------------|
-| Universal | Email, credit card (grouped/bare), IBAN, SWIFT/BIC, ICD medical codes |
-| Chinese | ID card, phone, bank account, unified credit code, contract amount, transaction ID, loan account, securities account, insurance policy, patient ID |
-| English | US SSN, US/UK phone, UK NI number, US passport, driver's license, date of birth, medical record number |
-| Japanese | My Number (個人番号), phone, postal code (〒), passport, bank account, health insurance number |
-| Korean | RRN (주민등록번호), phone, passport, business registration number, driver's license |
-| French | NIR (numéro de sécurité sociale), phone |
-| German | Steueridentifikationsnummer, phone, passport |
-| Spanish | DNI / NIE, phone |
-| Italian | Codice Fiscale, Partita IVA, phone |
-| Dutch | BSN (Burgerservicenummer), phone, passport |
-| Polish | PESEL, NIP (tax number), phone |
-| Swedish | Personnummer, phone |
-| Portuguese | NIF (tax number), phone |
-| Belgian | National register number, phone |
-| Swiss | AHV / AVS number, phone |
-| Danish | CPR number, phone |
-| Finnish | HETU (henkilötunnus), phone |
-| Norwegian | Fødselsnummer, phone |
-| Arabic (SA) | National ID, Iqama (residency number), phone |
-| Arabic (UAE) | Emirates ID, phone |
-| Arabic (EG) | National ID (الرقم القومي), phone |
-| Arabic (KW) | Civil ID (الرقم المدني), phone |
-| Arabic (QA) | QID, phone |
-| Arabic (MA) | CIN (carte nationale), phone |
-| Arabic (DZ) | NIN (Numéro d'Identification National) |
-| Arabic (LB) | Phone |
-| Arabic (JO) | Phone |
-| Pan-Arab | Passport, bank account / IBAN keyword |
+</details>
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────┐         ┌───────────────────────────────────────────────┐
-│   Clients    │──────→  │              Gateway  :8080                    │
-│ (apps / curl)│         │  auth → rate-limit → quota → PII → policy     │
-└──────────────┘         │  → compress → auto-router → agent → provider  │
-                         └──────────┬──────────────────────────────┬──────┘
-                                    │ usage events                  │ proxied
-                                    ▼                               ▼
-                         ┌──────────────────┐         ┌──────────────────┐
-                         │  Admin  :8081    │         │  LLM Providers   │
-                         │  auth, cost,     │         │  OpenAI / Anthropic│
-                         │  compliance,     │         │  Gemini / local  │
-                         │  budgets, agents │         └──────────────────┘
-                         └──────────────────┘
-                                    │ /api/
-                         ┌──────────────────┐
-                         │ Dashboard :3000  │
-                         │ React admin UI   │
-                         │ + employee portal│
-                         └──────────────────┘
-                                    │ file uploads
-                         ┌──────────────────┐
-                         │  Parser  :8090   │
-                         │  PDF/DOCX/PPTX   │
-                         │  → plain text    │
-                         └──────────────────┘
+Your Apps
+   ↓
+ToTra Gateway :8080          ← auth · quota · PII · policy · routing
+   ↓
+OpenAI / Anthropic / Gemini / Local models
+
+   ↕ usage events
+
+ToTra Admin :8081            ← cost · compliance · budgets · audit
+   ↕
+Dashboard :3000              ← admin console + employee self-service
 ```
 
-| Service     | Stack                  | Port | Purpose                                               |
-|-------------|------------------------|------|-------------------------------------------------------|
-| `gateway`   | Go 1.26 / Fiber        | 8080 | LLM proxy — routing, caching, quota / PII / policy   |
-| `admin`     | Go 1.26 / Fiber        | 8081 | Business logic — auth, cost, compliance, budgets      |
-| `parser`    | Python 3.12 / FastAPI  | 8090 | Document parsing (PDF / DOCX / PPTX → text)           |
-| `dashboard` | React 19 / Vite        | 3000 | Web UI (admin console + employee self-service)        |
-| `postgres`  | PostgreSQL 16          | 5432 | Primary datastore                                     |
-| `redis`     | Redis 7                | 6379 | Quota cache, agent/session state                      |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) + Docker Compose
-
-### Run with Docker
-
-```bash
-git clone https://github.com/<your-org>/totra.git
-cd totra
-cp .env.example .env          # fill in secrets (see Configuration below)
-docker-compose --profile app up -d --wait
-bash scripts/healthcheck.sh   # waits for all services, runs a smoke test
-```
-
-Services will be available at:
-
-| URL | Service |
-|-----|---------|
-| http://localhost:3000 | Dashboard (web UI) |
-| http://localhost:8081 | Admin API |
-| http://localhost:8080 | Gateway (LLM proxy) |
-
-Stop / reset:
-
-```bash
-docker-compose --profile app down        # stop, keep data
-docker-compose --profile app down -v     # stop + wipe database
-```
-
-### Default dev credentials
-
-> For local development only — never use these in production.
-
-| Field    | Value                       |
-|----------|-----------------------------|
-| Email    | `admin@acme.com`            |
-| Password | `totra-emp-dev-admin-key`   |
+| Service     | Stack                 | Port |
+|-------------|-----------------------|------|
+| `gateway`   | Go 1.26 / Fiber       | 8080 |
+| `admin`     | Go 1.26 / Fiber       | 8081 |
+| `parser`    | Python 3.12 / FastAPI | 8090 |
+| `dashboard` | React 19 / Vite       | 3000 |
+| `postgres`  | PostgreSQL 16         | 5432 |
+| `redis`     | Redis 7               | 6379 |
 
 ---
 
 ## Local Development
 
-Run databases in Docker; run each service on the host:
-
 ```bash
-# 1. Start databases
+# Start databases
 docker-compose up -d postgres redis
 
-# 2. Start services (each in its own terminal)
+# Run services (each in its own terminal)
 cd gateway   && go run .
 cd admin     && go run .
 cd parser    && uvicorn main:app --port 8090
 cd dashboard && npm install && npm run dev
+
+# Seed dev passwords (first time only)
+cd scripts/set-dev-passwords
+POSTGRES_HOST=localhost POSTGRES_DB=totra \
+POSTGRES_USER=totra POSTGRES_PASSWORD=totra_secret go run .
 ```
 
-### Prerequisites for local dev
-
-| Tool          | Version  |
-|---------------|----------|
-| Go            | 1.26+    |
-| Node.js       | 20+      |
-| Python        | 3.12+    |
-| Docker        | any recent |
+**Default dev credentials**: `admin@acme.com` / `totra123`
 
 ---
 
 ## Configuration
 
-Copy `.env.example` to `.env` and set the following variables:
+Copy `.env.example` to `.env`. Required variables:
 
-### Required
+| Variable                 | Description                              |
+|--------------------------|------------------------------------------|
+| `POSTGRES_*`             | PostgreSQL connection (host/port/db/user/password) |
+| `JWT_SECRET`             | Shared secret for JWT signing            |
+| `ENCRYPTION_KEY`         | 32-byte hex key (admin credential store) |
+| `GATEWAY_ENCRYPTION_KEY` | 32-byte hex key (gateway credential store) |
 
-| Variable             | Services            | Description                                                    |
-|----------------------|---------------------|----------------------------------------------------------------|
-| `POSTGRES_HOST`      | gateway, admin      | PostgreSQL host (default: `localhost`)                         |
-| `POSTGRES_PORT`      | gateway, admin      | PostgreSQL port (default: `5432`)                              |
-| `POSTGRES_DB`        | gateway, admin      | Database name                                                  |
-| `POSTGRES_USER`      | gateway, admin      | Database user                                                  |
-| `POSTGRES_PASSWORD`  | gateway, admin      | Database password                                              |
-| `JWT_SECRET`         | gateway, admin      | Secret used to sign/verify JWTs (shared)                       |
-| `ENCRYPTION_KEY`     | admin               | 32-byte hex key for encrypting stored credentials              |
-| `GATEWAY_ENCRYPTION_KEY` | gateway         | 32-byte hex key for gateway credential store                   |
-
-### Optional
-
-| Variable             | Service   | Default               | Description                          |
-|----------------------|-----------|-----------------------|--------------------------------------|
-| `GATEWAY_PORT`       | gateway   | `8080`                | Gateway listen port                  |
-| `ADMIN_PORT`         | admin     | `8081`                | Admin API listen port                |
-| `PARSER_PORT`        | parser    | `8090`                | Parser listen port                   |
-| `DASHBOARD_PORT`     | dashboard | `3000`                | Dashboard listen port                |
-| `REDIS_HOST`         | gateway   | `localhost`           | Redis host                           |
-| `REDIS_PORT`         | gateway   | `6379`                | Redis port                           |
-| `REDIS_PASSWORD`     | gateway   | —                     | Redis auth password                  |
-| `PARSER_URL`         | gateway   | `http://localhost:8090` | Parser service base URL            |
-| `JWT_EXPIRY_HOURS`   | admin     | `24`                  | JWT token lifetime in hours          |
-| `AGENT_LOOP_LIMIT`   | gateway   | `20`                  | Max tool-call loops per agent request|
-| `INTERNAL_SECRET`    | admin     | —                     | Shared secret for internal compliance routes |
-| `MAX_UPLOAD_BYTES`   | parser    | `10485760` (10 MiB)   | Maximum accepted file upload size    |
-| `VITE_API_URL`       | dashboard | `http://localhost:8081` | Admin API base URL (dev)           |
-
----
-
-## API Overview
-
-### Gateway — LLM Proxy (`localhost:8080`)
-
-Authenticate with `Authorization: Bearer <api-key>` or `x-api-key: <api-key>`.
-
-| Method | Path                              | Description                              |
-|--------|-----------------------------------|------------------------------------------|
-| GET    | `/health`                         | Liveness probe                           |
-| GET    | `/metrics`                        | Prometheus metrics                       |
-| POST   | `/v1/chat/completions`            | Chat completion (OpenAI-compatible)      |
-| POST   | `/v1/messages`                    | Messages (Anthropic-compatible)          |
-| POST   | `/v1/chat/completions/stream`     | Streaming chat completion                |
-| POST   | `/v1/files/chat`                  | File upload → parse → chat completion   |
-
-### Admin API (`localhost:8081`)
-
-Authenticate with `Authorization: Bearer <jwt>` (obtain from `POST /api/auth/login`).
-
-| Group         | Endpoints |
-|---------------|-----------|
-| Auth          | `POST /api/auth/login`, OIDC login/callback |
-| Users         | CRUD users, password management             |
-| Models        | Model catalogue — enable/disable/configure  |
-| Usage         | Token usage by user, model, date range      |
-| Quota         | Quota limits, request/approval workflow     |
-| Cost          | Cost analytics, optimization, savings, ROI  |
-| Compliance    | GDPR, industry frameworks, checklists, PII  |
-| Budgets       | Budget plans, alert thresholds              |
-| Agents        | Agent session tracking                      |
-| Audit         | Immutable audit log                         |
-| SIEM          | SIEM target configuration                   |
-| RBAC          | Roles, permissions                          |
-| IP Allowlist  | Per-tenant IP allowlists                    |
-| Integrations  | Bots, webhooks, HR sync, SSO                |
-| Data Retention| Retention policies, cleanup log             |
-| Alerts        | Alert configurations                        |
-| Procurement   | Procurement reports                         |
-| Employee      | Self-service usage view                     |
-
-### Parser (`localhost:8090`)
-
-| Method | Path      | Description                                       |
-|--------|-----------|---------------------------------------------------|
-| GET    | `/health` | Liveness probe                                    |
-| POST   | `/parse`  | Multipart upload → extract text (PDF/DOCX/PPTX)  |
+See `.env.example` for the full list including optional variables.
 
 ---
 
 ## Testing
 
 ```bash
-make test                     # run all services
+make test
 
-# per service:
+# Per service
 cd gateway   && go test ./...
 cd admin     && go test ./...
 cd dashboard && npm run test:run
@@ -294,55 +288,18 @@ cd parser    && pytest
 
 ---
 
-## Project Layout
+## Roadmap
 
-```
-gateway/     Go — LLM proxy (auth, quota, PII, policy, compression, routing, providers)
-admin/       Go — business logic (auth, cost, compliance, budgets, agents, RBAC, …)
-parser/      Python — document parsing (PDF / DOCX / PPTX → text)
-dashboard/   React — admin console and employee self-service portal
-infra/       PostgreSQL schema + 32 migration files
-scripts/     healthcheck, smoke tests, dev utilities
-docs/        additional documentation
-```
+- [ ] `totra` CLI (npm / brew)
+- [ ] Kubernetes Helm chart
+- [ ] Terraform provider
+- [ ] Google Workspace / Azure AD SSO out of the box
+- [ ] Multi-region tenant isolation
 
----
-
-## Integrations
-
-- **LLM Providers**: OpenAI, Anthropic (Claude), Google Gemini, local/self-hosted models
-- **SSO**: OIDC-compatible identity providers
-- **SIEM**: configurable webhook targets
-- **Chat / Bots**: Feishu, Slack, GitLab, Confluence
-- **HR Systems**: HR sync connector
-- **Observability**: Prometheus-compatible metrics on every service
-
----
-
-## Documentation
-
-- [Gateway](gateway/README.md) — middleware chain, endpoints, env vars
-- [Admin](admin/README.md) — route groups, configuration, package layout
-- [Parser](parser/README.md) — endpoints, supported formats, configuration
-- [Dashboard](dashboard/README.md) — pages, authentication, scripts
-- [Infrastructure](infra/README.md) — database operations, migrations
-- [Feishu Webhook Setup](docs/feishu-webhook-setup.md) — Feishu bot integration
-
----
-
-## Tech Stack
-
-| Layer       | Technology |
-|-------------|------------|
-| Gateway     | Go 1.26, [Fiber](https://gofiber.io/), Redis 7 |
-| Admin API   | Go 1.26, [Fiber](https://gofiber.io/), PostgreSQL 16 |
-| Parser      | Python 3.12, [FastAPI](https://fastapi.tiangolo.com/), PyMuPDF, python-docx, python-pptx |
-| Dashboard   | React 19, Vite, Tailwind CSS 4, TanStack Query, Recharts |
-| Infra       | Docker Compose, PostgreSQL 16, Redis 7 |
-| Observability | Prometheus metrics |
+Contributions welcome — open an issue or PR.
 
 ---
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — free to use, self-host, and modify.

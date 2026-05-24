@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yourorg/totra/admin/services"
@@ -100,7 +99,7 @@ func putSSOConfig(svc OIDCServiceIface) fiber.Handler {
 			Enabled:      body.Enabled,
 		}
 		if err := svc.SetConfig(c.Context(), cfg); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	}
@@ -118,7 +117,7 @@ func testSSOConnection(svc OIDCServiceIface) fiber.Handler {
 			return c.Status(404).JSON(fiber.Map{"error": "no SSO config found"})
 		}
 		if err := svc.TestConnection(c.Context(), cfg.Issuer); err != nil {
-			return c.Status(502).JSON(fiber.Map{"error": fmt.Sprintf("connection failed: %s", err.Error())})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "ok", "issuer": cfg.Issuer})
 	}
@@ -141,7 +140,7 @@ func oidcLoginRedirect(svc OIDCServiceIface) fiber.Handler {
 		}
 		authURL, err := svc.GenerateAuthURL(c.Context(), cfg, tenantID)
 		if err != nil {
-			return c.Status(502).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Redirect(authURL, fiber.StatusFound)
 	}

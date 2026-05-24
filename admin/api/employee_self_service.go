@@ -29,7 +29,7 @@ func getMyPIIViolations(svc *services.EmployeeSelfService) fiber.Handler {
 		limit := c.QueryInt("limit", 50)
 		violations, err := svc.GetMyPIIViolations(c.Context(), claims.TenantID, claims.UserID, limit)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if violations == nil {
 			violations = []services.PIIViolationSummary{}
@@ -57,7 +57,7 @@ func submitQuotaRequest(svc *services.EmployeeSelfService) fiber.Handler {
 		}
 		id, err := svc.SubmitQuotaRequest(c.Context(), claims.TenantID, claims.UserID, body.RequestedTokens, body.Reason)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(fiber.Map{"id": id, "status": "pending"})
 	}
@@ -69,7 +69,7 @@ func getMyQuotaRequests(svc *services.EmployeeSelfService) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		reqs, err := svc.GetMyQuotaRequests(c.Context(), claims.TenantID, claims.UserID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if reqs == nil {
 			reqs = []services.EmployeeQuotaRequest{}
@@ -105,7 +105,7 @@ func listAllPendingQuotaRequests(svc services.QuotaServiceInterface) fiber.Handl
 		}
 		reqs, err := svc.ListPending(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if reqs == nil {
 			reqs = []*services.QuotaRequest{}
@@ -132,11 +132,11 @@ func reviewQuotaRequest(svc services.QuotaServiceInterface) fiber.Handler {
 		switch body.Status {
 		case "approved":
 			if err := svc.Approve(c.Context(), claims.TenantID, id, claims.UserID); err != nil {
-				return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+				return serverError(c, err)
 			}
 		case "denied", "rejected":
 			if err := svc.Reject(c.Context(), claims.TenantID, id, claims.UserID); err != nil {
-				return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+				return serverError(c, err)
 			}
 		default:
 			return c.Status(400).JSON(fiber.Map{"error": "status must be 'approved' or 'denied'"})

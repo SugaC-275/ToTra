@@ -34,7 +34,7 @@ func getComplianceViolations(svc *services.ComplianceService) fiber.Handler {
 		}
 		data, err := svc.GetViolations(c.Context(), claims.TenantID, month, limit)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if data == nil {
 			data = []*services.ViolationRecord{}
@@ -52,7 +52,7 @@ func getComplianceRiskScores(svc *services.ComplianceService) fiber.Handler {
 		month := c.Query("month", currentYearMonth())
 		data, err := svc.GetRiskScores(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if data == nil {
 			data = []*services.UserRiskScore{}
@@ -70,7 +70,7 @@ func getComplianceReport(svc *services.ComplianceService) fiber.Handler {
 		month := c.Query("month", currentYearMonth())
 		data, err := svc.GetMonthlyReport(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(data)
 	}

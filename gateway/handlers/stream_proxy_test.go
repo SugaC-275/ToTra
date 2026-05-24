@@ -147,9 +147,9 @@ func TestStreamProxy_UpstreamErrorAfterStreamStart(t *testing.T) {
 	resp := doRequest(t, app, `{"model":"gpt-4o","stream":true}`)
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
-	// partial content was delivered; error event appended
+	// partial content was delivered; generic error event appended (no internal error detail)
 	assert.Contains(t, string(body), "partial")
-	assert.Contains(t, string(body), "upstream broke")
+	assert.Contains(t, string(body), "upstream unavailable")
 	// usage still recorded even on error
 	assert.Len(t, usageRec.records, 1)
 }

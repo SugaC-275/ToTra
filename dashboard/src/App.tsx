@@ -41,10 +41,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true }}>
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center text-zinc-400">
+              <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-500">
                 Loading…
               </div>
             }

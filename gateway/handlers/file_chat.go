@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -101,9 +102,8 @@ func NewFileChatHandler(
 					"message": "unsupported file format (PDF, DOCX, PPTX only)", "type": "unsupported_format",
 				}})
 			}
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiber.Map{
-				"message": "parser error: " + err.Error(), "type": "parser_error",
-			}})
+			slog.Error("parser error", "tenant", user.TenantID, "filename", fileHeader.Filename, "err", err)
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream unavailable"})
 		}
 
 		if piiType, found := middleware.ScanForPII(parseResult.Text); found {
@@ -117,9 +117,8 @@ func NewFileChatHandler(
 		body := adapter.BuildFilePrompt(modelName, parseResult.Text, message)
 		result, usage, err := adapter.Forward(c.Context(), body)
 		if err != nil {
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": fiber.Map{
-				"message": "upstream error: " + err.Error(), "type": "upstream_error",
-			}})
+			slog.Error("upstream forward error", "tenant", user.TenantID, "model", modelName, "err", err)
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream unavailable"})
 		}
 
 		responseMS := int(time.Since(start).Milliseconds())

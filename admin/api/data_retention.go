@@ -54,12 +54,12 @@ func getRetentionConfig(svc services.DataRetentionServiceIface, meta RetentionCl
 
 		months, err := svc.GetRetentionMonths(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 
 		m, err := meta.GetCleanupMeta(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 
 		resp := retentionResponse{
@@ -91,7 +91,7 @@ func putRetentionConfig(svc services.DataRetentionServiceIface) fiber.Handler {
 		}
 
 		if err := svc.SetRetentionMonths(c.Context(), claims.TenantID, body.Months); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"retention_months": body.Months})
 	}
@@ -106,7 +106,7 @@ func postRetentionCleanup(svc services.DataRetentionServiceIface, meta Retention
 
 		deleted, err := svc.RunRetentionCleanup(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 
 		now := time.Now().UTC()

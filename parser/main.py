@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 import pdfplumber
 from docx import Document
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from pptx import Presentation
 
 logging.basicConfig(
@@ -20,7 +20,22 @@ logger = logging.getLogger("totra.parser")
 # Maximum accepted upload size in bytes (default 10 MiB).
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 
+# Shared secret for internal service-to-service calls.
+# When non-empty every request to /parse must carry the matching header.
+# Leave empty (or unset) in local dev to skip the check.
+INTERNAL_SECRET = os.getenv("INTERNAL_SECRET", "")
+
 app = FastAPI(title="ToTra Parser")
+
+
+def _require_internal_secret(
+    x_internal_secret: str | None = Header(default=None),
+) -> None:
+    """FastAPI dependency: enforce X-Internal-Secret when INTERNAL_SECRET is set."""
+    if not INTERNAL_SECRET:
+        return  # local dev — skip check
+    if x_internal_secret != INTERNAL_SECRET:
+        raise HTTPException(status_code=401, detail="missing or invalid X-Internal-Secret")
 
 
 def _elapsed_ms(start: float) -> int:
@@ -98,7 +113,7 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/parse")
+@app.post("/parse", dependencies=[Depends(_require_internal_secret)])
 async def parse_file(file: UploadFile = File(...)):
     start = time.monotonic()
     filename = (file.filename or "").lower()

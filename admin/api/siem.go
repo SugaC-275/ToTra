@@ -75,7 +75,7 @@ func listSIEMConfigs(svc SIEMConfigServiceIface) fiber.Handler {
 		}
 		configs, err := svc.List(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"total": len(configs), "configs": configs})
 	}
@@ -102,7 +102,7 @@ func createSIEMConfig(svc SIEMConfigServiceIface) fiber.Handler {
 		}
 		cfg, err := svc.Create(c.Context(), claims.TenantID, req.Name, req.EndpointURL, req.APIKey, req.EventTypes)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(cfg)
 	}
@@ -130,7 +130,7 @@ func sendSIEMTest(svc SIEMDeliveryServiceIface) fiber.Handler {
 		}
 		id := c.Params("id")
 		if err := svc.SendTest(c.Context(), claims.TenantID, id); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"ok": true})
 	}
@@ -167,7 +167,7 @@ func getSIEMEvents(svc SIEMPullServiceIface) fiber.Handler {
 
 		result, err := svc.GetEvents(c.Context(), claims.TenantID, since, types, limit)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	}
@@ -189,7 +189,7 @@ func getSIEMDeliveryLog(svc SIEMDeliveryServiceIface) fiber.Handler {
 
 		logs, err := svc.GetDeliveryLog(c.Context(), claims.TenantID, limit)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"total": len(logs), "log": logs})
 	}

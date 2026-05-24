@@ -25,7 +25,7 @@ func getCostSavingsReport(svc CostSavingsServiceIface) fiber.Handler {
 		month := c.Query("month", currentYearMonth())
 		report, err := svc.GetMonthlySavings(c.Context(), claims.TenantID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(report)
 	}

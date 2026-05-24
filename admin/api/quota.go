@@ -20,7 +20,7 @@ func listPendingRequests(svc services.QuotaServiceInterface) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		reqs, err := svc.ListPending(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"requests": reqs})
 	}
@@ -31,7 +31,7 @@ func approveRequest(svc services.QuotaServiceInterface) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		err := svc.Approve(c.Context(), claims.TenantID, c.Params("id"), claims.UserID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "approved"})
 	}
@@ -42,7 +42,7 @@ func rejectRequest(svc services.QuotaServiceInterface) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		err := svc.Reject(c.Context(), claims.TenantID, c.Params("id"), claims.UserID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "rejected"})
 	}
@@ -54,7 +54,7 @@ func getMyQuotaStatus(svc services.QuotaServiceInterface) fiber.Handler {
 		month := time.Now().Format("2006-01")
 		qs, err := svc.GetMyStatus(c.Context(), claims.TenantID, claims.UserID, month)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(qs)
 	}
@@ -77,7 +77,7 @@ func requestIncrease(svc services.QuotaServiceInterface) fiber.Handler {
 		}
 		err := svc.RequestIncrease(c.Context(), claims.TenantID, targetUser, claims.UserID, body.NewQuota, body.Reason)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"status": "pending"})
 	}

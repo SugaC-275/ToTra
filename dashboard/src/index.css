@@ -2,10 +2,72 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background-color: #09090b;
+  color: #f4f4f5;
 }
 
-body {
-  margin: 0;
+/* ── Global dark overrides ─────────────────────────────────────────────────
+   Pages use hardcoded Tailwind light classes. These rules win in dark mode
+   without touching every individual page. */
+
+.dark .bg-white       { background-color: #18181b !important; }
+.dark .bg-gray-50     { background-color: #111113 !important; }
+.dark .bg-gray-100    { background-color: #1c1c1e !important; }
+.dark .bg-gray-200    { background-color: #27272a !important; }
+.dark .bg-slate-50    { background-color: #111113 !important; }
+.dark .bg-slate-100   { background-color: #1c1c1e !important; }
+.dark .bg-zinc-50     { background-color: #111113 !important; }
+.dark .bg-zinc-100    { background-color: #1c1c1e !important; }
+
+/* Semantic status colours — darken backgrounds, keep text readable */
+.dark .bg-blue-50     { background-color: #1e2a3a !important; }
+.dark .bg-green-50    { background-color: #142318 !important; }
+.dark .bg-yellow-50   { background-color: #2a2010 !important; }
+.dark .bg-red-50      { background-color: #2a1414 !important; }
+.dark .bg-orange-50   { background-color: #2a1c10 !important; }
+
+/* Border colours */
+.dark .border,
+.dark [class*="border-gray-"],
+.dark [class*="border-slate-"],
+.dark .border-blue-100,
+.dark .border-green-200,
+.dark .border-yellow-200,
+.dark .border-red-200  { border-color: #3f3f46 !important; }
+
+/* Text colours */
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700   { color: #f4f4f5 !important; }
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400   { color: #a1a1aa !important; }
+.dark .text-blue-700   { color: #93c5fd !important; }
+.dark .text-green-700  { color: #86efac !important; }
+.dark .text-yellow-700 { color: #fde047 !important; }
+.dark .text-red-700    { color: #fca5a5 !important; }
+
+/* Form controls */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #18181b;
+  color: #f4f4f5;
+  border-color: #3f3f46;
+  color-scheme: dark;
+}
+
+/* Table rows */
+.dark thead tr,
+.dark tbody tr { border-color: #27272a; }
+.dark th        { color: #a1a1aa; }
+
+/* Suspense / loading fallback */
+.dark .suspense-fallback {
+  background-color: #09090b;
+  color: #71717a;
 }

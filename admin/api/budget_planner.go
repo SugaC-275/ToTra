@@ -26,7 +26,7 @@ func RegisterBudgetPlannerRoutes(r fiber.Router, svc BudgetPlannerServiceIface) 
 		}
 		plan, err := svc.GetBudgetPlan(c.Context(), claims.TenantID, year)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(plan)
 	})

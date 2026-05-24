@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,7 +36,15 @@ func main() {
 		log.Fatalf("redis: %v", err)
 	}
 
-	pool, err := pgxpool.New(context.Background(), cfg.PostgresDSN)
+	poolCfg, err := pgxpool.ParseConfig(cfg.PostgresDSN)
+	if err != nil {
+		log.Fatalf("postgres parse config: %v", err)
+	}
+	poolCfg.MaxConns = 20
+	poolCfg.MinConns = 2
+	poolCfg.MaxConnLifetime = 30 * time.Minute
+	poolCfg.MaxConnIdleTime = 5 * time.Minute
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
 	if err != nil {
 		log.Fatalf("postgres: %v", err)
 	}
@@ -64,9 +76,33 @@ func main() {
 	})
 
 	app.Get("/health", func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 3*time.Second)
+		defer cancel()
+		if err := pool.Ping(ctx); err != nil {
+			slog.Error("health: postgres unreachable", "err", err)
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"status": "unavailable", "detail": "db unreachable",
+			})
+		}
+		if err := rdb.Ping(ctx).Err(); err != nil {
+			slog.Error("health: redis unreachable", "err", err)
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"status": "unavailable", "detail": "redis unreachable",
+			})
+		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
-	app.Get("/metrics", handlers.MetricsHandler(prometheus.DefaultGatherer))
+
+	metricsToken := os.Getenv("METRICS_TOKEN")
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		if metricsToken != "" {
+			auth := c.Get("Authorization")
+			if auth != "Bearer "+metricsToken {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			}
+		}
+		return handlers.MetricsHandler(prometheus.DefaultGatherer)(c)
+	})
 
 	v1 := app.Group("/v1",
 		middleware.NewMetricsMiddleware(gatewayMetrics),
@@ -93,7 +129,20 @@ func main() {
 	)
 
 	log.Printf("Gateway listening on :%s", cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	go func() {
+		if err := app.Listen(":" + cfg.Port); err != nil {
+			log.Printf("server stopped: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+	log.Println("shutting down gateway...")
+	if err := app.ShutdownWithTimeout(15 * time.Second); err != nil {
+		log.Printf("shutdown error: %v", err)
+	}
+	log.Println("gateway stopped")
 }
 
 func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache, semCache *storage.SemanticCache, routingStore *storage.RoutingStore) fiber.Handler {
@@ -142,7 +191,8 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 
 		result, usage, err := fwd.Forward(c.Context(), c.Body())
 		if err != nil {
-			return c.Status(502).JSON(fiber.Map{"error": fiber.Map{"message": "upstream error: " + err.Error()}})
+			slog.Error("upstream forward error", "tenant", user.TenantID, "model", reqBody.Model, "err", err)
+			return c.Status(502).JSON(fiber.Map{"error": "upstream unavailable"})
 		}
 
 		if result.StatusCode == 200 {

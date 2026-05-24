@@ -18,7 +18,7 @@ func listWebhookConfigs(svc *services.IntegrationService) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		configs, err := svc.ListWebhookConfigs(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"configs": configs})
 	}
@@ -43,7 +43,7 @@ func createWebhookConfig(svc *services.IntegrationService, encKey string) fiber.
 		}
 		config, err := svc.CreateWebhookConfig(c.Context(), claims.TenantID, encSecret, req)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(config)
 	}
@@ -54,7 +54,7 @@ func listMyIntegrations(svc *services.IntegrationService) fiber.Handler {
 		claims := c.Locals("claims").(*services.Claims)
 		items, err := svc.ListUserIntegrations(c.Context(), claims.UserID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"integrations": items})
 	}
@@ -78,7 +78,7 @@ func bindMyIntegration(svc *services.IntegrationService) fiber.Handler {
 			createdBy = "admin"
 		}
 		if err := svc.BindUserIntegration(c.Context(), claims.TenantID, claims.UserID, req.Platform, req.ExternalID, createdBy); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.Status(201).JSON(fiber.Map{"status": "bound"})
 	}

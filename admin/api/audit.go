@@ -32,7 +32,7 @@ func getAuditLog(svc AuditServiceIface) fiber.Handler {
 		}
 		entries, err := svc.GetAuditLog(c.Context(), claims.TenantID, limit)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		if entries == nil {
 			entries = []*services.AuditEntry{}
@@ -49,7 +49,7 @@ func verifyAuditChain(svc AuditServiceIface) fiber.Handler {
 		}
 		result, err := svc.VerifyChain(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	}

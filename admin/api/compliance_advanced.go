@@ -28,7 +28,7 @@ func getComplianceAnomalies(svc AnomalyServiceIface) fiber.Handler {
 		}
 		anomalies, err := svc.GetAnomalies(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"anomalies": anomalies})
 	}
@@ -42,7 +42,7 @@ func getComplianceBenchmark(svc ComplianceBenchmarkServiceIface) fiber.Handler {
 		}
 		bm, err := svc.GetComplianceBenchmark(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(bm)
 	}

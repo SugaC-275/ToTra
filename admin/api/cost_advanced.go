@@ -24,7 +24,7 @@ func RegisterCostAdvancedRoutes(r fiber.Router, budgetSvc BudgetForecastServiceI
 		}
 		result, err := budgetSvc.GetBudgetForecast(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})
@@ -37,7 +37,7 @@ func RegisterCostAdvancedRoutes(r fiber.Router, budgetSvc BudgetForecastServiceI
 		yearMonth := c.Query("month")
 		result, err := benchmarkSvc.GetCostBenchmark(c.Context(), claims.TenantID, yearMonth)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})
@@ -49,7 +49,7 @@ func RegisterCostAdvancedRoutes(r fiber.Router, budgetSvc BudgetForecastServiceI
 		}
 		result, err := benchmarkSvc.GetModelROI(c.Context())
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})

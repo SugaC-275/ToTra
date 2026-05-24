@@ -35,7 +35,7 @@ func RegisterCostReportsRoutes(r fiber.Router, topSvc TopSpendersServiceIface, a
 		}
 		report, err := topSvc.GetTopSpenders(c.Context(), claims.TenantID, month, limit)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(report)
 	})
@@ -46,7 +46,7 @@ func RegisterCostReportsRoutes(r fiber.Router, topSvc TopSpendersServiceIface, a
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "admin only"})
 		}
 		if err := alertSvc.CheckAndNotify(c.Context(), claims.TenantID, botSvc); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(fiber.Map{"ok": true})
 	})

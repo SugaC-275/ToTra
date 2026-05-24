@@ -28,7 +28,7 @@ func RegisterCostSettingsRoutes(r fiber.Router, settingsSvc CostSettingsServiceI
 		}
 		result, err := settingsSvc.Get(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})
@@ -60,7 +60,7 @@ func RegisterCostSettingsRoutes(r fiber.Router, settingsSvc CostSettingsServiceI
 		}
 		result, err := budgetSvc.GetBudgetStatus(c.Context(), claims.TenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})
@@ -73,7 +73,7 @@ func RegisterCostSettingsRoutes(r fiber.Router, settingsSvc CostSettingsServiceI
 		yearMonth := c.Query("month")
 		result, err := offHoursSvc.GetOffHoursReport(c.Context(), claims.TenantID, yearMonth)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return serverError(c, err)
 		}
 		return c.JSON(result)
 	})

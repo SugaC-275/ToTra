@@ -15,6 +15,7 @@ type Config struct {
 	JWTSecret      string
 	AgentLoopLimit int64
 	ParserURL      string
+	PostgresSSLMode string
 }
 
 func Load() (*Config, error) {
@@ -24,6 +25,7 @@ func Load() (*Config, error) {
 	pgDB := mustGetEnv("POSTGRES_DB")
 	pgUser := mustGetEnv("POSTGRES_USER")
 	pgPass := mustGetEnv("POSTGRES_PASSWORD")
+	pgSSLMode := getEnv("POSTGRES_SSLMODE", "disable")
 
 	loopLimit := int64(20)
 	if v := os.Getenv("AGENT_LOOP_LIMIT"); v != "" {
@@ -33,14 +35,15 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		Port:           port,
-		PostgresDSN:    fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", pgHost, pgPort, pgDB, pgUser, pgPass),
-		RedisAddr:      fmt.Sprintf("%s:%s", getEnv("REDIS_HOST", "localhost"), getEnv("REDIS_PORT", "6379")),
-		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
-		EncryptionKey:  mustGetEnv("GATEWAY_ENCRYPTION_KEY"),
-		JWTSecret:      mustGetEnv("JWT_SECRET"),
-		AgentLoopLimit: loopLimit,
-		ParserURL:      getEnv("PARSER_URL", "http://localhost:8090"),
+		Port:            port,
+		PostgresDSN:     fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", pgHost, pgPort, pgDB, pgUser, pgPass, pgSSLMode),
+		RedisAddr:       fmt.Sprintf("%s:%s", getEnv("REDIS_HOST", "localhost"), getEnv("REDIS_PORT", "6379")),
+		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
+		EncryptionKey:   mustGetEnv("GATEWAY_ENCRYPTION_KEY"),
+		JWTSecret:       mustGetEnv("JWT_SECRET"),
+		AgentLoopLimit:  loopLimit,
+		ParserURL:       getEnv("PARSER_URL", "http://localhost:8090"),
+		PostgresSSLMode: pgSSLMode,
 	}, nil
 }
 
