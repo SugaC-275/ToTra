@@ -117,7 +117,7 @@ func testSSOConnection(svc OIDCServiceIface) fiber.Handler {
 			return c.Status(404).JSON(fiber.Map{"error": "no SSO config found"})
 		}
 		if err := svc.TestConnection(c.Context(), cfg.Issuer); err != nil {
-			return serverError(c, err)
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "could not reach OIDC issuer"})
 		}
 		return c.JSON(fiber.Map{"status": "ok", "issuer": cfg.Issuer})
 	}
