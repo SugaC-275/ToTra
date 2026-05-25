@@ -234,6 +234,7 @@ func main() {
 	api.RegisterAlertConfigRoutes(protected, alertPushSvc)
 	api.RegisterEmployeeSelfServiceRoutes(protected, empSelfSvc, quotaSvc)
 	api.RegisterDataRetentionRoutes(protected, retentionSvc, retentionMeta)
+	api.RegisterMCPServerRoutes(protected, services.NewMCPServerService(pool, cfg.EncryptionKey))
 
 	// W8: graceful shutdown on SIGTERM/SIGINT
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)

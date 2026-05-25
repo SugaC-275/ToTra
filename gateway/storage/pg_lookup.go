@@ -52,6 +52,7 @@ type ModelConfig struct {
 	APIKey          string
 	BaseURL         string
 	SCURate         float64
+	CacheDisabled   bool
 	PricePerMInput  *float64 // nil when not configured
 	PricePerMOutput *float64 // nil when not configured
 }
@@ -63,10 +64,10 @@ func NewPGModelLookup(pool *pgxpool.Pool) *PGModelLookup { return &PGModelLookup
 func (p *PGModelLookup) GetByName(ctx context.Context, tenantID, modelName string) (*ModelConfig, error) {
 	var m ModelConfig
 	err := p.pool.QueryRow(ctx,
-		`SELECT id, provider, COALESCE(api_key_encrypted,''), base_url, scu_rate, price_per_m_input, price_per_m_output
+		`SELECT id, provider, COALESCE(api_key_encrypted,''), base_url, scu_rate, cache_disabled, price_per_m_input, price_per_m_output
 		 FROM model_configs WHERE tenant_id = $1 AND name = $2 AND is_active = true`,
 		tenantID, modelName,
-	).Scan(&m.ID, &m.Provider, &m.APIKey, &m.BaseURL, &m.SCURate, &m.PricePerMInput, &m.PricePerMOutput)
+	).Scan(&m.ID, &m.Provider, &m.APIKey, &m.BaseURL, &m.SCURate, &m.CacheDisabled, &m.PricePerMInput, &m.PricePerMOutput)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil

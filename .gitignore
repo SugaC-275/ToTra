@@ -29,3 +29,5 @@ docs/agent-team/
 
 # SSL certificates (never commit)
 infra/nginx/certs/
+docs/business-plan.md
+docs/execution-roadmap.md

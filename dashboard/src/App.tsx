@@ -30,6 +30,7 @@ const SIEMPage = lazy(() => import("./pages/admin/SIEMPage"));
 const SSOPage = lazy(() => import("./pages/admin/SSOPage").then((m) => ({ default: m.SSOPage })));
 const DataRetentionPage = lazy(() => import("./pages/admin/DataRetentionPage"));
 const AlertConfigPage = lazy(() => import("./pages/admin/AlertConfigPage"));
+const MCPServersPage = lazy(() => import("./pages/admin/MCPServersPage").then((m) => ({ default: m.MCPServersPage })));
 const MyUsagePage = lazy(() => import("./pages/employee/MyUsagePage").then((m) => ({ default: m.MyUsagePage })));
 const SelfServicePage = lazy(() => import("./pages/employee/SelfServicePage").then((m) => ({ default: m.SelfServicePage })));
 
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="admin/sso" element={<ProtectedRoute adminOnly><SSOPage /></ProtectedRoute>} />
                 <Route path="admin/data-retention" element={<ProtectedRoute adminOnly><DataRetentionPage /></ProtectedRoute>} />
                 <Route path="admin/alert-configs" element={<ProtectedRoute adminOnly><AlertConfigPage /></ProtectedRoute>} />
+                <Route path="admin/mcp-servers" element={<ProtectedRoute adminOnly><MCPServersPage /></ProtectedRoute>} />
                 <Route path="me" element={<MyUsagePage />} />
                 <Route path="me/self-service" element={<SelfServicePage />} />
               </Route>

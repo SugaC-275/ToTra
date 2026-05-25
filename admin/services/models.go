@@ -16,6 +16,7 @@ type ModelConfig struct {
 	BaseURL         string   `json:"base_url"`
 	SCURate         float64  `json:"scu_rate"`
 	IsActive        bool     `json:"is_active"`
+	CacheDisabled   bool     `json:"cache_disabled"`
 	PricePerMInput  *float64 `json:"price_per_m_input"`
 	PricePerMOutput *float64 `json:"price_per_m_output"`
 }
@@ -39,7 +40,7 @@ func NewModelService(pool *pgxpool.Pool, encryptionKey string) *ModelService {
 
 func (s *ModelService) List(ctx context.Context, tenantID string) ([]*ModelConfig, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, name, provider, base_url, scu_rate, is_active, price_per_m_input, price_per_m_output FROM model_configs WHERE tenant_id = $1 ORDER BY name`,
+		`SELECT id, name, provider, base_url, scu_rate, is_active, cache_disabled, price_per_m_input, price_per_m_output FROM model_configs WHERE tenant_id = $1 ORDER BY name`,
 		tenantID,
 	)
 	if err != nil {
@@ -49,7 +50,7 @@ func (s *ModelService) List(ctx context.Context, tenantID string) ([]*ModelConfi
 	var models []*ModelConfig
 	for rows.Next() {
 		m := &ModelConfig{}
-		rows.Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.PricePerMInput, &m.PricePerMOutput)
+		rows.Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.CacheDisabled, &m.PricePerMInput, &m.PricePerMOutput)
 		models = append(models, m)
 	}
 	return models, nil
@@ -62,11 +63,27 @@ func (s *ModelService) UpdatePricing(ctx context.Context, tenantID, modelID stri
 		`UPDATE model_configs
 		 SET price_per_m_input=$1, price_per_m_output=$2
 		 WHERE id=$3 AND tenant_id=$4
-		 RETURNING id, name, provider, base_url, scu_rate, is_active, price_per_m_input, price_per_m_output`,
+		 RETURNING id, name, provider, base_url, scu_rate, is_active, cache_disabled, price_per_m_input, price_per_m_output`,
 		inputPrice, outputPrice, modelID, tenantID,
-	).Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.PricePerMInput, &m.PricePerMOutput)
+	).Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.CacheDisabled, &m.PricePerMInput, &m.PricePerMOutput)
 	if err != nil {
 		return nil, fmt.Errorf("update model pricing: %w", err)
+	}
+	return &m, nil
+}
+
+// UpdateCacheSettings sets the cache_disabled flag for a model config.
+func (s *ModelService) UpdateCacheSettings(ctx context.Context, tenantID, modelID string, cacheDisabled bool) (*ModelConfig, error) {
+	var m ModelConfig
+	err := s.pool.QueryRow(ctx,
+		`UPDATE model_configs
+		 SET cache_disabled=$1
+		 WHERE id=$2 AND tenant_id=$3
+		 RETURNING id, name, provider, base_url, scu_rate, is_active, cache_disabled, price_per_m_input, price_per_m_output`,
+		cacheDisabled, modelID, tenantID,
+	).Scan(&m.ID, &m.Name, &m.Provider, &m.BaseURL, &m.SCURate, &m.IsActive, &m.CacheDisabled, &m.PricePerMInput, &m.PricePerMOutput)
+	if err != nil {
+		return nil, fmt.Errorf("update model cache settings: %w", err)
 	}
 	return &m, nil
 }

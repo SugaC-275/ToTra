@@ -4,13 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
+// semCacheTTLDefault is the default semantic cache TTL.
+// Override with SEMANTIC_CACHE_TTL_HOURS env var.
+const semCacheTTLDefault = 7 * 24 * time.Hour
+
+var semCacheTTL = func() time.Duration {
+	if h, err := strconv.Atoi(os.Getenv("SEMANTIC_CACHE_TTL_HOURS")); err == nil && h > 0 {
+		return time.Duration(h) * time.Hour
+	}
+	return semCacheTTLDefault
+}()
+
 const (
-	semCacheTTL = 15 * time.Minute
 	// semCacheThreshold is the max SimHash Hamming distance for a cache hit.
 	// A one-word paraphrase of a short query (~8 tokens) measures a distance
 	// of ~6, so 8 catches single-word rewrites with margin while still

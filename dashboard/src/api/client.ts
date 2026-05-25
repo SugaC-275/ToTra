@@ -487,3 +487,65 @@ export const deleteAlertConfig = async (id: string): Promise<void> => {
 export const sendTestAlertConfig = async (): Promise<void> => {
   await apiClient.post("/api/admin/alert-configs/test");
 };
+
+// ---- MCP Servers ----
+
+export interface MCPServer {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  auth_type: "none" | "bearer";
+  enabled: boolean;
+  max_tool_calls: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMCPServerPayload {
+  name: string;
+  description?: string;
+  url: string;
+  auth_type: "none" | "bearer";
+  auth_token?: string;
+  max_tool_calls?: number;
+}
+
+export interface UpdateMCPServerPayload {
+  description?: string;
+  url?: string;
+  auth_type?: "none" | "bearer";
+  auth_token?: string;
+  enabled?: boolean;
+  max_tool_calls?: number;
+}
+
+export interface MCPToolCallLog {
+  id: number;
+  server_name: string;
+  tool_name: string;
+  status_code: number;
+  duration_ms: number;
+  pii_detected: boolean;
+  created_at: string;
+}
+
+export const listMCPServers = () =>
+  apiClient.get<{ total: number; servers: MCPServer[] }>("/api/mcp-servers");
+
+export const getMCPServer = (id: string) =>
+  apiClient.get<MCPServer>(`/api/mcp-servers/${id}`);
+
+export const createMCPServer = (data: CreateMCPServerPayload) =>
+  apiClient.post<MCPServer>("/api/mcp-servers", data);
+
+export const updateMCPServer = (id: string, data: UpdateMCPServerPayload) =>
+  apiClient.put<MCPServer>(`/api/mcp-servers/${id}`, data);
+
+export const deleteMCPServer = (id: string) =>
+  apiClient.delete(`/api/mcp-servers/${id}`);
+
+export const listMCPToolCalls = (limit = 50, offset = 0) =>
+  apiClient.get<{ total: number; tool_calls: MCPToolCallLog[] }>(
+    `/api/mcp-servers/tool-calls?limit=${limit}&offset=${offset}`
+  );

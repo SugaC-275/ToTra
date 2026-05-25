@@ -11,12 +11,14 @@ type ModelServiceInterface interface {
 	List(ctx context.Context, tenantID string) ([]*services.ModelConfig, error)
 	Create(ctx context.Context, tenantID string, req services.CreateModelRequest) (*services.ModelConfig, error)
 	UpdatePricing(ctx context.Context, tenantID, modelID string, inputPrice, outputPrice float64) (*services.ModelConfig, error)
+	UpdateCacheSettings(ctx context.Context, tenantID, modelID string, cacheDisabled bool) (*services.ModelConfig, error)
 }
 
 func RegisterModelRoutes(app fiber.Router, svc ModelServiceInterface) {
 	app.Get("/api/models", listModels(svc))
 	app.Post("/api/models", createModel(svc))
 	app.Put("/api/admin/models/:id/pricing", updateModelPricing(svc))
+	app.Put("/api/admin/models/:id/cache", updateModelCache(svc))
 }
 
 func listModels(svc ModelServiceInterface) fiber.Handler {
@@ -45,6 +47,28 @@ func createModel(svc ModelServiceInterface) fiber.Handler {
 			return serverError(c, err)
 		}
 		return c.Status(201).JSON(model)
+	}
+}
+
+type updateCacheBody struct {
+	CacheDisabled bool `json:"cache_disabled"`
+}
+
+func updateModelCache(svc ModelServiceInterface) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims, ok := c.Locals("claims").(*services.Claims)
+		if !ok || claims.Role != "admin" {
+			return c.Status(403).JSON(fiber.Map{"error": "admin only"})
+		}
+		var body updateCacheBody
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
+		}
+		model, err := svc.UpdateCacheSettings(c.Context(), claims.TenantID, c.Params("id"), body.CacheDisabled)
+		if err != nil {
+			return serverError(c, err)
+		}
+		return c.JSON(model)
 	}
 }
 

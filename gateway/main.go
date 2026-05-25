@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -69,6 +70,17 @@ func main() {
 	rateLimitStore := storage.NewRateLimitStore(rdb, pool)
 	gatewayMetrics := middleware.NewGatewayMetrics(prometheus.DefaultRegisterer)
 	modelLookup := storage.NewPGModelLookup(pool)
+	cooldownStore := storage.NewCooldownStore(rdb)
+	mcpServerStore := storage.NewMCPServerStore(pool)
+	batchStore := storage.NewBatchStore(pool)
+	callbackCfg := middleware.LoadCallbackConfig()
+	exactCacheTTL := exactCacheDuration()
+
+	if otelShutdown, otelErr := middleware.InitOTEL(context.Background()); otelErr != nil {
+		log.Printf("otel: init failed: %v (tracing disabled)", otelErr)
+	} else {
+		defer otelShutdown(context.Background())
+	}
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  30 * time.Second,
@@ -105,22 +117,38 @@ func main() {
 	})
 
 	v1 := app.Group("/v1",
+		middleware.NewOTELMiddleware(),
 		middleware.NewMetricsMiddleware(gatewayMetrics),
 		middleware.NewAuthMiddleware(pgUserLookup),
 		middleware.NewRateLimiterMiddleware(rateLimitStore),
 		middleware.NewQuotaMiddleware(quotaStore, pgUserQuota),
+		middleware.NewInjectionMiddleware(siemChan),
 		middleware.NewPIIMiddleware(piiStore, "", siemChan),
+		middleware.NewPresidioMiddleware(siemChan),
 		middleware.NewPolicyMiddleware(policyRuleStore, siemChan),
 		middleware.NewCompressMiddleware(),
+		middleware.NewContextWindowFallbackMiddleware(),
 		middleware.NewAutoRouterMiddleware(routingStore),
 		middleware.NewAgentMiddleware(agentStore),
+		middleware.NewCallbackMiddleware(callbackCfg),
 	)
 
-	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache, semanticCache, routingStore)
+	proxyHandler := makeProxyHandler(pool, usageStore, agentStore, requestCache, semanticCache, routingStore, cooldownStore, exactCacheTTL)
 	fallbackMw := middleware.NewFallbackMiddleware(modelLookup, proxyHandler)
-	v1.Post("/chat/completions", fallbackMw, proxyHandler)
-	v1.Post("/messages", fallbackMw, proxyHandler)
+	piiResponseMw := middleware.NewPIIResponseMiddleware(siemChan)
+	v1.Post("/chat/completions", piiResponseMw, fallbackMw, proxyHandler)
+	v1.Post("/messages", piiResponseMw, fallbackMw, proxyHandler)
 	v1.Post("/chat/completions/stream", handlers.NewStreamProxyHandler(pool, usageStore))
+	v1.Post("/embeddings", handlers.NewEmbeddingsHandler(storage.NewPGModelLookup(pool), usageStore))
+	v1.Post("/audio/transcriptions", handlers.NewAudioTranscriptionHandler(storage.NewPGModelLookup(pool), usageStore, siemChan))
+	v1.Post("/images/generations", handlers.NewImagesGenerationHandler(storage.NewPGModelLookup(pool), usageStore))
+	v1.Post("/rerank", handlers.NewRerankHandler(storage.NewPGModelLookup(pool), usageStore))
+	v1.Post("/moderations", handlers.NewModerationsHandler(storage.NewPGModelLookup(pool), usageStore))
+	v1.Post("/mcp/chat", handlers.NewMCPHandler(mcpServerStore, storage.NewPGModelLookup(pool), usageStore))
+	handlers.RegisterBatchRoutes(v1, batchStore, storage.NewPGModelLookup(pool))
+
+	batchWorker := handlers.NewBatchWorker(batchStore, storage.NewPGModelLookup(pool), 5*time.Second)
+	go batchWorker.Run(context.Background())
 
 	app.Post("/v1/files/chat",
 		middleware.NewAuthMiddleware(pgUserLookup),
@@ -145,7 +173,15 @@ func main() {
 	log.Println("gateway stopped")
 }
 
-func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache, semCache *storage.SemanticCache, routingStore *storage.RoutingStore) fiber.Handler {
+// exactCacheDuration reads EXACT_CACHE_TTL_HOURS (default 7 days).
+func exactCacheDuration() time.Duration {
+	if h, err := strconv.Atoi(os.Getenv("EXACT_CACHE_TTL_HOURS")); err == nil && h > 0 {
+		return time.Duration(h) * time.Hour
+	}
+	return 20 * 24 * time.Hour
+}
+
+func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentStore *storage.AgentStore, cache *storage.RequestCache, semCache *storage.SemanticCache, routingStore *storage.RoutingStore, cooldownStore *storage.CooldownStore, exactCacheTTL time.Duration) fiber.Handler {
 	modelLookup := storage.NewPGModelLookup(pool)
 
 	return func(c *fiber.Ctx) error {
@@ -153,21 +189,6 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 		start := time.Now()
 		body := string(c.Body())
 		yearMonth := time.Now().UTC().Format("2006-01")
-
-		// Exact cache check.
-		cacheKey := storage.CacheKey(user.TenantID, body)
-		if cached, ok := cache.Get(c.Context(), cacheKey); ok {
-			cache.IncrHit(c.Context(), user.TenantID, yearMonth)
-			c.Set("X-Cache", "HIT")
-			return c.Status(200).Send(cached)
-		}
-
-		// Semantic cache check (similar but not identical requests).
-		if cached, ok := semCache.Get(c.Context(), user.TenantID, body); ok {
-			semCache.IncrHit(c.Context(), user.TenantID, yearMonth)
-			c.Set("X-Cache", "SEMANTIC-HIT")
-			return c.Status(200).Send(cached)
-		}
 
 		var reqBody struct{ Model string `json:"model"` }
 		if err := c.BodyParser(&reqBody); err != nil || reqBody.Model == "" {
@@ -181,6 +202,27 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 			}})
 		}
 
+		// Cache lookup — skipped entirely when cache_disabled is set on the model.
+		cacheKey := storage.CacheKey(user.TenantID, body)
+		if !modelCfg.CacheDisabled {
+			if cached, ok := cache.Get(c.Context(), cacheKey); ok {
+				cache.IncrHit(c.Context(), user.TenantID, yearMonth)
+				c.Set("X-Cache", "HIT")
+				return c.Status(200).Send(cached)
+			}
+			if cached, ok := semCache.Get(c.Context(), user.TenantID, body); ok {
+				semCache.IncrHit(c.Context(), user.TenantID, yearMonth)
+				c.Set("X-Cache", "SEMANTIC-HIT")
+				return c.Status(200).Send(cached)
+			}
+		}
+
+		if cooling, _ := cooldownStore.IsCooling(c.Context(), modelCfg.Provider); cooling {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"error": fiber.Map{"message": fmt.Sprintf("provider %q is temporarily unavailable, retrying shortly", modelCfg.Provider)},
+			})
+		}
+
 		var fwd providers.Adapter
 		fwd, err = providers.New(modelCfg.Provider, modelCfg.BaseURL, modelCfg.APIKey)
 		if err != nil {
@@ -192,11 +234,17 @@ func makeProxyHandler(pool *pgxpool.Pool, usageStore *storage.UsageStore, agentS
 		result, usage, err := fwd.Forward(c.Context(), c.Body())
 		if err != nil {
 			slog.Error("upstream forward error", "tenant", user.TenantID, "model", reqBody.Model, "err", err)
+			_ = cooldownStore.MarkFailure(context.Background(), modelCfg.Provider)
 			return c.Status(502).JSON(fiber.Map{"error": "upstream unavailable"})
 		}
+		if result.StatusCode >= 500 {
+			_ = cooldownStore.MarkFailure(context.Background(), modelCfg.Provider)
+		} else if result.StatusCode == 200 {
+			_ = cooldownStore.MarkSuccess(context.Background(), modelCfg.Provider)
+		}
 
-		if result.StatusCode == 200 {
-			cache.Set(c.Context(), cacheKey, result.Body, 24*time.Hour)
+		if result.StatusCode == 200 && !modelCfg.CacheDisabled {
+			cache.Set(c.Context(), cacheKey, result.Body, exactCacheTTL)
 			semCache.Set(c.Context(), user.TenantID, body, result.Body)
 		}
 

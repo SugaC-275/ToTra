@@ -32,6 +32,10 @@ func (m *mockModelService) UpdatePricing(_ context.Context, _, _ string, input, 
 	return &services.ModelConfig{ID: "m1", Name: "gpt-4o", PricePerMInput: &p, PricePerMOutput: &q}, nil
 }
 
+func (m *mockModelService) UpdateCacheSettings(_ context.Context, _, _ string, cacheDisabled bool) (*services.ModelConfig, error) {
+	return &services.ModelConfig{ID: "m1", Name: "gpt-4o", CacheDisabled: cacheDisabled}, nil
+}
+
 func setupModelApp(svc api.ModelServiceInterface) *fiber.App {
 	app := fiber.New()
 	claims := &services.Claims{UserID: "admin-1", TenantID: "tenant-1", Role: "admin"}
