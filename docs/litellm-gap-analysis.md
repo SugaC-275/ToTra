@@ -1,6 +1,6 @@
 # ToTra vs LiteLLM — Gap Analysis & Implementation Roadmap
 
-> 基于代码精确分析，持续更新至 2026-05-25。✅ 已实现，❌ 缺失，🚫 暂不计划。
+> 基于代码精确分析，持续更新至 2026-05-26。✅ 已实现，❌ 缺失，🚫 暂不计划。
 
 ---
 
@@ -22,7 +22,12 @@
 | Provider: Gemini | ✅ | ✅ | |
 | Provider: Azure OpenAI | ✅ | ✅ | |
 | Provider: AWS Bedrock | ✅ | ✅ | SigV4 auto-auth |
+| Provider: Vertex AI (Google Cloud) | ✅ | ✅ | GCP OAuth2 token缓存，region-aware endpoint，X-Vertex-Region头 |
+| Provider: Cohere (native) | ✅ | ✅ | ToTra支持documents/connectors/search_queries_only原生参数透传，LiteLLM只有compat层 |
+| Provider: ElevenLabs (speech-to-text) | ✅ | ✅ | ToTra额外有post-transcription PII扫描 |
+| Provider: Deepgram (speech-to-text) | ✅ | ✅ | ToTra额外有post-transcription PII扫描 |
 | Provider: Mistral/Groq/Ollama | ✅ | ✅ | via openai adapter + baseURL |
+| Speech PII scan (transcription output) | ✅ | ❌ | ToTra独有：转录结果自动PII扫描+SIEM事件 |
 | Cost tracking & analytics | ✅ | ✅ | ToTra有更多维度 |
 | Rate limiting | ✅ | ✅ | Redis-based |
 | Per-user quotas | ✅ | ✅ | |
@@ -31,6 +36,12 @@
 | Prompt compression | ✅ | ❌ | ToTra独有 |
 | Fallback models | ✅ | ✅ | |
 | Auto-router (cost/complexity) | ✅ | ✅ | |
+| Multi-signal routing (latency+cost+concurrency+governance) | ✅ | ❌ | ToTra独有：帕累托最优多维度，LiteLLM各策略互斥 |
+| Routing: latency-based (P95 sliding window) | ✅ | ✅ | ToTra用Redis sorted set + Lua原子剪枝 |
+| Routing: least-busy (inflight counter) | ✅ | ✅ | ToTra原子floor-at-zero+crash TTL防泄漏 |
+| Routing: weighted / cost-based | ✅ | ✅ | |
+| Governance routing (PII→sovereign, budget pressure) | ✅ | ❌ | ToTra独有：PII触发切换sovereign模型，预算<20%自动激进降级 |
+| Per-tenant routing policy (configurable weights) | ✅ | ❌ | ToTra独有：tenant_routing_policy表，每租户独立权重 |
 | Circuit breaker / cooldown | ✅ | ✅ | Redis TTL-based |
 | Retry with backoff | ✅ | ✅ | |
 | Context window fallback | ✅ | ✅ | pre-call token estimation |
@@ -56,7 +67,7 @@
 | File chat | ✅ | ❌ | ToTra独有 |
 | A2A protocol | 🚫 | 🚫 | LiteLLM也未完整实现 |
 
-**ToTra独有功能（LiteLLM没有）**: MCP Gateway、多语言PII、Presidio语义PII、Post-call PII、Prompt注入检测、SIEM、GDPR合规、Hash-chain审计、语义缓存(SimHash)、Prompt压缩、HR同步、文件聊天
+**ToTra独有功能（LiteLLM没有）**: MCP Gateway、多语言PII、Presidio语义PII、Post-call PII、语音转录PII扫描、Prompt注入检测、SIEM、GDPR合规、Hash-chain审计、语义缓存(SimHash)、Prompt压缩、HR同步、文件聊天、多信号帕累托路由、治理路由(PII→sovereign/预算压力)、per-tenant路由权重、Cohere原生参数透传、Vertex AI region-aware路由
 
 ---
 
@@ -82,6 +93,21 @@
 | `/v1/rerank` | ✅ 2026-05-25 |
 | `/v1/moderations` | ✅ 2026-05-25 |
 | `/v1/batches` (async batch) | ✅ 2026-05-25 |
+
+## 第二阶段：超越 LiteLLM（2026-05-26 全部完成）
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| Provider: Vertex AI | ✅ 2026-05-26 | GCP OAuth2 token缓存(sync.RWMutex双重检查锁)，region-aware endpoint，X-Vertex-Region头 |
+| Provider: Cohere native | ✅ 2026-05-26 | `_cohere_documents/connectors/search_queries_only` 前缀字段透传，LiteLLM无此能力 |
+| Provider: ElevenLabs speech-to-text | ✅ 2026-05-26 | `xi-api-key` 认证头，post-transcription PII扫描 |
+| Provider: Deepgram speech-to-text | ✅ 2026-05-26 | `Authorization: Token` 认证，响应格式自动转OpenAI，post-transcription PII扫描 |
+| 路由: P95延迟追踪 | ✅ 2026-05-26 | Redis sorted set 5分钟滑动窗口，Lua原子剪枝 |
+| 路由: inflight并发计数 | ✅ 2026-05-26 | Redis原子计数，floor-at-zero，5分钟crash TTL |
+| 路由: 多信号加权评分 | ✅ 2026-05-26 | 复杂度+P95延迟+成本+并发压力，帕累托最优；LiteLLM 7种策略互斥 |
+| 治理路由 | ✅ 2026-05-26 | PII检测→sovereign模型；预算<20%→自动激进降级；LiteLLM无此概念 |
+| per-tenant路由策略表 | ✅ 2026-05-26 | `tenant_routing_policy`(migration 036)，每租户独立权重+sovereign配置 |
+| 语音转录PII扫描 | ✅ 2026-05-26 | 转录结果调用ScanForPII，命中设X-PII-Detected头+发SIEM事件 |
 
 ---
 
