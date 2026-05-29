@@ -23,7 +23,6 @@ import (
 	adminhandlers "github.com/yourorg/totra/admin/handlers"
 	adminmiddleware "github.com/yourorg/totra/admin/middleware"
 	"github.com/yourorg/totra/admin/services"
-	gatewaystorage "github.com/yourorg/totra/gateway/storage"
 )
 
 // loginRateLimiter enforces max 10 attempts per IP per 15 minutes.
@@ -251,9 +250,7 @@ func main() {
 	api.RegisterPricingRoutes(protected, pricingSyncSvc)
 
 	// Feature: DB-driven guardrail config
-	adminhandlers.RegisterGuardrailRoutes(protected, &guardrailStoreAdapter{
-		inner: gatewaystorage.NewGuardrailStore(pool, nil),
-	})
+	adminhandlers.RegisterGuardrailRoutes(protected, services.NewGuardrailStore(pool))
 
 	// W8: graceful shutdown on SIGTERM/SIGINT
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -291,51 +288,6 @@ func (m *pgCleanupMeta) GetCleanupMeta(ctx context.Context, tenantID string) (*a
 	return &meta, nil
 }
 
-// guardrailStoreAdapter converts gateway/storage.GuardrailStore to the
-// adminhandlers.GuardrailStore interface using services.GuardrailConfig.
-type guardrailStoreAdapter struct {
-	inner *gatewaystorage.GuardrailStore
-}
-
-func (a *guardrailStoreAdapter) ListGuardrailConfigs(ctx context.Context, tenantID string) ([]*services.GuardrailConfig, error) {
-	rows, err := a.inner.ListGuardrailConfigs(ctx, tenantID)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*services.GuardrailConfig, 0, len(rows))
-	for _, r := range rows {
-		result = append(result, &services.GuardrailConfig{
-			ID:           r.ID,
-			TenantID:     r.TenantID,
-			Name:         r.Name,
-			Enabled:      r.Enabled,
-			Strictness:   r.Strictness,
-			CustomConfig: r.CustomConfig,
-			BundleID:     r.BundleID,
-		})
-	}
-	return result, nil
-}
-
-func (a *guardrailStoreAdapter) UpsertGuardrailConfig(ctx context.Context, tenantID, name string, enabled bool, strictness string, customConfig map[string]any, bundleID *string) (*services.GuardrailConfig, error) {
-	r, err := a.inner.UpsertGuardrailConfig(ctx, tenantID, name, enabled, strictness, customConfig, bundleID)
-	if err != nil {
-		return nil, err
-	}
-	return &services.GuardrailConfig{
-		ID:           r.ID,
-		TenantID:     r.TenantID,
-		Name:         r.Name,
-		Enabled:      r.Enabled,
-		Strictness:   r.Strictness,
-		CustomConfig: r.CustomConfig,
-		BundleID:     r.BundleID,
-	}, nil
-}
-
-func (a *guardrailStoreAdapter) DeleteGuardrailConfig(ctx context.Context, tenantID, name string) error {
-	return a.inner.DeleteGuardrailConfig(ctx, tenantID, name)
-}
 
 func (m *pgCleanupMeta) SaveCleanupMeta(ctx context.Context, tenantID string, rowsDeleted int64, at time.Time) error {
 	_, err := m.pool.Exec(ctx,
