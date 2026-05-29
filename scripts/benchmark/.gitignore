@@ -1,0 +1,2 @@
+# Benchmark result JSON files — large, machine-generated, not useful in git
+results/*.json

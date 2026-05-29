@@ -19,7 +19,7 @@ type mockFallbackLookup struct {
 	err       error
 }
 
-func (m *mockFallbackLookup) GetFallbackModel(_ context.Context, _, primaryModelName string) (*middleware.ModelConfig, error) {
+func (m *mockFallbackLookup) GetFallbackChain(_ context.Context, _, primaryModelName string) ([]*middleware.ModelConfig, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -27,7 +27,7 @@ func (m *mockFallbackLookup) GetFallbackModel(_ context.Context, _, primaryModel
 	if !ok {
 		return nil, nil
 	}
-	return cfg, nil
+	return []*middleware.ModelConfig{cfg}, nil
 }
 
 // proxyHandlerStub simulates the upstream proxy: returns the configured status code

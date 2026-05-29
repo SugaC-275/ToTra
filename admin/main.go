@@ -23,6 +23,7 @@ import (
 	adminhandlers "github.com/yourorg/totra/admin/handlers"
 	adminmiddleware "github.com/yourorg/totra/admin/middleware"
 	"github.com/yourorg/totra/admin/services"
+	gatewaystorage "github.com/yourorg/totra/gateway/storage"
 )
 
 // loginRateLimiter enforces max 10 attempts per IP per 15 minutes.
@@ -117,6 +118,7 @@ func main() {
 	// New services
 	userSvc := services.NewUserService(pool)
 	oidcSvc := services.NewOIDCService(pool, cfg.EncryptionKey)
+	samlSvc := services.NewSAMLService(pool)
 	rbacSvc := services.NewRBACService(pool)
 	alertPushSvc := services.NewAlertPushService(pool)
 	empSelfSvc := services.NewEmployeeSelfService(pool)
@@ -164,6 +166,9 @@ func main() {
 
 	// Public OIDC routes (no JWT required — login redirect and callback)
 	api.RegisterOIDCPublicRoutes(app, oidcSvc, userSvc, jwtSvc)
+
+	// Public SAML SP routes (no JWT required — metadata, login redirect, ACS)
+	api.RegisterSAMLPublicRoutes(app, samlSvc, userSvc, jwtSvc)
 
 	webhookSvc := services.NewWebhookService(pool)
 	api.RegisterWebhookRoutes(app, webhookSvc, cfg.EncryptionKey)
@@ -221,6 +226,10 @@ func main() {
 	api.RegisterComplianceReportRoutes(protected, riskTrendSvc, complianceDigestSvc)
 	policyRulesSvc := services.NewPolicyRulesService(pool)
 	api.RegisterPolicyRulesRoutes(protected, policyRulesSvc)
+	baaStore := services.NewBAAStore(pool)
+	api.RegisterBAARoutes(protected, baaStore)
+	complianceBundleSvc := services.NewComplianceBundleService(pool)
+	api.RegisterComplianceBundleRoutes(protected, complianceBundleSvc)
 
 	siemCfgSvc := services.NewSIEMConfigService(pool, cfg.EncryptionKey)
 	siemDelivSvc := services.NewSIEMDeliveryService(pool, cfg.EncryptionKey)
@@ -230,11 +239,21 @@ func main() {
 
 	// New protected routes
 	api.RegisterOIDCAdminRoutes(protected, oidcSvc)
+	api.RegisterSAMLAdminRoutes(protected, samlSvc)
 	api.RegisterRBACRoutes(protected, rbacSvc)
 	api.RegisterAlertConfigRoutes(protected, alertPushSvc)
 	api.RegisterEmployeeSelfServiceRoutes(protected, empSelfSvc, quotaSvc)
 	api.RegisterDataRetentionRoutes(protected, retentionSvc, retentionMeta)
 	api.RegisterMCPServerRoutes(protected, services.NewMCPServerService(pool, cfg.EncryptionKey))
+
+	// Feature: model pricing auto-sync
+	pricingSyncSvc := services.NewPricingSyncService(pool, alertPushSvc)
+	api.RegisterPricingRoutes(protected, pricingSyncSvc)
+
+	// Feature: DB-driven guardrail config
+	adminhandlers.RegisterGuardrailRoutes(protected, &guardrailStoreAdapter{
+		inner: gatewaystorage.NewGuardrailStore(pool, nil),
+	})
 
 	// W8: graceful shutdown on SIGTERM/SIGINT
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -270,6 +289,52 @@ func (m *pgCleanupMeta) GetCleanupMeta(ctx context.Context, tenantID string) (*a
 		return nil, err
 	}
 	return &meta, nil
+}
+
+// guardrailStoreAdapter converts gateway/storage.GuardrailStore to the
+// adminhandlers.GuardrailStore interface using services.GuardrailConfig.
+type guardrailStoreAdapter struct {
+	inner *gatewaystorage.GuardrailStore
+}
+
+func (a *guardrailStoreAdapter) ListGuardrailConfigs(ctx context.Context, tenantID string) ([]*services.GuardrailConfig, error) {
+	rows, err := a.inner.ListGuardrailConfigs(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*services.GuardrailConfig, 0, len(rows))
+	for _, r := range rows {
+		result = append(result, &services.GuardrailConfig{
+			ID:           r.ID,
+			TenantID:     r.TenantID,
+			Name:         r.Name,
+			Enabled:      r.Enabled,
+			Strictness:   r.Strictness,
+			CustomConfig: r.CustomConfig,
+			BundleID:     r.BundleID,
+		})
+	}
+	return result, nil
+}
+
+func (a *guardrailStoreAdapter) UpsertGuardrailConfig(ctx context.Context, tenantID, name string, enabled bool, strictness string, customConfig map[string]any, bundleID *string) (*services.GuardrailConfig, error) {
+	r, err := a.inner.UpsertGuardrailConfig(ctx, tenantID, name, enabled, strictness, customConfig, bundleID)
+	if err != nil {
+		return nil, err
+	}
+	return &services.GuardrailConfig{
+		ID:           r.ID,
+		TenantID:     r.TenantID,
+		Name:         r.Name,
+		Enabled:      r.Enabled,
+		Strictness:   r.Strictness,
+		CustomConfig: r.CustomConfig,
+		BundleID:     r.BundleID,
+	}, nil
+}
+
+func (a *guardrailStoreAdapter) DeleteGuardrailConfig(ctx context.Context, tenantID, name string) error {
+	return a.inner.DeleteGuardrailConfig(ctx, tenantID, name)
 }
 
 func (m *pgCleanupMeta) SaveCleanupMeta(ctx context.Context, tenantID string, rowsDeleted int64, at time.Time) error {

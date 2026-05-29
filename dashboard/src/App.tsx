@@ -31,6 +31,14 @@ const SSOPage = lazy(() => import("./pages/admin/SSOPage").then((m) => ({ defaul
 const DataRetentionPage = lazy(() => import("./pages/admin/DataRetentionPage"));
 const AlertConfigPage = lazy(() => import("./pages/admin/AlertConfigPage"));
 const MCPServersPage = lazy(() => import("./pages/admin/MCPServersPage").then((m) => ({ default: m.MCPServersPage })));
+const PromptsPage = lazy(() => import("./pages/admin/PromptsPage").then((m) => ({ default: m.PromptsPage })));
+const PromptPlaygroundPage = lazy(() => import("./pages/admin/PromptPlaygroundPage").then((m) => ({ default: m.PromptPlaygroundPage })));
+const LogsPage = lazy(() => import("./pages/admin/LogsPage"));
+const EvalsPage = lazy(() => import("./pages/admin/EvalsPage").then((m) => ({ default: m.EvalsPage })));
+const DepartmentsPage = lazy(() => import("./pages/admin/DepartmentsPage").then((m) => ({ default: m.DepartmentsPage })));
+const CachePage = lazy(() => import("./pages/admin/CachePage").then((m) => ({ default: m.CachePage })));
+const BAAPage = lazy(() => import("./pages/admin/BAAPage"));
+const ComplianceBundlesPage = lazy(() => import("./pages/admin/ComplianceBundlesPage"));
 const MyUsagePage = lazy(() => import("./pages/employee/MyUsagePage").then((m) => ({ default: m.MyUsagePage })));
 const SelfServicePage = lazy(() => import("./pages/employee/SelfServicePage").then((m) => ({ default: m.SelfServicePage })));
 
@@ -77,6 +85,8 @@ export default function App() {
                 <Route path="admin/compliance/checklist" element={<ProtectedRoute adminOnly><ComplianceChecklistPage /></ProtectedRoute>} />
                 <Route path="admin/compliance/anomalies" element={<ProtectedRoute adminOnly><ComplianceAnomalyPage /></ProtectedRoute>} />
                 <Route path="admin/compliance/policy-rules" element={<ProtectedRoute adminOnly><PolicyRulesPage /></ProtectedRoute>} />
+                <Route path="admin/compliance/baa" element={<ProtectedRoute adminOnly><BAAPage /></ProtectedRoute>} />
+                <Route path="admin/compliance/bundles" element={<ProtectedRoute adminOnly><ComplianceBundlesPage /></ProtectedRoute>} />
                 <Route path="admin/cost" element={<ProtectedRoute adminOnly><CostCenterPage /></ProtectedRoute>} />
                 <Route path="admin/cost/procurement" element={<ProtectedRoute adminOnly><ProcurementPage /></ProtectedRoute>} />
                 <Route path="admin/siem" element={<ProtectedRoute adminOnly><SIEMPage /></ProtectedRoute>} />
@@ -84,6 +94,12 @@ export default function App() {
                 <Route path="admin/data-retention" element={<ProtectedRoute adminOnly><DataRetentionPage /></ProtectedRoute>} />
                 <Route path="admin/alert-configs" element={<ProtectedRoute adminOnly><AlertConfigPage /></ProtectedRoute>} />
                 <Route path="admin/mcp-servers" element={<ProtectedRoute adminOnly><MCPServersPage /></ProtectedRoute>} />
+                <Route path="admin/prompts" element={<ProtectedRoute adminOnly><PromptsPage /></ProtectedRoute>} />
+                <Route path="admin/prompt-playground" element={<ProtectedRoute adminOnly><PromptPlaygroundPage /></ProtectedRoute>} />
+                <Route path="admin/logs" element={<ProtectedRoute adminOnly><LogsPage /></ProtectedRoute>} />
+                <Route path="admin/evals" element={<ProtectedRoute adminOnly><EvalsPage /></ProtectedRoute>} />
+                <Route path="admin/departments" element={<ProtectedRoute adminOnly><DepartmentsPage /></ProtectedRoute>} />
+                <Route path="admin/cache" element={<ProtectedRoute adminOnly><CachePage /></ProtectedRoute>} />
                 <Route path="me" element={<MyUsagePage />} />
                 <Route path="me/self-service" element={<SelfServicePage />} />
               </Route>

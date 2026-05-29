@@ -22,6 +22,7 @@ type UsageRecord struct {
 	ResponseMS             int
 	PromptBytesOriginal    int // 0 when compression was not applied
 	PromptBytesCompressed  int // 0 when compression was not applied
+	Tags                   []string // spend tags, empty → stored as '{}'
 }
 
 type UsageStore struct {
@@ -65,16 +66,20 @@ func (u *UsageStore) write(ctx context.Context, r *UsageRecord) error {
 		}
 		// invalid UUID → store as NULL, no error
 	}
+	tags := r.Tags
+	if tags == nil {
+		tags = []string{}
+	}
 	_, err := u.pool.Exec(ctx, `
 		INSERT INTO usage_records
 			(tenant_id, user_id, model_config_id, conversation_id,
 			 prompt_tokens, completion_tokens, scu_cost, usd_cost, response_ms,
-			 prompt_bytes_original, prompt_bytes_compressed)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+			 prompt_bytes_original, prompt_bytes_compressed, tags)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		r.TenantID, r.UserID, r.ModelConfigID, convID,
 		r.PromptTokens, r.CompletionTokens,
 		r.SCUCost, r.USDCost, r.ResponseMS,
-		r.PromptBytesOriginal, r.PromptBytesCompressed,
+		r.PromptBytesOriginal, r.PromptBytesCompressed, tags,
 	)
 	if err != nil {
 		return fmt.Errorf("insert usage record: %w", err)

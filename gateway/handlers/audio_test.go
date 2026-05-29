@@ -366,3 +366,200 @@ func TestDeepgramProviderConfig_AuthToken(t *testing.T) {
 		t.Errorf("text = %q, want hello deepgram", got.Text)
 	}
 }
+
+// --- Audio translations tests ---
+
+// buildAudioTranslationApp wires up a minimal Fiber app for POST /v1/audio/translations.
+func buildAudioTranslationApp(
+	lookup handlers.AudioModelLookup,
+	rec handlers.AudioUsageRecorder,
+	user *middleware.UserInfo,
+	siemChan chan<- middleware.SIEMEvent,
+) *fiber.App {
+	app := fiber.New()
+	app.Post("/v1/audio/translations", func(c *fiber.Ctx) error {
+		c.Locals("user", user)
+		return c.Next()
+	}, handlers.NewAudioTranslationHandler(lookup, rec, siemChan))
+	return app
+}
+
+// multipartBodyNoFile creates a multipart/form-data body with only form fields
+// and no file part, used to exercise missing-file validation.
+func multipartBodyNoFile(t *testing.T, fields map[string]string) ([]byte, string) {
+	t.Helper()
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	for k, v := range fields {
+		if err := w.WriteField(k, v); err != nil {
+			t.Fatalf("write field %q: %v", k, err)
+		}
+	}
+	w.Close()
+	return buf.Bytes(), w.FormDataContentType()
+}
+
+func TestAudioTranslationHandler_OpenAI_Success(t *testing.T) {
+	upstreamResp := `{"text": "hello"}`
+
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, upstreamResp)
+	}))
+	defer upstream.Close()
+
+	lookup := &fakeAudioLookup{
+		cfg: &storage.ModelConfig{
+			ID:       "cfg-openai",
+			Provider: "openai",
+			APIKey:   "sk-test",
+			BaseURL:  upstream.URL,
+		},
+	}
+	user := &middleware.UserInfo{TenantID: "t1", UserID: "u1"}
+	app := buildAudioTranslationApp(lookup, &fakeAudioUsageRecorder{}, user, nil)
+
+	body, ct := multipartBody(t, map[string]string{"model": "whisper-1"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/audio/translations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", ct)
+
+	resp, err := app.Test(req, 5000)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		rawBody, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, rawBody)
+	}
+
+	var got struct{ Text string `json:"text"` }
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if got.Text != "hello" {
+		t.Errorf("text = %q, want %q", got.Text, "hello")
+	}
+}
+
+func TestAudioTranslationHandler_DeepgramUnsupported(t *testing.T) {
+	lookup := &fakeAudioLookup{
+		cfg: &storage.ModelConfig{
+			ID:       "cfg-deepgram",
+			Provider: "deepgram",
+			APIKey:   "dg-token",
+			BaseURL:  "http://api.deepgram.com",
+		},
+	}
+	user := &middleware.UserInfo{TenantID: "t1", UserID: "u1"}
+	app := buildAudioTranslationApp(lookup, &fakeAudioUsageRecorder{}, user, nil)
+
+	body, ct := multipartBody(t, map[string]string{"model": "nova-2"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/audio/translations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", ct)
+
+	resp, err := app.Test(req, 5000)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+
+	var got struct {
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if got.Error.Type != "unsupported_provider" {
+		t.Errorf("error.type = %q, want %q", got.Error.Type, "unsupported_provider")
+	}
+}
+
+func TestAudioTranslationHandler_ElevenLabsUnsupported(t *testing.T) {
+	lookup := &fakeAudioLookup{
+		cfg: &storage.ModelConfig{
+			ID:       "cfg-el",
+			Provider: "elevenlabs",
+			APIKey:   "el-secret",
+			BaseURL:  "http://api.elevenlabs.io",
+		},
+	}
+	user := &middleware.UserInfo{TenantID: "t1", UserID: "u1"}
+	app := buildAudioTranslationApp(lookup, &fakeAudioUsageRecorder{}, user, nil)
+
+	body, ct := multipartBody(t, map[string]string{"model": "scribe_v1"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/audio/translations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", ct)
+
+	resp, err := app.Test(req, 5000)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+
+	var got struct {
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if got.Error.Type != "unsupported_provider" {
+		t.Errorf("error.type = %q, want %q", got.Error.Type, "unsupported_provider")
+	}
+}
+
+func TestAudioTranslationHandler_MissingFile(t *testing.T) {
+	// Upstream returns 400 when no file part is present in the multipart body,
+	// matching real OpenAI behaviour for missing audio input.
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, _, err := r.FormFile("file"); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, `{"error":{"message":"No audio file provided","type":"invalid_request_error"}}`)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, `{"text":"ok"}`)
+	}))
+	defer upstream.Close()
+
+	lookup := &fakeAudioLookup{
+		cfg: &storage.ModelConfig{
+			ID:       "cfg-openai",
+			Provider: "openai",
+			APIKey:   "sk-test",
+			BaseURL:  upstream.URL,
+		},
+	}
+	user := &middleware.UserInfo{TenantID: "t1", UserID: "u1"}
+	app := buildAudioTranslationApp(lookup, &fakeAudioUsageRecorder{}, user, nil)
+
+	// Send a multipart body with a model field but no file attachment.
+	body, ct := multipartBodyNoFile(t, map[string]string{"model": "whisper-1"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/audio/translations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", ct)
+
+	resp, err := app.Test(req, 5000)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+}

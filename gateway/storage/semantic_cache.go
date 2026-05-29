@@ -87,6 +87,48 @@ func (c *SemanticCache) IncrHit(ctx context.Context, tenantID, yearMonth string)
 	c.rdb.Incr(ctx, fmt.Sprintf("sem_cache_hits:%s:%s", tenantID, yearMonth))
 }
 
+// GetHitCount returns the semantic cache hit count for tenantID/yearMonth.
+func (c *SemanticCache) GetHitCount(ctx context.Context, tenantID, yearMonth string) int64 {
+	n, _ := c.rdb.Get(ctx, fmt.Sprintf("sem_cache_hits:%s:%s", tenantID, yearMonth)).Int64()
+	return n
+}
+
+// FlushTenant deletes all Redis keys belonging to tenantID: exact cache hits,
+// semantic hit counters, LSH band sets, and cached response blobs.
+// It uses SCAN to avoid blocking the Redis event loop.
+func (c *SemanticCache) FlushTenant(ctx context.Context, tenantID string) error {
+	patterns := []string{
+		fmt.Sprintf("sc:r:%s:*", tenantID),
+		fmt.Sprintf("sc:b:%s:*", tenantID),
+		fmt.Sprintf("sem_cache_hits:%s:*", tenantID),
+	}
+	for _, pattern := range patterns {
+		if err := scanAndDelete(ctx, c.rdb, pattern); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// scanAndDelete iterates SCAN matches for pattern and deletes them in batches.
+func scanAndDelete(ctx context.Context, rdb *redis.Client, pattern string) error {
+	var cursor uint64
+	for {
+		keys, next, err := rdb.Scan(ctx, cursor, pattern, 100).Result()
+		if err != nil {
+			return err
+		}
+		if len(keys) > 0 {
+			rdb.Del(ctx, keys...)
+		}
+		cursor = next
+		if cursor == 0 {
+			break
+		}
+	}
+	return nil
+}
+
 func (c *SemanticCache) candidates(ctx context.Context, tenantID string, h uint64) []string {
 	seen := map[string]struct{}{}
 	var out []string

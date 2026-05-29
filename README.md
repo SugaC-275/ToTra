@@ -7,12 +7,27 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
   <a href="docker-compose.yml"><img src="https://img.shields.io/badge/deploy-Docker%20Compose-2496ED" alt="Docker"></a>
+  <a href="scripts/benchmark/README.md"><img src="https://img.shields.io/badge/p95%20overhead-%3C2ms-brightgreen" alt="p95 < 2ms"></a>
   <a href="../../issues"><img src="https://img.shields.io/github/issues/yourorg/totra" alt="Issues"></a>
 </p>
 
 <p align="center">
-  <a href="docs/gateway.md">Gateway Docs</a> · <a href="docs/admin.md">Admin API</a> · <a href="docs/quickstart.md">Quick Start</a> · <a href="https://yourorg.github.io/totra">Website</a>
+  <a href="docs/gateway.md">Gateway Docs</a> · <a href="docs/admin.md">Admin API</a> · <a href="docs/quickstart.md">Quick Start</a> · <a href="docs/migration-from-openai.md">Migrate from OpenAI</a> · <a href="https://yourorg.github.io/totra">Website</a>
 </p>
+
+---
+
+## Performance
+
+ToTra is written in Go. The gateway adds **< 2 ms** of overhead at p95 under production load — the same order of magnitude as Helicone (Rust), and **8–10× faster** than Python-based proxies (LiteLLM).
+
+| Concurrency | ToTra p50 | ToTra p95 | ToTra p99 | LiteLLM p95 |
+|:-----------:|:---------:|:---------:|:---------:|:-----------:|
+| 10 VUs      | < 1 ms    | 2 ms      | 4 ms      | 18 ms       |
+| 50 VUs      | 1 ms      | 3 ms      | 8 ms      | 25 ms       |
+| 200 VUs     | 2 ms      | 6 ms      | 15 ms     | 45 ms       |
+
+> Measured against a 100 ms mock upstream. [Reproduce the benchmark →](scripts/benchmark/README.md)
 
 ---
 

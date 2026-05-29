@@ -636,3 +636,49 @@ Week 7-8: Agent 生态
 - **`/metrics`**: 已经有，不需要做。
 - **自动路由 + 502 fallback + 重试**: 已经有，不需要做。
 - **核心护城河（PII 18语言、GDPR、Chargeback、EU AI Act）**: LiteLLM 没有，继续深化。
+
+
+``` 
+高价值（值得做）
+
+  1. Realtime API（WebSocket）
+
+  OpenAI /v1/realtime 是 WebSocket 协议，不是 HTTP。LiteLLM 支持，ToTra 完全没有。难度高，但语音/实时对话场景必需。
+
+  2. Virtual Key 模型别名
+
+  LiteLLM 可以让每个 Key 静默替换模型——Key A 请求 gpt-4 实际路由到 gpt-4o-mini，无感知。ToTra 的路由是全局策略，不能 per-key 配置。企业场景高频需求。
+
+  3. A/B 测试路由
+
+  按百分比把流量分到两个模型，用于灰度测试新模型。ToTra 现在的多信号路由不支持这个模式，但在现有路由基础上加起来很简单（1-2 天）。
+
+  4. 请求标签计费（Spend Tagging）
+
+  LiteLLM 可以给请求打任意 tag（tags: ["feature-x", "team-backend"]），按 tag 聚合费用报表。ToTra 只按 tenant/user 维度统计。
+
+  ---
+  中等价值
+
+  5. Assistants API 透传
+
+  OpenAI /v1/assistants, /v1/threads, /v1/runs。LiteLLM 代理这些端点，ToTra 没有。有 OpenAI 深度用户会依赖这个。
+
+  6. 模型定价自动同步
+
+  LiteLLM 维护一个公开的模型定价数据库，可以一键从 GitHub 拉取最新价格。ToTra 需要手动配置价格，容易过期。
+
+  7. Responses API
+
+  OpenAI 2025 年新推的 /v1/responses（取代 chat completions 的新一代接口），LiteLLM 已支持，ToTra 没有。
+
+  ---
+  低优先级
+
+  8. 剩余 Provider
+
+  - Databricks：专有 endpoint，有企业用户
+  - IBM WatsonX：政府/金融大客户
+  - Cloudflare Workers AI：边缘推理场景
+  ```
+

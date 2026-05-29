@@ -134,6 +134,23 @@ services:
       start_period: 10s
     profiles: ["app"]
 
+  grafana:
+    image: grafana/grafana:10.2.0
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards/totra
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    profiles: ["monitoring"]
+
   # nginx — SSL termination + reverse proxy. Enable with --profile ssl.
   # Requires cert/key at ./infra/nginx/certs/fullchain.pem and privkey.pem.
   nginx:
@@ -154,3 +171,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  grafana_data:

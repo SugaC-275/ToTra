@@ -8,9 +8,10 @@ import (
 )
 
 type Claims struct {
-	UserID   string `json:"uid"`
-	TenantID string `json:"tid"`
-	Role     string `json:"role"`
+	UserID    string   `json:"uid"`
+	TenantID  string   `json:"tid"`
+	Role      string   `json:"role"`
+	BundleIDs []string `json:"bundle_ids,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -28,6 +29,23 @@ func (j *JWTService) Issue(userID, tenantID, role string) (string, error) {
 		UserID:   userID,
 		TenantID: tenantID,
 		Role:     role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.expiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(j.secret)
+}
+
+// IssueWithBundles issues a JWT that carries bundle_ids so the gateway can apply
+// per-user compliance bundles without a DB lookup.
+func (j *JWTService) IssueWithBundles(userID, tenantID, role string, bundleIDs []string) (string, error) {
+	claims := Claims{
+		UserID:    userID,
+		TenantID:  tenantID,
+		Role:      role,
+		BundleIDs: bundleIDs,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.expiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

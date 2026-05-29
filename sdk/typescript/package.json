@@ -1,0 +1,19 @@
+{
+  "name": "totra-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript/Node.js SDK for ToTra AI Gateway — OpenAI-compatible drop-in",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist/"],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["ai", "gateway", "llm", "openai", "totra"],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

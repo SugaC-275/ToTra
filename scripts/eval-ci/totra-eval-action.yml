@@ -1,0 +1,23 @@
+name: ToTra Prompt Regression Tests
+on:
+  pull_request:
+    paths:
+      - 'prompts/**'
+      - '.totra-evals/**'
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install totra-sdk
+        run: pip install totra-sdk
+      - name: Run ToTra eval suites
+        env:
+          TOTRA_API_KEY: ${{ secrets.TOTRA_API_KEY }}
+          TOTRA_BASE_URL: ${{ secrets.TOTRA_BASE_URL }}
+        run: python scripts/eval-ci/run_evals.py

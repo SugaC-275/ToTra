@@ -1,0 +1,114 @@
+name: Performance Benchmark
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      latency_ms:
+        description: 'Mock upstream latency in ms'
+        required: false
+        default: '100'
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Gateway overhead benchmark
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Build mock upstream
+      # -----------------------------------------------------------------------
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false   # single-file module, not worth caching
+
+      - name: Build mock upstream
+        run: |
+          cd scripts/benchmark/mock-upstream
+          go mod init mock-upstream
+          go build -o /tmp/mock-upstream .
+
+      # -----------------------------------------------------------------------
+      # Start mock upstream
+      # -----------------------------------------------------------------------
+      - name: Start mock upstream
+        run: |
+          LATENCY=${{ github.event.inputs.latency_ms || '100' }}
+          /tmp/mock-upstream --latency "${LATENCY}" --port 8080 &
+          # Wait for readiness
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8080/health && break
+            sleep 1
+          done
+          echo "Mock upstream ready (latency=${LATENCY}ms)"
+
+      # -----------------------------------------------------------------------
+      # Install k6
+      # -----------------------------------------------------------------------
+      - name: Install k6
+        run: |
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq && sudo apt-get install -qq k6
+
+      # -----------------------------------------------------------------------
+      # Run benchmarks
+      # In CI we point both GATEWAY_URL and UPSTREAM_URL at the mock directly.
+      # This validates the scripts run cleanly and establishes a baseline for
+      # the upstream server itself (zero gateway overhead expected).
+      #
+      # To benchmark ToTra gateway overhead: build the gateway image and start
+      # it as a service, then set GATEWAY_URL=http://localhost:3000.
+      # -----------------------------------------------------------------------
+      - name: Create results directory
+        run: mkdir -p scripts/benchmark/results
+
+      - name: Run latency benchmark (mock baseline)
+        run: |
+          k6 run \
+            --out json=scripts/benchmark/results/latency-ci.json \
+            scripts/benchmark/k6-latency.js
+        env:
+          GATEWAY_URL: http://localhost:8080
+          UPSTREAM_URL: http://localhost:8080
+          API_KEY: test-key
+          MODEL: gpt-4o-mini
+        # Allow threshold failures — they will be reported, not gated here.
+        # The mock-direct run won't include gateway overhead, so p95 will be
+        # under 200ms. Actual gateway threshold enforcement belongs in a
+        # dedicated integration test environment.
+        continue-on-error: true
+
+      - name: Run throughput benchmark (mock baseline)
+        run: |
+          k6 run \
+            --out json=scripts/benchmark/results/throughput-ci.json \
+            scripts/benchmark/k6-throughput.js
+        env:
+          GATEWAY_URL: http://localhost:8080
+          API_KEY: test-key
+          MODEL: gpt-4o-mini
+        continue-on-error: true
+
+      # -----------------------------------------------------------------------
+      # Upload results as artifact
+      # -----------------------------------------------------------------------
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: scripts/benchmark/results/
+          retention-days: 30

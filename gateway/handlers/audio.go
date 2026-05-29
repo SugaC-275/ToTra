@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -170,6 +171,100 @@ func scanAudioResponseForPII(
 	select {
 	case siemChan <- event:
 	default: // drop if channel is full — never block the response path
+	}
+}
+
+// NewAudioTranslationHandler returns a Fiber handler for POST /v1/audio/translations.
+// Proxies multipart/form-data to an OpenAI-compatible endpoint. Deepgram and
+// ElevenLabs do not support audio translation and will receive a 400 error.
+//
+// The response always contains English text (no language detection needed).
+// PII scanning is performed on the translated text using the same non-blocking
+// logic as the transcription handler.
+func NewAudioTranslationHandler(
+	lookup AudioModelLookup,
+	usageRecorder AudioUsageRecorder,
+	siemChan chan<- middleware.SIEMEvent,
+) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		user, ok := c.Locals("user").(*middleware.UserInfo)
+		if !ok || user == nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": fiber.Map{"message": "unauthorized", "type": "auth_error"},
+			})
+		}
+
+		modelName := c.FormValue("model")
+		if modelName == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": fiber.Map{"message": "model field required", "type": "bad_request"},
+			})
+		}
+
+		modelCfg, err := lookup.GetByName(c.Context(), user.TenantID, modelName)
+		if err != nil || modelCfg == nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": fiber.Map{
+					"message": fmt.Sprintf("model %q not configured", modelName),
+					"type":    "model_not_found",
+				},
+			})
+		}
+
+		// Deepgram and ElevenLabs do not support audio translation.
+		switch modelCfg.Provider {
+		case "deepgram", "elevenlabs":
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": fiber.Map{
+					"message": fmt.Sprintf("%s does not support audio translation", modelCfg.Provider),
+					"type":    "unsupported_provider",
+				},
+			})
+		}
+
+		if _, err := c.FormFile("file"); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": fiber.Map{"message": "file is required", "type": "bad_request"},
+			})
+		}
+
+		base := strings.TrimRight(modelCfg.BaseURL, "/")
+		upstreamURL := base + "/audio/translations"
+
+		start := time.Now()
+		result, err := forwardAudio(
+			c.Context(),
+			upstreamURL,
+			"Authorization",
+			"Bearer "+modelCfg.APIKey,
+			string(c.Request().Header.ContentType()),
+			c.Body(),
+		)
+		if err != nil {
+			slog.Error("audio translation upstream error", "tenant", user.TenantID, "model", modelName, "err", err)
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream unavailable"})
+		}
+
+		responseMS := int(time.Since(start).Milliseconds())
+		if usageRecorder != nil {
+			usageRecorder.Record(&storage.UsageRecord{
+				TenantID:      user.TenantID,
+				UserID:        user.UserID,
+				ModelConfigID: modelCfg.ID,
+				ResponseMS:    responseMS,
+			})
+		}
+
+		if result.StatusCode == http.StatusOK {
+			scanAudioResponseForPII(result.Body, user, c.Path(), siemChan, c)
+		}
+
+		for k, vs := range result.Header {
+			for _, v := range vs {
+				c.Set(k, v)
+			}
+		}
+		return c.Status(result.StatusCode).Send(result.Body)
 	}
 }
 

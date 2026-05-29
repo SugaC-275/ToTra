@@ -76,6 +76,12 @@ export interface ModelConfig {
   is_active: boolean;
   price_per_m_input?: number | null;
   price_per_m_output?: number | null;
+  // Compliance tags (migration 064)
+  hipaa_eligible?: boolean;
+  govcloud?: boolean;
+  fedramp_auth?: boolean;
+  data_region?: string;
+  compliance_notes?: string;
 }
 export interface CreateModelPayload {
   name: string;
@@ -84,6 +90,22 @@ export interface CreateModelPayload {
   api_key: string;
   scu_rate: number;
 }
+
+export interface ModelComplianceTagsPayload {
+  hipaa_eligible?: boolean;
+  govcloud?: boolean;
+  fedramp_auth?: boolean;
+  data_region?: string;
+  compliance_notes?: string;
+}
+
+export const updateModelComplianceTags = async (
+  id: string,
+  tags: ModelComplianceTagsPayload
+): Promise<ModelConfig> => {
+  const { data } = await apiClient.patch<ModelConfig>(`/api/admin/models/${id}/compliance`, tags);
+  return data;
+};
 export interface UserSummary {
   user_id: string;
   user_name: string;
@@ -141,6 +163,40 @@ export interface WebhookConfig {
   event_weights: Record<string, number>;
   is_active: boolean;
 }
+
+// ---- Outbound Webhooks (ToTra notification system) ----
+
+export interface OutboundWebhookConfig {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export const listWebhooks = async (): Promise<OutboundWebhookConfig[]> => {
+  const { data } = await apiClient.get<{ object: string; data: OutboundWebhookConfig[] }>("/v1/webhooks");
+  return data.data;
+};
+
+export const createWebhook = async (payload: {
+  name: string;
+  url: string;
+  secret: string;
+  events: string[];
+}): Promise<OutboundWebhookConfig> => {
+  const { data } = await apiClient.post<OutboundWebhookConfig>("/v1/webhooks", payload);
+  return data;
+};
+
+export const deleteWebhook = async (id: string): Promise<void> => {
+  await apiClient.delete(`/v1/webhooks/${id}`);
+};
+
+export const testWebhook = async (id: string): Promise<void> => {
+  await apiClient.post(`/v1/webhooks/${id}/test`);
+};
 
 export interface UserIntegration {
   id: string;
@@ -549,3 +605,265 @@ export const listMCPToolCalls = (limit = 50, offset = 0) =>
   apiClient.get<{ total: number; tool_calls: MCPToolCallLog[] }>(
     `/api/mcp-servers/tool-calls?limit=${limit}&offset=${offset}`
   );
+
+// ---- Prompts ----
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  version: number;
+  content: string;
+  variables: string[];
+  model: string;
+  tags: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export const listPrompts = (limit = 100) =>
+  apiClient.get<{ object: string; data: PromptTemplate[] }>(`/v1/prompts?limit=${limit}`);
+
+export const savePrompt = (name: string, content: string) =>
+  apiClient.post<PromptTemplate>("/v1/prompts", { name, content });
+
+export const getPrompt = (name: string) =>
+  apiClient.get<PromptTemplate>(`/v1/prompts/${encodeURIComponent(name)}`);
+
+export const getPromptVersion = (name: string, version: number) =>
+  apiClient.get<PromptTemplate>(`/v1/prompts/${encodeURIComponent(name)}/versions/${version}`);
+
+export const renderPrompt = (name: string, variables: Record<string, string>) =>
+  apiClient.post<{ prompt: string; version: number; rendered: string }>(
+    `/v1/prompts/${encodeURIComponent(name)}/render`,
+    { variables }
+  );
+
+// ---- Request Logs ----
+
+export interface RequestLogItem {
+  id: string;
+  user_id: string;
+  model: string;
+  provider: string;
+  status_code: number;
+  latency_ms: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cost_usd: number;
+  created_at: string;
+  request_preview: string;
+  response_preview: string;
+}
+
+export interface RequestLogDetail extends RequestLogItem {
+  request_body: unknown;
+  response_body: unknown;
+}
+
+export interface RequestLogsResponse {
+  data: RequestLogItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RequestLogFilter {
+  user_id?: string;
+  model?: string;
+  provider?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export const listRequestLogs = async (f: RequestLogFilter = {}): Promise<RequestLogsResponse> => {
+  const params = new URLSearchParams();
+  if (f.user_id) params.set("user_id", f.user_id);
+  if (f.model) params.set("model", f.model);
+  if (f.provider) params.set("provider", f.provider);
+  if (f.status) params.set("status", f.status);
+  if (f.search) params.set("search", f.search);
+  params.set("limit", String(f.limit ?? 50));
+  params.set("offset", String(f.offset ?? 0));
+  const { data } = await apiClient.get<RequestLogsResponse>(`/v1/logs?${params.toString()}`);
+  return data;
+};
+
+export const getRequestLog = async (id: string): Promise<RequestLogDetail> => {
+  const { data } = await apiClient.get<RequestLogDetail>(`/v1/logs/${id}`);
+  return data;
+};
+
+// ---- Cost Estimation ----
+
+export interface CostEstimate {
+  model: string;
+  estimated_prompt_tokens: number;
+  max_completion_tokens: number;
+  estimated_cost_usd: number;
+  cost_per_million_input: number;
+  cost_per_million_output: number;
+  note: string;
+}
+
+export async function estimateCost(
+  model: string,
+  messages: Array<{ role: string; content: string }>,
+  maxTokens?: number,
+): Promise<CostEstimate> {
+  const { data } = await apiClient.post<CostEstimate>("/v1/estimate", {
+    model,
+    messages,
+    ...(maxTokens != null ? { max_tokens: maxTokens } : {}),
+  });
+  return data;
+}
+
+// ---- Failover / Fallback chain ----
+
+export interface FailoverChain {
+  model: string;
+  chain: string[];
+}
+
+export const getFailoverChain = async (model: string): Promise<FailoverChain> => {
+  const { data } = await apiClient.get<FailoverChain>(`/v1/failover/${encodeURIComponent(model)}`);
+  return data;
+};
+
+export const setFailoverChain = async (model: string, chain: string[]): Promise<void> => {
+  await apiClient.put(`/v1/failover/${encodeURIComponent(model)}`, { fallback_models: chain });
+};
+
+export const clearFailoverChain = async (model: string): Promise<void> => {
+  await apiClient.delete(`/v1/failover/${encodeURIComponent(model)}`);
+};
+
+// ---- Cache Stats & Config ----
+
+export interface CacheStats {
+  tenant_id: string;
+  period: string;
+  exact_hits: number;
+  semantic_hits: number;
+  total_hits: number;
+  estimated_savings_usd: number;
+  avg_latency_saved_ms: number;
+  top_saved_models: { model: string; hits: number; savings_usd: number }[];
+}
+
+export interface CacheConfig {
+  tenant_id: string;
+  exact_ttl_seconds: number;
+  semantic_ttl_seconds: number;
+  semantic_enabled: boolean;
+}
+
+export async function getCacheStats(period: string): Promise<CacheStats> {
+  const { data } = await apiClient.get<CacheStats>(`/v1/cache/stats?period=${period}`);
+  return data;
+}
+
+export async function clearTenantCache(): Promise<void> {
+  await apiClient.delete("/v1/cache/clear");
+}
+
+export async function getCacheConfig(): Promise<CacheConfig> {
+  const { data } = await apiClient.get<CacheConfig>("/v1/cache/config");
+  return data;
+}
+
+export async function setCacheConfig(config: Omit<CacheConfig, "tenant_id">): Promise<void> {
+  await apiClient.put("/v1/cache/config", config);
+}
+
+// ---- Compliance Report Export ----
+
+export interface ComplianceReportChecklistItem {
+  category: string;
+  item: string;
+  status: 'enabled' | 'disabled' | 'partial';
+  detail: string;
+}
+
+export interface ComplianceReportData {
+  generated_at: string;
+  tenant_id: string;
+  period_start: string;
+  period_end: string;
+  total_requests: number;
+  blocked_requests: number;
+  pii_detections: number;
+  baa_violations: number;
+  policy_violations: number;
+  pii_breakdown: { type: string; count: number }[];
+  siem_breakdown: { event_type: string; count: number }[];
+  high_risk_systems: { system_name: string; request_count: number }[];
+  checklist: ComplianceReportChecklistItem[];
+}
+
+export async function getComplianceReport(
+  period: '30d' | '90d' | '1y',
+  format: 'json' | 'csv',
+): Promise<ComplianceReportData | Blob> {
+  if (format === 'csv') {
+    const token = localStorage.getItem('totra_token');
+    const res = await fetch(
+      `${BASE_URL}/v1/compliance/report?period=${period}&format=csv`,
+      { headers: { Authorization: `Bearer ${token ?? ''}` } },
+    );
+    if (!res.ok) throw new Error('Failed to fetch compliance report CSV');
+    return res.blob();
+  }
+  const { data } = await apiClient.get<ComplianceReportData>(
+    `/v1/compliance/report?period=${period}&format=json`,
+  );
+  return data;
+}
+
+// ---- Departments ----
+
+export interface Department {
+  id: string;
+  tenant_id: string;
+  name: string;
+  slug: string;
+  budget_usd: number | null;
+  rpm_limit: number | null;
+  tpm_limit: number | null;
+  is_active: boolean;
+  created_at: string;
+  spend_usd: number;
+}
+
+export interface DeptUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+}
+
+export const listDepartments = () =>
+  apiClient.get<{ departments: Department[] }>("/v1/departments");
+
+export const createDepartment = (data: { name: string; slug: string }) =>
+  apiClient.post<Department>("/v1/departments", data);
+
+export const getDepartment = (id: string) =>
+  apiClient.get<Department>(`/v1/departments/${id}`);
+
+export const setDepartmentBudget = (
+  id: string,
+  data: { budget_usd: number | null; rpm_limit: number | null; tpm_limit: number | null }
+) => apiClient.put<{ status: string }>(`/v1/departments/${id}/budget`, data);
+
+export const deleteDepartment = (id: string) =>
+  apiClient.delete<{ status: string }>(`/v1/departments/${id}`);
+
+export const listDepartmentUsers = (id: string) =>
+  apiClient.get<{ users: DeptUser[] }>(`/v1/departments/${id}/users`);
+
+export const assignUserToDepartment = (deptId: string, userId: string) =>
+  apiClient.put<{ status: string }>(`/v1/departments/${deptId}/users/${userId}`, {});

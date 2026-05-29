@@ -209,6 +209,19 @@ func NewAutoRouterMiddleware(rec RoutingRecorder, opts ...RouterOptions) fiber.H
 			}
 		}
 
+		// Healthcare: PHI detected → must route to BAA-compliant model only.
+		// This is a hard block (not a soft downgrade) — 451 if no BAA model available.
+		if phiDetected, ok := c.Locals("phi_detected").(bool); ok && phiDetected {
+			// The model lookup happens later in the proxy handler, but we need to
+			// signal that BAA enforcement is required.
+			c.Locals("require_baa", true)
+		}
+
+		// Financial: PFI detected → signal proxy handler to enforce FINRA compliance.
+		if pfiDetected, ok := c.Locals("pfi_detected").(bool); ok && pfiDetected {
+			c.Locals("require_finra", true)
+		}
+
 		// Multi-signal routing when stores are wired in.
 		effectiveScore := score
 		if opt.Latency != nil && opt.Inflight != nil {

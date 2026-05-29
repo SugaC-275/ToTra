@@ -27,10 +27,24 @@ func Register(providerType string, factory AdapterFactory) {
 }
 
 // New looks up a provider by type and returns a fresh Adapter.
+// If baseURL is empty, the default from knownProviders is used.
+// If the provider has no registered factory but is in knownProviders, the
+// "openai" factory is used (OpenAI-compat fallback).
 func New(providerType, baseURL, apiKey string) (Adapter, error) {
+	if baseURL == "" {
+		if defaultURL, ok := knownProviders[providerType]; ok {
+			baseURL = defaultURL
+		}
+	}
+
 	factory, ok := registry[providerType]
 	if !ok {
-		return nil, fmt.Errorf("unknown provider: %q", providerType)
+		if _, known := knownProviders[providerType]; known {
+			factory = registry["openai"]
+		}
+		if factory == nil {
+			return nil, fmt.Errorf("unknown provider: %q", providerType)
+		}
 	}
 	return factory(baseURL, apiKey), nil
 }

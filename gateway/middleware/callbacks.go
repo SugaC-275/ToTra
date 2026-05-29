@@ -21,6 +21,10 @@ type CallbackConfig struct {
 	LangfuseHost      string // LANGFUSE_HOST (default: https://cloud.langfuse.com)
 	DatadogAPIKey     string // DATADOG_API_KEY
 	DatadogSite       string // DATADOG_SITE (default: datadoghq.com)
+	LangSmithAPIKey   string // LANGSMITH_API_KEY
+	LangSmithProject  string // LANGSMITH_PROJECT (default: default)
+	ArizeAPIKey       string // ARIZE_API_KEY
+	ArizeSpaceKey     string // ARIZE_SPACE_KEY
 }
 
 func (c CallbackConfig) langfuseEnabled() bool {
@@ -29,6 +33,14 @@ func (c CallbackConfig) langfuseEnabled() bool {
 
 func (c CallbackConfig) datadogEnabled() bool {
 	return c.DatadogAPIKey != ""
+}
+
+func (c CallbackConfig) langsmithEnabled() bool {
+	return c.LangSmithAPIKey != ""
+}
+
+func (c CallbackConfig) arizeEnabled() bool {
+	return c.ArizeAPIKey != "" && c.ArizeSpaceKey != ""
 }
 
 // LoadCallbackConfig reads callback configuration from environment variables.
@@ -41,12 +53,20 @@ func LoadCallbackConfig() CallbackConfig {
 	if site == "" {
 		site = "datadoghq.com"
 	}
+	lsProject := os.Getenv("LANGSMITH_PROJECT")
+	if lsProject == "" {
+		lsProject = "default"
+	}
 	return CallbackConfig{
 		LangfusePublicKey: os.Getenv("LANGFUSE_PUBLIC_KEY"),
 		LangfuseSecretKey: os.Getenv("LANGFUSE_SECRET_KEY"),
 		LangfuseHost:      host,
 		DatadogAPIKey:     os.Getenv("DATADOG_API_KEY"),
 		DatadogSite:       site,
+		LangSmithAPIKey:   os.Getenv("LANGSMITH_API_KEY"),
+		LangSmithProject:  lsProject,
+		ArizeAPIKey:       os.Getenv("ARIZE_API_KEY"),
+		ArizeSpaceKey:     os.Getenv("ARIZE_SPACE_KEY"),
 	}
 }
 
@@ -95,6 +115,14 @@ func NewCallbackMiddleware(cfg CallbackConfig) fiber.Handler {
 		}
 		if cfg.datadogEnabled() {
 			go sendDatadogMetrics(cfg, user.TenantID, reqBody.Model,
+				promptTokens, completionTokens, duration, statusCode)
+		}
+		if cfg.langsmithEnabled() {
+			go sendLangSmithRun(cfg, user.TenantID, user.UserID, reqBody.Model,
+				promptTokens, completionTokens, duration, statusCode)
+		}
+		if cfg.arizeEnabled() {
+			go sendArizePrediction(cfg, user.TenantID, user.UserID, reqBody.Model,
 				promptTokens, completionTokens, duration, statusCode)
 		}
 		return err
@@ -208,6 +236,99 @@ func sendDatadogMetrics(cfg CallbackConfig, tenantID, model string,
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		slog.Warn("datadog: send failed", "err", err)
+		return
+	}
+	resp.Body.Close()
+}
+
+func sendLangSmithRun(cfg CallbackConfig, tenantID, userID, model string,
+	promptTokens, completionTokens int, duration time.Duration, statusCode int) {
+
+	now := time.Now().UTC()
+	runID := fmt.Sprintf("totra-%s-%d", tenantID, now.UnixNano())
+
+	payload := map[string]any{
+		"id":           runID,
+		"name":         "llm_request",
+		"run_type":     "llm",
+		"start_time":   now.Add(-duration).Format(time.RFC3339Nano),
+		"end_time":     now.Format(time.RFC3339Nano),
+		"inputs":       map[string]any{"model": model},
+		"outputs":      map[string]any{"status": statusCode},
+		"extra":        map[string]any{"tenant_id": tenantID, "user_id": userID},
+		"session_name": cfg.LangSmithProject,
+		"token_usage": map[string]any{
+			"prompt_tokens":     promptTokens,
+			"completion_tokens": completionTokens,
+			"total_tokens":      promptTokens + completionTokens,
+		},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		"https://api.smith.langchain.com/runs", bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", cfg.LangSmithAPIKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Warn("langsmith: send failed", "err", err)
+		return
+	}
+	resp.Body.Close()
+}
+
+func sendArizePrediction(cfg CallbackConfig, tenantID, userID, model string,
+	promptTokens, completionTokens int, duration time.Duration, statusCode int) {
+
+	now := time.Now().UTC()
+	predID := fmt.Sprintf("totra-%s-%d", tenantID, now.UnixNano())
+
+	payload := map[string]any{
+		"prediction_id":    predID,
+		"model_id":         model,
+		"model_version":    "1",
+		"prediction_label": fmt.Sprintf("%d", statusCode),
+		"features": map[string]any{
+			"tenant_id":         tenantID,
+			"user_id":           userID,
+			"prompt_tokens":     promptTokens,
+			"completion_tokens": completionTokens,
+			"latency_ms":        duration.Milliseconds(),
+		},
+		"timestamp": now.Unix(),
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		"https://api.arize.com/v1/log", bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", cfg.ArizeAPIKey)
+	req.Header.Set("space-key", cfg.ArizeSpaceKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Warn("arize: send failed", "err", err)
 		return
 	}
 	resp.Body.Close()

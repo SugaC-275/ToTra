@@ -1,0 +1,47 @@
+name: Publish Python SDK to PyPI
+
+on:
+  push:
+    tags:
+      - 'sdk-python-v*'  # trigger on tags like sdk-python-v0.2.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.2.0)'
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install hatchling httpx pytest pytest-asyncio respx
+      - run: cd sdk/python && python -m pytest tests/ -q
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # for trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Update version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd sdk/python
+          sed -i "s/version = .*/version = \"${{ github.event.inputs.version }}\"/" pyproject.toml
+      - name: Build
+        run: |
+          pip install hatchling build
+          cd sdk/python && python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdk/python/dist/

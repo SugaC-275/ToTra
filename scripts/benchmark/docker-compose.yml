@@ -1,0 +1,68 @@
+version: '3.8'
+
+# Benchmark environment for measuring ToTra gateway overhead.
+#
+# Start everything:
+#   docker compose up --build
+#
+# Run latency benchmark:
+#   GATEWAY_URL=http://localhost:3000 API_KEY=your-key \
+#     k6 run scripts/benchmark/k6-latency.js
+#
+# Run throughput benchmark:
+#   GATEWAY_URL=http://localhost:3000 API_KEY=your-key \
+#     k6 run scripts/benchmark/k6-throughput.js
+#
+# To benchmark LiteLLM on the same hardware, start LiteLLM separately:
+#   pip install 'litellm[proxy]'
+#   litellm --model openai/gpt-4o-mini --port 4000
+# Then re-run with GATEWAY_URL=http://localhost:4000.
+
+services:
+  # Simulates an LLM provider with configurable response latency.
+  # Default: 100ms to approximate a fast hosted model round-trip.
+  mock-upstream:
+    build:
+      context: ./mock-upstream
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    command: ["--latency", "100", "--port", "8080"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Redis — required by ToTra for rate limiting and caching.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ToTra gateway under test.
+  # Build the image first: docker build -t totra:latest ./gateway
+  totra-gateway:
+    image: totra:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      # Point all provider calls at the mock upstream
+      - OPENAI_BASE_URL=http://mock-upstream:8080/v1
+      - OPENAI_API_KEY=mock-key
+    depends_on:
+      mock-upstream:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

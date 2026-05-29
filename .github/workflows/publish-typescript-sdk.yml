@@ -1,0 +1,30 @@
+name: Publish TypeScript SDK to npm
+
+on:
+  push:
+    tags:
+      - 'sdk-ts-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 0.2.0)'
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Update version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd sdk/typescript
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+      - run: cd sdk/typescript && npm install && npm run build
+      - run: cd sdk/typescript && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
