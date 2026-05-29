@@ -196,11 +196,11 @@ export function PromptPlaygroundPage() {
   useEffect(() => {
     if (costDebounceRef.current) clearTimeout(costDebounceRef.current);
     const nonEmpty = messages.filter((m) => m.content.trim());
-    if (!model.trim() || nonEmpty.length === 0) {
-      setCostEstimate(null);
-      return;
-    }
     costDebounceRef.current = setTimeout(async () => {
+      if (!model.trim() || nonEmpty.length === 0) {
+        setCostEstimate(null);
+        return;
+      }
       try {
         const result = await estimateCost(
           model,

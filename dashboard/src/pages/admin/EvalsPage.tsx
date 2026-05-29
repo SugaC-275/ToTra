@@ -462,7 +462,7 @@ function CompareResultsCard({
 }) {
   const [runs, setRuns] = useState<Record<string, EvalRun>>({});
 
-  const stableOnAllDone = useCallback(onAllDone, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const stableOnAllDone = useCallback(() => onAllDone(), [onAllDone]);
 
   useMultiRunPoller(
     entries.map((e) => e.run_id),

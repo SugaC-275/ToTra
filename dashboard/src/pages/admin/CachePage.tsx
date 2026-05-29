@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getCacheStats,
@@ -28,15 +28,6 @@ export function CachePage() {
     queryFn: getCacheConfig,
   });
 
-  useEffect(() => {
-    if (config && !configForm) {
-      setConfigForm({
-        exact_ttl_seconds: (config as CacheConfig).exact_ttl_seconds,
-        semantic_ttl_seconds: (config as CacheConfig).semantic_ttl_seconds,
-        semantic_enabled: (config as CacheConfig).semantic_enabled,
-      });
-    }
-  }, [config, configForm]);
 
   const clearMutation = useMutation({
     mutationFn: clearTenantCache,

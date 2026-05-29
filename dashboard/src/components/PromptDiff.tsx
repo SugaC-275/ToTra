@@ -54,19 +54,18 @@ export function PromptDiff({ promptName, versionA, versionB }: PromptDiffProps) 
 
   useEffect(() => {
     let cancelled = false;
-    setPiiLoading(true);
-    setPiiA(null);
-    setPiiB(null);
-    Promise.all([checkPii(versionA.content), checkPii(versionB.content)])
-      .then(([a, b]) => {
-        if (!cancelled) {
-          setPiiA(a);
-          setPiiB(b);
-        }
-      })
-      .finally(() => {
+    async function run() {
+      setPiiLoading(true);
+      setPiiA(null);
+      setPiiB(null);
+      try {
+        const [a, b] = await Promise.all([checkPii(versionA.content), checkPii(versionB.content)]);
+        if (!cancelled) { setPiiA(a); setPiiB(b); }
+      } finally {
         if (!cancelled) setPiiLoading(false);
-      });
+      }
+    }
+    run();
     return () => { cancelled = true; };
   }, [versionA.content, versionB.content]);
 

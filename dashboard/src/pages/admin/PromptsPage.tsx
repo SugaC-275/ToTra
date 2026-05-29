@@ -70,25 +70,28 @@ export function PromptsPage() {
 
   // Keep varValues keys in sync with detected variables
   useEffect(() => {
-    setVarValues((prev) => {
-      const next: Record<string, string> = {};
-      for (const v of detectedVars) {
-        next[v] = prev[v] ?? "";
-      }
-      return next;
-    });
-    setRenderedPreview("");
+    const timer = setTimeout(() => {
+      setVarValues((prev) => {
+        const next: Record<string, string> = {};
+        for (const v of detectedVars) {
+          next[v] = prev[v] ?? "";
+        }
+        return next;
+      });
+      setRenderedPreview("");
+    }, 0);
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorContent]);
 
   // Debounced cost estimate: fires 500ms after model or content changes.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!testModel.trim() || !editorContent.trim()) {
-      setCostEstimate(null);
-      return;
-    }
     debounceRef.current = setTimeout(async () => {
+      if (!testModel.trim() || !editorContent.trim()) {
+        setCostEstimate(null);
+        return;
+      }
       try {
         const prompt = editorContent;
         const result = await estimateCost(testModel, [{ role: "user", content: prompt }]);
@@ -100,7 +103,6 @@ export function PromptsPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testModel, editorContent]);
 
   const { data: promptsData, isLoading: promptsLoading } = useQuery({
