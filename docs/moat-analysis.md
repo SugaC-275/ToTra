@@ -1,6 +1,6 @@
 # ToTra 护城河分析
 
-> 现有优势总结 + 可放大方向
+> 现有优势总结 + 可放大方向｜最后更新：2026-06-02
 
 ---
 
@@ -16,7 +16,7 @@ ToTra 用 Go 1.25 + Fiber v2 编写，Python 竞品（LiteLLM）在同等并发�
 | 内存（1k 并发）| ~50MB | ~300MB | ~30MB |
 | 部署依赖 | 单二进制 | Python runtime + deps | 单二进制 |
 
-**可放大：** 发布公开 benchmark（k6/wrk），GitHub README 首屏写明性能数字。Helicone 靠性能卖点拿到大量用户，ToTra 同等水平但功能更多。
+**已完成：** ✅ k6 基准测试脚本（`scripts/benchmark/`）、GitHub Actions CI 自动跑 benchmark、README 首屏性能对比表、mock upstream server
 
 ---
 
@@ -29,12 +29,15 @@ ToTra 用 Go 1.25 + Fiber v2 编写，Python 竞品（LiteLLM）在同等并发�
 - **GDPR** — 数据主权、保留策略、删除流程
 - **SIEM 集成** — Splunk/Elastic/Webhook，PII 检测后立即推送
 - **数据驻留** — 可限制 provider 地理位置（法律/政府行业）
+- **Policy `log` action** ✅ — 现已写入 DB + 发 SIEM，不再只打 stdout
 
-**可放大：**
-- 生成可下载的合规报告（PDF，审计师可直接使用）
+**已完成：** ✅ 合规报告生成 handler、BAA 管理 API、Guardrail 可配置化（per-tenant 开关 / 严格程度）
+
+**待做：**
 - BAA 电子签约内嵌流程
+- PDF 合规报告一键导出（现有数据已够，缺渲染层）
 - SOC 2 Type II 审计准备清单自动导出
-- FedRAMP 模式（离线 license，无外部依赖）
+- FedRAMP 模式（离线 license）
 
 **护城河深度：** LiteLLM/Portkey/Helicone 均无动力投入这个方向——他们的用户基础不是受监管行业。ToTra 在这里无竞争对手。
 
@@ -42,37 +45,37 @@ ToTra 用 Go 1.25 + Fiber v2 编写，Python 竞品（LiteLLM）在同等并发�
 
 ### 3. 垂直行业内置逻辑
 
-已实现的垂直行业模块：
+已实现的垂直行业模块（含真实 policy 规则，不是占位符）：
 
 | 行业 | 内置内容 |
 |------|---------|
-| 医疗 | BAA 强制、PHI 检测、HIPAA 审计日志、医疗 provider 白名单 |
-| 法律 | 律所数据隔离、案件级 API key 权限、数据驻留规则 |
-| 政府 | FedRAMP 合规模式、审计不可篡改日志、离线部署支持 |
-| 金融 | 交易内容合规扫描、监管报告格式 |
-| HR | 候选人数据保护、面试内容 PII 隔离 |
-| 教育 | FERPA 合规、学生数据保护策略 |
-| 房地产/保险/电信 | 行业专属 provider 配置模板 |
+| 医疗 | BAA 强制、PHI 检测（8条规则）、HIPAA 审计日志、HIPAA-eligible 模型门控 |
+| 法律 | 数据驻留强制、律所特权文件检测（6条规则）、案件级隔离 |
+| 政府 | FedRAMP/GovCloud 门控、机密信息检测（6条规则）、不可篡改审计链 |
+| 金融 | PCI-DSS 卡号检测、SOX 审计、MNPI 标记（6条规则） |
+| 教育 | FERPA 合规、学生 PII 保护（6条规则）、未成年人检测 |
+| HR | EEOC 偏见检测、候选人数据 PII 隔离 |
+| 房地产 | 公平住房法（Fair Housing Act）合规检测 |
+| 电信 | CPNI 保护规则 |
+| 保险 | PFI（个人财务信息）保护 |
+| 媒体 | 版权内容检测 |
 
-**可放大：**
-- 每个垂直行业做一个"一键合规包"（pre-configured model policies + audit rules + report template）
-- 行业专属 LLM provider 接入（医疗：Azure Health Bot、AWS HealthLake；法律：Harvey AI 兼容接口）
+**一键合规包（Compliance Bundle）** ✅ — 5 个行业包（healthcare/legal/government/finance/education），激活即写入 policy rules，provider 门控实时生效
 
 ---
 
 ### 4. 多租户 JWT 隔离架构
 
-`tenant_id` 从 JWT claim 层面强隔离，不依赖应用层过滤。每个租户有独立的：
-- 模型配置池
-- 预算 + RPM/TPM 限制
+`tenant_id` 从 JWT claim 层面强隔离。每个租户有独立的：
+- 模型配置池 + Virtual Key（含合规包/PII策略/预算继承）✅
+- 预算 + RPM/TPM 限制 + per-key 预算 ✅
 - 审计日志命名空间
 - SIEM 路由规则
 - 语义缓存命名空间
+- Session 跟踪（PII 累积次数、token 用量、GDPR 删除）✅
+- Guardrail 配置（per-tenant 可开关/调严格程度）✅
 
-**可放大：**
-- 租户级别的 API key 轮转策略（自动过期 + 通知）
-- 租户级别的 PII 策略自定义（哪些类型需要拦截 vs 仅记录）
-- 子租户（组织 → 部门 → 用户三级隔离），面向大型企业
+**新增：** SAML SSO ✅ — IdP 属性自动映射合规包（`department=healthcare` → 自动激活 healthcare bundle，JWT 携带 bundle_ids，网关无需 DB 查询）
 
 ---
 
@@ -84,11 +87,7 @@ ToTra 用 Go 1.25 + Fiber v2 编写，Python 竞品（LiteLLM）在同等并发�
 请求 → 精确匹配(Redis) → 语义相似(SimHash+PG) → 上游 LLM
 ```
 
-**可放大：**
-- 跨租户共享缓存（对 embedding 类请求，相同问题跨租户可共享答案）
-- 缓存命中率仪表盘（已有 Grafana dashboard）
-- 可配置的缓存 TTL + 手动清除 API
-- 展示实际节省金额（"本月缓存为您节省了 $142"）
+**已完成：** ✅ 可配置缓存 TTL（exact/semantic 分别可调）、CachePage 管理界面、手动清除 API、Grafana 缓存命中率 dashboard
 
 ---
 
@@ -100,12 +99,8 @@ ToTra 用 Go 1.25 + Fiber v2 编写，Python 竞品（LiteLLM）在同等并发�
 - 版本化 prompt + regression test
 - GitHub Action CI（PR 时自动跑 eval suite，分数低于阈值则阻断合并）
 - 结果存储在本地 PostgreSQL，无数据泄露风险
-
-**可放大：**
-- Eval benchmark 数据集按行业分类（医疗问答质量、法律摘要准确率）
-- Eval 结果趋势图（prompt 版本 vs 质量分数历史折线图）
-- 对比模式（同一 suite 跑多个模型，自动推荐最高性价比）
-- 公开分享 eval suite（类似 HuggingFace datasets 的效果）
+- A/B 路由结果自动入 Eval 框架 ✅ — A/B 两侧响应自动评分，低于阈值自动回切
+- 用户反馈（Thumbs up/down）作为 human label 入 Eval ✅
 
 ---
 
@@ -118,50 +113,73 @@ client = OpenAI(api_key="...", base_url="https://your-gateway")
 # 其他代码不变
 ```
 
-- Python SDK：retry/fallback chain、prompts/evals/budget 子客户端
-- TypeScript SDK：零外部依赖，原生 fetch
-- 内置重试（429/502/503 指数退避）+ provider fallback chain
-
-**可放大：**
-- 发布到 PyPI (`pip install totra-sdk`) 和 npm (`npm install totra-sdk`)
-- OpenAI Cookbook 风格的迁移指南
-- VS Code 插件（快速配置网关 + 测试 model）
+- Python SDK：retry/fallback chain、prompts/evals/budget 子客户端 ✅
+- TypeScript SDK：零外部依赖，原生 fetch ✅
+- CI 自动发布 PyPI + npm（GitHub Actions workflow）✅
+- OpenAI-compatible 迁移指南（`docs/migration-from-openai.md`）✅
 
 ---
 
-## 二、护城河放大优先级
+### 8. 智能路由（多信号帕累托最优）✅
 
-### 第一梯队（6 个月内，最高 ROI）
+ToTra 独有：7 种路由策略不互斥，同时计算并取帕累托最优。
 
-**① 发布性能 Benchmark**
-- 工具：k6 脚本已有（`scripts/load-test/`）
-- 产出：公开 GitHub Gist + README 首屏数据
-- 效果：替代 Helicone 性能卖点，不需要 SaaS
+| 策略 | 实现 |
+|------|------|
+| 复杂度路由 | 0–100 分自动路由（简单→便宜模型） |
+| P95 延迟路由 | Redis sorted set 5分钟滑动窗口 |
+| least-busy | Redis 原子 inflight 计数，crash TTL 防泄漏 |
+| 成本路由 | 定价表 + 自动同步（>5% 变化触发预警）✅ |
+| 治理路由 | PII 检测 → sovereign 模型；预算<20% → 激进降级 |
+| A/B 路由 | 百分比分流 + 自动 eval 评分 ✅ |
+| per-tenant 权重 | `tenant_routing_policy` 表，每租户独立权重 |
 
-**② 合规报告导出 + SOC 2 准备**
-- 工具：审计日志、AI Act 记录、PII 事件全部已在数据库
-- 产出：一键下载 PDF 合规报告
-- 效果：打开医疗/政府/金融付费采购通道（这些客户为合规付溢价）
+---
 
-**③ SDK 发布到 PyPI + npm**
-- 工具：代码已就绪
-- 产出：`pip install totra-sdk` 可用
-- 效果：降低试用门槛，GitHub stars 增长
+### 9. 实时流治理（Realtime WebSocket）✅
 
-### 第二梯队（6–12 个月，建立生态）
+唯一在 WebSocket 实时流上运行 PII 扫描的 LLM 代理：
+- 代理 OpenAI `/v1/realtime` WebSocket
+- 每个 `response.text.delta` 帧过 PII 扫描，命中则发 `response.cancel` + SIEM 事件
+- 合规包门控（healthcare bundle → 非 HIPAA 模型返回 HTTP 451 before upgrade）
+- per-session token 追踪，写入 `realtime_sessions` 表
 
-**④ Eval 数据集市场**
-- 让用户分享行业专属 eval suite（匿名化）
-- 形成"网关 + 质量标准"双重锁定
+---
 
-**⑤ 三级租户隔离**
-- 企业 → 部门 → 用户
-- 打开大型企业 MSA 合同
+## 二、护城河放大优先级（当前状态）
 
-**⑥ 行业合规包（Compliance Bundle）**
-- 医疗合规包：HIPAA + BAA + PHI 策略 + 报告模板，一键启用
-- 法律合规包：数据驻留 + 案件隔离 + 律所审计格式
-- 政府合规包：FedRAMP 模式 + 离线部署清单
+### 已完成
+
+| 项目 | 完成时间 |
+|------|---------|
+| ✅ 性能 Benchmark（k6 + CI） | 2026-05-24 |
+| ✅ SDK 发布 PyPI/npm（CI workflow）| 2026-05-24 |
+| ✅ 行业合规包（5个，含真实 policy）| 2026-05-25 |
+| ✅ 多信号路由（帕累托最优）| 2026-05-26 |
+| ✅ Virtual Key（合规包/PII/预算继承）| 2026-05-29 |
+| ✅ Session 管理（PII 追踪 + GDPR）| 2026-05-29 |
+| ✅ Assistants API 代理（PII 门控）| 2026-05-29 |
+| ✅ Realtime WebSocket（per-frame PII）| 2026-05-29 |
+| ✅ A/B 路由 + Eval 自动评分 | 2026-05-29 |
+| ✅ SAML SSO + 属性→合规包映射 | 2026-05-29 |
+| ✅ Guardrail 可配置化（DB-driven）| 2026-05-29 |
+| ✅ 定价自动同步 + 预算预警 | 2026-05-29 |
+| ✅ Prompt Playground（PII预览+cost估算）| 2026-05-29 |
+| ✅ 请求 Timeline 可视化（治理耗时分解）| 2026-05-29 |
+| ✅ 用户反馈（→ Eval human label）| 2026-05-29 |
+| ✅ Prompt 版本 Diff（含 PII 风险 delta）| 2026-05-29 |
+
+### 待做（按 ROI 排序）
+
+**高优先级：**
+1. **PDF 合规报告导出** — 数据已有，缺 PDF 渲染层（wkhtmltopdf 或 Go PDF 库）
+2. **BAA 电子签约流程** — 现有 BAA 表，缺签约 UI + 邮件确认
+3. **Eval 数据集按行业分类** — 医疗/法律/政府专属 benchmark，形成双重锁定
+
+**中优先级：**
+4. **Responses API** (`/v1/responses`) — OpenAI 新接口，LiteLLM 已支持
+5. **Assistants API streaming** — 现有代理不支持 stream runs
+6. **VS Code 插件** — 快速配置网关 + 测试模型
 
 ---
 
