@@ -1,0 +1,70 @@
+/* ToTra — interactive UI styles */
+
+/* ── Tab bar ── */
+.interactions-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: var(--bg2);
+}
+
+.tab-btn.active {
+  background: var(--bg2);
+  color: var(--cyan);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+/* ── Feature card tilt ── */
+.feat-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* ── Scroll progress bar ── */
+#scroll-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: var(--cyan);
+  z-index: 999;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+/* ── Typewriter cursor ── */
+.hero-sub {
+  position: relative;
+}
+
+.hero-sub.typing::after {
+  content: '|';
+  color: var(--cyan);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

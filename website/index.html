@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="interactions.css">
+  <link rel="stylesheet" href="content-styles.css">
 </head>
 <body>
 
@@ -19,7 +21,8 @@
   <a href="#" class="logo">TO<em>TRA</em></a>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
-    <li><a href="#how">How It Works</a></li>
+    <li><a href="#compare">Compare</a></li>
+    <li><a href="#usecases">Use Cases</a></li>
     <li><a href="https://github.com/sugac275/ToTra" target="_blank" rel="noopener">GitHub ↗</a></li>
   </ul>
   <a href="https://github.com/sugac275/ToTra" class="btn btn-primary" target="_blank" rel="noopener">Star on GitHub</a>
@@ -63,7 +66,6 @@
     <span class="marquee-item"><b>✦</b> Azure OpenAI</span>
     <span class="marquee-item"><b>✦</b> AWS Bedrock</span>
     <span class="marquee-item"><b>✦</b> Local / Ollama</span>
-    <!-- duplicate for seamless loop -->
     <span class="marquee-item"><b>✦</b> OpenAI GPT-4o</span>
     <span class="marquee-item"><b>✦</b> Anthropic Claude</span>
     <span class="marquee-item"><b>✦</b> Google Gemini</span>
@@ -82,7 +84,6 @@
     <p class="eyebrow reveal">Core Capabilities</p>
     <h2 class="h2 reveal">Everything your AI stack needs</h2>
     <p class="lead reveal">One gateway, total control over cost, compliance, and visibility across every model and team.</p>
-
     <div class="feat-grid">
       <div class="feat-card reveal">
         <div class="feat-icon" style="background:rgba(0,212,255,0.1)">🛡️</div>
@@ -113,7 +114,6 @@
   <div class="container">
     <p class="eyebrow reveal">Integration</p>
     <h2 class="h2 reveal">Three steps to full governance</h2>
-
     <div class="steps">
       <div class="step-connector reveal">
         <div class="step-n">01</div>
@@ -139,7 +139,6 @@
   <div class="container">
     <p class="eyebrow reveal">Drop-in Integration</p>
     <h2 class="h2 reveal">Change one line. Govern everything.</h2>
-
     <div class="code-wrap">
       <div class="reveal">
         <p class="lead">ToTra speaks the OpenAI API. Your existing Python, Node, Go, or Java SDK works without modification.</p>
@@ -151,7 +150,6 @@
           <li><span>✦</span> Zero extra round-trips, zero data egress</li>
         </ul>
       </div>
-
       <div class="code-box reveal" style="transition-delay:.2s">
         <div class="code-head">
           <div class="dot" style="background:#ff5f57"></div>
@@ -207,6 +205,211 @@
   </div>
 </section>
 
+<!-- ── THE PROBLEM ── -->
+<section class="section problem-section" style="background:var(--bg2)">
+  <div class="container">
+    <p class="eyebrow reveal">The Status Quo</p>
+    <h2 class="h2 reveal">The cost of going direct</h2>
+    <p class="lead reveal">Every team calling LLMs without a gateway is one bad prompt loop away from a $500 bill — and zero way to explain it to compliance.</p>
+    <div class="problem-split reveal" style="transition-delay:.15s">
+      <div class="problem-col problem-col--bad">
+        <div class="problem-col-head"><span class="problem-label problem-label--bad">Without a Gateway</span></div>
+        <ul class="problem-list">
+          <li class="problem-item problem-item--bad"><span class="problem-icon">💸</span><span>No visibility into which team is spending what</span></li>
+          <li class="problem-item problem-item--bad"><span class="problem-icon">🕳️</span><span>PII flowing directly to external LLM providers</span></li>
+          <li class="problem-item problem-item--bad"><span class="problem-icon">🔓</span><span>No access control — any key can call any model</span></li>
+          <li class="problem-item problem-item--bad"><span class="problem-icon">❌</span><span>One bad prompt loop burns $500 overnight</span></li>
+          <li class="problem-item problem-item--bad"><span class="problem-icon">📋</span><span>Zero audit trail for compliance reviews</span></li>
+        </ul>
+      </div>
+      <div class="problem-divider"><span class="problem-arrow">→</span></div>
+      <div class="problem-col problem-col--good">
+        <div class="problem-col-head"><span class="problem-label problem-label--good">With ToTra</span></div>
+        <ul class="problem-list">
+          <li class="problem-item problem-item--good"><span class="problem-icon">💡</span><span>Per-team dashboards, chargeback CSV export</span></li>
+          <li class="problem-item problem-item--good"><span class="problem-icon">🛡️</span><span>PII redacted before leaving your network</span></li>
+          <li class="problem-item problem-item--good"><span class="problem-icon">🔐</span><span>RBAC + OIDC, scoped JWT per team/integration</span></li>
+          <li class="problem-item problem-item--good"><span class="problem-icon">✅</span><span>Hard caps: requests over budget get 429, not a bill</span></li>
+          <li class="problem-item problem-item--good"><span class="problem-icon">📊</span><span>Immutable audit log, GDPR-ready retention policies</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COMPARISON TABLE ── -->
+<section id="compare" class="section compare-section">
+  <div class="container">
+    <p class="eyebrow reveal">Competitive Analysis</p>
+    <h2 class="h2 reveal">Why engineers choose ToTra</h2>
+    <p class="lead reveal">Full enterprise feature set, Go performance, self-hosted by default — not a managed SaaS with a price cliff.</p>
+    <div class="table-wrap reveal" style="transition-delay:.15s">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th class="col-feature">Feature</th>
+            <th class="col-totra">ToTra</th>
+            <th>LiteLLM</th>
+            <th>Helicone</th>
+            <th>Direct Call</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="col-feature">Language</td><td class="col-totra col-val">Go</td><td class="col-val">Python</td><td class="col-val">Rust/SaaS</td><td class="col-val cm-text">—</td></tr>
+          <tr><td class="col-feature">p95 overhead</td><td class="col-totra col-val ok">&lt; 2ms</td><td class="col-val warn">~18ms</td><td class="col-val warn">~5ms</td><td class="col-val cm-text">0ms</td></tr>
+          <tr><td class="col-feature">Self-hosted</td><td class="col-totra col-val ok">✅</td><td class="col-val ok">✅</td><td class="col-val warn">⚠️</td><td class="col-val ok">✅</td></tr>
+          <tr><td class="col-feature">Open source</td><td class="col-totra col-val ok">✅</td><td class="col-val ok">✅</td><td class="col-val warn">⚠️ partial</td><td class="col-val ok">✅</td></tr>
+          <tr><td class="col-feature">PII blocking</td><td class="col-totra col-val ok">✅</td><td class="col-val warn">⚠️ basic</td><td class="col-val bad">❌</td><td class="col-val bad">❌</td></tr>
+          <tr><td class="col-feature">Hard budget caps</td><td class="col-totra col-val ok">✅</td><td class="col-val warn">⚠️ soft</td><td class="col-val bad">❌</td><td class="col-val bad">❌</td></tr>
+          <tr><td class="col-feature">OIDC / RBAC</td><td class="col-totra col-val ok">✅</td><td class="col-val warn">⚠️ basic</td><td class="col-val bad">❌</td><td class="col-val bad">❌</td></tr>
+          <tr><td class="col-feature">Immutable audit</td><td class="col-totra col-val ok">✅</td><td class="col-val bad">❌</td><td class="col-val warn">⚠️</td><td class="col-val bad">❌</td></tr>
+          <tr><td class="col-feature">GDPR / EU AI Act</td><td class="col-totra col-val ok">✅</td><td class="col-val bad">❌</td><td class="col-val bad">❌</td><td class="col-val bad">❌</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── USE CASES ── -->
+<section id="usecases" class="section">
+  <div class="container">
+    <p class="eyebrow reveal">Use Cases</p>
+    <h2 class="h2 reveal">Built for every AI team</h2>
+    <p class="lead reveal">Whether you're shipping features, proving compliance, or managing infrastructure — ToTra fits your workflow.</p>
+    <div class="usecase-grid">
+      <div class="usecase-card reveal">
+        <div class="usecase-icon">&lt;/&gt;</div>
+        <h3 class="usecase-title">Developer Teams</h3>
+        <p class="usecase-desc">Add governance to your AI features in an afternoon. No infrastructure expertise needed.</p>
+        <ul class="usecase-tags"><li>Staging vs prod environments</li><li>Per-developer token budgets</li><li>Request replay for debugging</li></ul>
+      </div>
+      <div class="usecase-card reveal" style="transition-delay:.1s">
+        <div class="usecase-icon">⚖️</div>
+        <h3 class="usecase-title">Compliance &amp; Legal</h3>
+        <p class="usecase-desc">Meet GDPR, HIPAA, and EU AI Act requirements without slowing down your AI rollout.</p>
+        <ul class="usecase-tags"><li>PII scanning in 18 language groups</li><li>Data residency controls</li><li>One-click audit reports</li></ul>
+      </div>
+      <div class="usecase-card reveal" style="transition-delay:.2s">
+        <div class="usecase-icon">📊</div>
+        <h3 class="usecase-title">Finance &amp; IT</h3>
+        <p class="usecase-desc">Forecast, allocate, and chargeback AI costs with the precision of cloud compute billing.</p>
+        <ul class="usecase-tags"><li>Department cost attribution</li><li>Budget alerts &amp; anomaly detection</li><li>Procurement analytics</li></ul>
+      </div>
+      <div class="usecase-card reveal" style="transition-delay:.3s">
+        <div class="usecase-icon">🔧</div>
+        <h3 class="usecase-title">Platform Teams</h3>
+        <p class="usecase-desc">Run a reliable AI infrastructure layer your whole organization can depend on.</p>
+        <ul class="usecase-tags"><li>Multi-provider failover</li><li>Semantic caching to cut costs</li><li>Rate limiting per tenant</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── ARCHITECTURE ── -->
+<section id="architecture" class="section bg2 arch-section">
+  <div class="container">
+    <p class="eyebrow reveal">Architecture</p>
+    <h2 class="h2 reveal">Request flow in &lt; 2ms</h2>
+    <p class="lead reveal">Every request passes through a deterministic pipeline inside a single Go process — no network hops, no sidecars.</p>
+    <div class="arch-diagram reveal" style="transition-delay:.15s">
+      <div class="arch-node arch-node--app">
+        <div class="arch-node-label">Your App</div>
+        <div class="arch-node-sub">OpenAI SDK · any language</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node arch-node--gateway">
+        <div class="arch-node-label">ToTra Gateway</div>
+        <div class="arch-pipeline">
+          <span class="arch-step">Auth check</span><span class="arch-sep">·</span>
+          <span class="arch-step">PII scan</span><span class="arch-sep">·</span>
+          <span class="arch-step">Cache lookup</span><span class="arch-sep">·</span>
+          <span class="arch-step">Budget check</span><span class="arch-sep">·</span>
+          <span class="arch-step">Route</span><span class="arch-sep">·</span>
+          <span class="arch-step">Log</span>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node arch-node--providers">
+        <div class="arch-node-label">LLM Providers</div>
+        <ul class="arch-providers-list">
+          <li>OpenAI GPT-4o</li><li>Anthropic Claude</li>
+          <li>Google Gemini</li><li>Mistral AI</li><li>+ 6 more</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── OPEN SOURCE ── -->
+<section class="section oss-section">
+  <div class="container oss-container">
+    <p class="eyebrow reveal">Open Source</p>
+    <h2 class="h2 reveal">Open source. No lock-in. Ever.</h2>
+    <p class="lead reveal" style="max-width:560px;margin:0 auto 3.5rem">Your data, your keys, your infrastructure. ToTra is MIT-licensed and runs entirely inside your own environment.</p>
+    <div class="oss-pillars reveal" style="transition-delay:.1s">
+      <div class="oss-pillar">
+        <div class="oss-pillar-icon">📄</div>
+        <h3 class="oss-pillar-title">MIT License</h3>
+        <p class="oss-pillar-desc">Read it, fork it, modify it, deploy it. No SaaS fees, no vendor lock-in, no usage restrictions.</p>
+      </div>
+      <div class="oss-pillar">
+        <div class="oss-pillar-icon">🏠</div>
+        <h3 class="oss-pillar-title">Self-Hosted</h3>
+        <p class="oss-pillar-desc">Your data never touches our servers. Run on any cloud, on-prem, or bare metal. Kubernetes and Docker Compose included.</p>
+      </div>
+      <div class="oss-pillar">
+        <div class="oss-pillar-icon">🤝</div>
+        <h3 class="oss-pillar-title">Community-Driven</h3>
+        <p class="oss-pillar-desc">Built with real enterprise requirements in the open. Pull requests welcome — bring your edge cases.</p>
+      </div>
+    </div>
+    <div class="code-box reveal" style="max-width:640px;margin:3rem auto 0;transition-delay:.2s">
+      <div class="code-head">
+        <div class="dot" style="background:#ff5f57"></div>
+        <div class="dot" style="background:#febc2e"></div>
+        <div class="dot" style="background:#28c840"></div>
+        <span class="code-file">Quick start</span>
+      </div>
+      <pre><span class="cm"># Clone and run in under 2 minutes</span>
+<span class="cf">git</span> <span class="cv">clone</span> <span class="cs">https://github.com/sugac275/ToTra</span>
+<span class="cf">cd</span> <span class="cv">ToTra</span>
+<span class="cf">cp</span> <span class="cv">.env.example</span> <span class="cv">.env</span>  <span class="cm"># add your LLM API keys</span>
+<span class="cf">docker</span> <span class="cv">compose up -d</span>
+<span class="cm"># Your gateway is live at http://localhost:8080</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section class="section bg2 faq-section">
+  <div class="container faq-container">
+    <p class="eyebrow reveal">FAQ</p>
+    <h2 class="h2 reveal">Common questions</h2>
+    <div class="faq-list reveal" style="transition-delay:.1s">
+      <details class="faq-item">
+        <summary class="faq-q">Is ToTra production-ready?</summary>
+        <p class="faq-a">Yes. The gateway is written in Go, handles concurrent requests with &lt; 2ms overhead, and has been benchmarked at 200+ concurrent virtual users. It ships with Docker Compose and has been used in real production workloads.</p>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Does it work with my existing code?</summary>
+        <p class="faq-a">Yes. Point your OpenAI SDK's <code>base_url</code> at your ToTra instance. No other changes needed. The same request and response shapes are preserved — streaming, function calling, and all other features pass through unchanged.</p>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">How does PII detection work?</summary>
+        <p class="faq-a">Requests are scanned by a Go-native PII detector supporting 18 language groups before being forwarded to any provider. Detected content is redacted or blocked based on your configured policy. No data leaves your environment during scanning.</p>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">What happens when a budget is exceeded?</summary>
+        <p class="faq-a">The gateway returns HTTP <code>429</code> before the request reaches any provider. No charges are incurred, no provider API key is consumed. Configure soft-warning thresholds and hard cutoff limits independently per team or integration.</p>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Can I run it on my own infrastructure?</summary>
+        <p class="faq-a">Yes. Docker Compose, Kubernetes, Railway, or any VM. Your API keys and data never leave your environment. There is no call-home, no telemetry, and no dependency on external ToTra services of any kind.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <!-- ── CTA ── -->
 <section class="section cta-wrap">
   <div class="cta-halo"></div>
@@ -228,7 +431,9 @@
       <span class="logo" style="font-size:.85rem">TO<em>TRA</em></span>
       <ul class="foot-links">
         <li><a href="https://github.com/sugac275/ToTra" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="#">Docs</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#compare">Compare</a></li>
+        <li><a href="#usecases">Use Cases</a></li>
         <li><a href="#">License</a></li>
       </ul>
       <span class="foot-copy">© 2025 ToTra · MIT License</span>
@@ -238,21 +443,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script src="scene.js"></script>
+<script src="interactions.js"></script>
 <script>
-  /* cursor glow */
   const glow = document.getElementById('glow');
   document.addEventListener('mousemove', e => {
     glow.style.left = e.clientX + 'px';
     glow.style.top  = e.clientY + 'px';
   });
-
-  /* scroll reveal */
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.12 });
+  }, { threshold: 0.1 });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-  /* nav shrink on scroll */
   const nav = document.querySelector('nav');
   window.addEventListener('scroll', () => {
     nav.style.padding = window.scrollY > 60 ? '.75rem 2.5rem' : '1.1rem 2.5rem';
