@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToTra — Open-Source AI Gateway</title>
+  <meta name="description" content="One line of code to add quota, PII protection, cost tracking, and compliance to any LLM. Self-hosted, &lt;2ms overhead.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="cursor-glow" id="glow"></div>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="logo">TO<em>TRA</em></a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="https://github.com/sugac275/ToTra" target="_blank" rel="noopener">GitHub ↗</a></li>
+  </ul>
+  <a href="https://github.com/sugac275/ToTra" class="btn btn-primary" target="_blank" rel="noopener">Star on GitHub</a>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <canvas id="c"></canvas>
+  <div class="hero-body">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      Open-Source · Self-Hosted · MIT License
+    </div>
+    <h1 class="hero-h1">
+      AI Governance
+      <span class="grad">From Day Zero</span>
+    </h1>
+    <p class="hero-sub">
+      One line of code to add quota enforcement, PII blocking, cost tracking,
+      and compliance to any LLM. No refactoring. No lock-in.
+    </p>
+    <div class="hero-ctas">
+      <a href="#how" class="btn btn-primary">See How It Works →</a>
+      <a href="https://github.com/sugac275/ToTra" class="btn btn-ghost" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </div>
+  <div class="perf-tag">
+    p95 overhead <span>&lt; 2ms</span> &nbsp;·&nbsp; written in Go
+  </div>
+</section>
+
+<!-- ── PROVIDERS MARQUEE ── -->
+<div class="providers">
+  <div class="marquee-track">
+    <span class="marquee-item"><b>✦</b> OpenAI GPT-4o</span>
+    <span class="marquee-item"><b>✦</b> Anthropic Claude</span>
+    <span class="marquee-item"><b>✦</b> Google Gemini</span>
+    <span class="marquee-item"><b>✦</b> Mistral AI</span>
+    <span class="marquee-item"><b>✦</b> Meta Llama 3</span>
+    <span class="marquee-item"><b>✦</b> Cohere Command</span>
+    <span class="marquee-item"><b>✦</b> Azure OpenAI</span>
+    <span class="marquee-item"><b>✦</b> AWS Bedrock</span>
+    <span class="marquee-item"><b>✦</b> Local / Ollama</span>
+    <!-- duplicate for seamless loop -->
+    <span class="marquee-item"><b>✦</b> OpenAI GPT-4o</span>
+    <span class="marquee-item"><b>✦</b> Anthropic Claude</span>
+    <span class="marquee-item"><b>✦</b> Google Gemini</span>
+    <span class="marquee-item"><b>✦</b> Mistral AI</span>
+    <span class="marquee-item"><b>✦</b> Meta Llama 3</span>
+    <span class="marquee-item"><b>✦</b> Cohere Command</span>
+    <span class="marquee-item"><b>✦</b> Azure OpenAI</span>
+    <span class="marquee-item"><b>✦</b> AWS Bedrock</span>
+    <span class="marquee-item"><b>✦</b> Local / Ollama</span>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section id="features" class="section">
+  <div class="container">
+    <p class="eyebrow reveal">Core Capabilities</p>
+    <h2 class="h2 reveal">Everything your AI stack needs</h2>
+    <p class="lead reveal">One gateway, total control over cost, compliance, and visibility across every model and team.</p>
+
+    <div class="feat-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon" style="background:rgba(0,212,255,0.1)">🛡️</div>
+        <h3 class="feat-title">PII Blocking at the Edge</h3>
+        <p class="feat-desc">18 language groups scanned in real time. Sensitive data is detected, redacted, and logged before it ever reaches a provider — GDPR-ready out of the box.</p>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:.08s">
+        <div class="feat-icon" style="background:rgba(124,108,252,0.1)">💸</div>
+        <h3 class="feat-title">Hard Budget Caps</h3>
+        <p class="feat-desc">Per-user, per-team, per-department quota enforcement. Requests over limit get a <code style="color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:0.8em">429</code> before touching any provider. Real-time alerts, chargeback CSV export.</p>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:.16s">
+        <div class="feat-icon" style="background:rgba(245,166,35,0.1)">⚡</div>
+        <h3 class="feat-title">Smart Routing &amp; Caching</h3>
+        <p class="feat-desc">Semantic deduplication cache, load balancing, and automatic failover across providers. Cuts redundant API costs and reduces latency for repeated prompts.</p>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:.24s">
+        <div class="feat-icon" style="background:rgba(0,229,160,0.1)">🔐</div>
+        <h3 class="feat-title">Enterprise Auth &amp; Audit</h3>
+        <p class="feat-desc">OIDC single sign-on, RBAC with scoped JWT keys, immutable audit chain, EU AI Act checklist, and configurable data retention policies — all included.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section id="how" class="section bg2">
+  <div class="container">
+    <p class="eyebrow reveal">Integration</p>
+    <h2 class="h2 reveal">Three steps to full governance</h2>
+
+    <div class="steps">
+      <div class="step-connector reveal">
+        <div class="step-n">01</div>
+        <h3 class="step-t">Deploy</h3>
+        <p class="step-d">Self-host on any server with Docker Compose, or deploy to Railway in under 5 minutes. Your keys, your infrastructure.</p>
+      </div>
+      <div class="step-connector reveal" style="transition-delay:.15s">
+        <div class="step-n">02</div>
+        <h3 class="step-t">Point &amp; Go</h3>
+        <p class="step-d">Change one URL in your existing SDK config. ToTra is 100% OpenAI-compatible — no refactoring, no new SDK to learn.</p>
+      </div>
+      <div class="step-connector reveal" style="transition-delay:.3s">
+        <div class="step-n">03</div>
+        <h3 class="step-t">Govern</h3>
+        <p class="step-d">Every request is routed, cached, audited, and checked against your policies automatically. Full observability from the first call.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CODE EXAMPLE ── -->
+<section class="section">
+  <div class="container">
+    <p class="eyebrow reveal">Drop-in Integration</p>
+    <h2 class="h2 reveal">Change one line. Govern everything.</h2>
+
+    <div class="code-wrap">
+      <div class="reveal">
+        <p class="lead">ToTra speaks the OpenAI API. Your existing Python, Node, Go, or Java SDK works without modification.</p>
+        <ul class="check-list">
+          <li><span>✦</span> All major language SDKs supported</li>
+          <li><span>✦</span> Streaming &amp; function calling passthrough</li>
+          <li><span>✦</span> 8–10× faster than Python-based proxies</li>
+          <li><span>✦</span> p95 overhead under 2ms (Go, not Python)</li>
+          <li><span>✦</span> Zero extra round-trips, zero data egress</li>
+        </ul>
+      </div>
+
+      <div class="code-box reveal" style="transition-delay:.2s">
+        <div class="code-head">
+          <div class="dot" style="background:#ff5f57"></div>
+          <div class="dot" style="background:#febc2e"></div>
+          <div class="dot" style="background:#28c840"></div>
+          <span class="code-file">app.py</span>
+        </div>
+        <pre><span class="ck">from</span> <span class="cv">openai</span> <span class="ck">import</span> <span class="cv">OpenAI</span>
+
+<span class="cm"># Before: direct provider call</span>
+<span class="cv">client</span> = <span class="cf">OpenAI</span>(<span class="cv">api_key</span>=<span class="cs">"sk-..."</span>)
+
+<span class="cm"># After: route through ToTra ✓</span>
+<span class="cv">client</span> = <span class="cf">OpenAI</span>(
+  <span class="cv">api_key</span>=<span class="cs">"your-totra-token"</span>,
+  <span class="cv">base_url</span>=<span class="cs">"https://your-totra.railway.app/v1"</span>
+)
+
+<span class="cm"># Same code — now with governance</span>
+<span class="cv">resp</span> = <span class="cv">client</span>.<span class="cv">chat</span>.<span class="cv">completions</span>.<span class="cf">create</span>(
+  <span class="cv">model</span>=<span class="cs">"gpt-4o"</span>,
+  <span class="cv">messages</span>=[{
+    <span class="cs">"role"</span>: <span class="cs">"user"</span>,
+    <span class="cs">"content"</span>: <span class="cs">"Hello, world"</span>
+  }]
+)</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<section class="stats-bg">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat reveal">
+        <span class="stat-n">&lt; 2ms</span>
+        <p class="stat-l">p95 Routing Overhead</p>
+      </div>
+      <div class="stat reveal" style="transition-delay:.1s">
+        <span class="stat-n">10+</span>
+        <p class="stat-l">LLM Providers</p>
+      </div>
+      <div class="stat reveal" style="transition-delay:.2s">
+        <span class="stat-n">100%</span>
+        <p class="stat-l">OpenAI API Compatible</p>
+      </div>
+      <div class="stat reveal" style="transition-delay:.3s">
+        <span class="stat-n">18</span>
+        <p class="stat-l">PII Language Groups</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="section cta-wrap">
+  <div class="cta-halo"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <p class="eyebrow reveal">Get Started</p>
+    <h2 class="h2 reveal">Your AI stack. Your rules.</h2>
+    <p class="lead reveal" style="margin:0 auto 2.5rem">Self-hosted and open source. Deploy to Railway in 5 minutes, or run locally with a single Docker Compose command.</p>
+    <div class="reveal" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="https://github.com/sugac275/ToTra" class="btn btn-primary" style="padding:.75rem 2rem;font-size:.9rem" target="_blank" rel="noopener">Deploy Free on Railway →</a>
+      <a href="https://github.com/sugac275/ToTra" class="btn btn-ghost" style="padding:.75rem 2rem;font-size:.9rem" target="_blank" rel="noopener">Read the Docs</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="foot-inner">
+      <span class="logo" style="font-size:.85rem">TO<em>TRA</em></span>
+      <ul class="foot-links">
+        <li><a href="https://github.com/sugac275/ToTra" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="#">Docs</a></li>
+        <li><a href="#">License</a></li>
+      </ul>
+      <span class="foot-copy">© 2025 ToTra · MIT License</span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+<script src="scene.js"></script>
+<script>
+  /* cursor glow */
+  const glow = document.getElementById('glow');
+  document.addEventListener('mousemove', e => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top  = e.clientY + 'px';
+  });
+
+  /* scroll reveal */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* nav shrink on scroll */
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.padding = window.scrollY > 60 ? '.75rem 2.5rem' : '1.1rem 2.5rem';
+  }, { passive: true });
+</script>
+</body>
+</html>
