@@ -60,55 +60,57 @@
   makeDotRing(2.54, 160, 0x44ccff,-0.00060, 2.10, 0,    0.042); // companion
   makeDotRing(1.98, 145, 0x9944ff, 0.00105, 3.14, 0.20, 0.050); // inner violet tilted
 
-  /* ── CORE — high-density Fibonacci sphere with breathing pulse ── */
+  /* ── CORE — SphereGeometry vertex cloud + surface wave (like reference) ── */
   const core = new THREE.Group();
   scene.add(core);
   {
-    const count = 320, r = 1.02;
-    const orig = new Float32Array(count * 3);
-    const cur  = new Float32Array(count * 3);
-    const phi  = Math.PI * (3 - Math.sqrt(5));
-    for (let i = 0; i < count; i++) {
-      const y   = 1 - (i / (count - 1)) * 2;
-      const rad = Math.sqrt(Math.max(0, 1 - y * y)) * r;
-      const th  = phi * i;
-      orig[i*3] = cur[i*3] = Math.cos(th) * rad;
-      orig[i*3+1] = cur[i*3+1] = y * r;
-      orig[i*3+2] = cur[i*3+2] = Math.sin(th) * rad;
-    }
-    const geo  = new THREE.BufferGeometry();
-    const attr = new THREE.BufferAttribute(cur, 3);
+    const R = 1.45;
+    const refGeo = new THREE.SphereGeometry(R, 38, 28); // 1073 surface-grid vertices
+    const base   = refGeo.attributes.position.array.slice(); // reference positions
+    const vcount = refGeo.attributes.position.count;
+    const cur    = new Float32Array(vcount * 3);
+    const geo    = new THREE.BufferGeometry();
+    const attr   = new THREE.BufferAttribute(cur, 3);
+    cur.set(base);
     geo.setAttribute('position', attr);
     core.add(new THREE.Points(geo, new THREE.PointsMaterial({
-      color: 0x00eeff, size: 0.048, blending: ADD, transparent: true, opacity: 0.80
+      color: 0x00eeff, size: 0.050, blending: ADD, transparent: true, opacity: 0.82
     })));
-    /* dark fill for depth */
-    core.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.90, 1),
-      new THREE.MeshBasicMaterial({ color: 0x000b18, transparent: true, opacity: 0.55 })));
-    /* per-dot breathing pulse — each dot radiates at its own phase */
+    /* dark fill — slightly smaller to make surface dots pop */
+    core.add(new THREE.Mesh(new THREE.SphereGeometry(R * 0.86, 28, 20),
+      new THREE.MeshBasicMaterial({ color: 0x000a16, transparent: true, opacity: 0.65 })));
+    refGeo.dispose();
+    /* surface wave animation — bumps travel across sphere like the reference */
     animatables.push({
       update(t) {
-        for (let i = 0; i < count; i++) {
-          const pulse = 1 + Math.sin(t * 1.8 + i * 0.082) * 0.044;
-          cur[i*3]   = orig[i*3]   * pulse;
-          cur[i*3+1] = orig[i*3+1] * pulse;
-          cur[i*3+2] = orig[i*3+2] * pulse;
+        for (let i = 0; i < vcount; i++) {
+          const ox = base[i*3], oy = base[i*3+1], oz = base[i*3+2];
+          const len = Math.sqrt(ox*ox + oy*oy + oz*oz) || 1;
+          const nx = ox/len, ny = oy/len, nz = oz/len;
+          const theta = Math.atan2(nz, nx);
+          const phi   = Math.acos(Math.max(-1, Math.min(1, ny)));
+          const bump  = 1
+            + Math.sin(phi * 5 + theta * 3 - t * 1.4) * 0.10
+            + Math.cos(phi * 3 - theta * 2 + t * 0.9) * 0.07;
+          cur[i*3]   = nx * R * bump;
+          cur[i*3+1] = ny * R * bump;
+          cur[i*3+2] = nz * R * bump;
         }
         attr.needsUpdate = true;
       }
     });
   }
 
-  /* Core accent — equatorial magenta ring */
-  const eqRing = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.013, 14, 90),
-    new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.9 }));
-  const eqGlow = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.058, 14, 90),
+  /* Core accent — equatorial magenta ring (inner orbit) */
+  const eqRing = new THREE.Mesh(new THREE.TorusGeometry(0.90, 0.012, 14, 100),
+    new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.85 }));
+  const eqGlow = new THREE.Mesh(new THREE.TorusGeometry(0.90, 0.052, 14, 100),
     new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.07 }));
   eqRing.rotation.x = Math.PI / 2; eqGlow.rotation.x = Math.PI / 2;
   core.add(eqRing, eqGlow);
-  /* tilted yellow ring */
-  const secRing = new THREE.Mesh(new THREE.TorusGeometry(0.70, 0.009, 14, 90),
-    new THREE.MeshBasicMaterial({ color: 0xffee00, blending: ADD, transparent: true, opacity: 0.75 }));
+  /* tilted yellow accent ring */
+  const secRing = new THREE.Mesh(new THREE.TorusGeometry(0.84, 0.008, 14, 90),
+    new THREE.MeshBasicMaterial({ color: 0xffee00, blending: ADD, transparent: true, opacity: 0.70 }));
   secRing.rotation.set(Math.PI / 4, 0, Math.PI / 6);
   core.add(secRing);
   /* central orb */
@@ -126,13 +128,41 @@
     const angle = (i / COLORS.length) * Math.PI * 2, dist = 4.6;
     const g = new THREE.Group();
     g.position.set(Math.cos(angle)*dist, Math.sin(angle)*dist*0.48, (Math.random()-0.5)*1.8);
-    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12),
+
+    /* center dot */
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.030, 8, 8),
       new THREE.MeshBasicMaterial({ color: col, blending: ADD }));
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10),
-      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.07 }));
-    g.add(sphere); g.add(glow); scene.add(g);
-    sphereMeshes.push(sphere);
-    return { g, col, angle, dist, speed: 0.0013 + Math.random()*0.0009, glow, label: LABELS[i] };
+
+    /* targeting reticle ring */
+    const rlPts = [];
+    for (let j = 0; j <= 32; j++) {
+      const a = (j / 32) * Math.PI * 2;
+      rlPts.push(Math.cos(a) * 0.13, Math.sin(a) * 0.13, 0);
+    }
+    const rlGeo = new THREE.BufferGeometry();
+    rlGeo.setAttribute('position', new THREE.Float32BufferAttribute(rlPts, 3));
+    const ring = new THREE.Line(rlGeo,
+      new THREE.LineBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.60 }));
+
+    /* 4 short tick marks outside the ring */
+    const tkV = [];
+    [0, Math.PI/2, Math.PI, Math.PI*3/2].forEach(a => {
+      const c = Math.cos(a), s = Math.sin(a);
+      tkV.push(c*0.15, s*0.15, 0, c*0.22, s*0.22, 0);
+    });
+    const tkGeo = new THREE.BufferGeometry();
+    tkGeo.setAttribute('position', new THREE.Float32BufferAttribute(tkV, 3));
+    const ticks = new THREE.LineSegments(tkGeo,
+      new THREE.LineBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.35 }));
+
+    /* faint glow (kept for hover-highlight compatibility) */
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8),
+      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.06 }));
+
+    g.add(dot, ring, ticks, glow);
+    scene.add(g);
+    sphereMeshes.push(dot);
+    return { g, col, angle, dist, speed: 0.0013 + Math.random()*0.0009, glow, ring, label: LABELS[i] };
   });
 
   /* CONNECTION LINES */
@@ -249,7 +279,8 @@
       pos.setXYZ(1, n.g.position.x, n.g.position.y, n.g.position.z); pos.needsUpdate = true;
       const ts = i === hoveredNode ? 1.4 : 1+Math.sin(t*2.2+n.angle)*0.12;
       n.g.scale.lerp(new THREE.Vector3(ts,ts,ts), 0.12);
-      n.glow.material.opacity = i === hoveredNode ? 0.35 : 0.07;
+      n.glow.material.opacity = i === hoveredNode ? 0.28 : 0.06;
+      if (n.ring) n.ring.material.opacity = i === hoveredNode ? 1.0 : 0.60;
     });
     for (let i = particles.length-1; i >= 0; i--) {
       const p = particles[i];
