@@ -55,7 +55,7 @@
     });
   }
 
-  makeDotRing(4.40, 300, 0x00d4ff, 0.00045, 0.00, 0,    0.048); // outer grand
+  makeDotRing(4.40, 300, 0x9944ff, 0.00045, 0.00, 0,    0.048); // outer grand — violet
   makeDotRing(2.72, 210, 0x00d4ff, 0.00075, 1.05, 0,    0.056); // main
   makeDotRing(1.98, 145, 0x9944ff, 0.00105, 3.14, 0.20, 0.050); // inner violet tilted
 
@@ -73,18 +73,25 @@
     cur.set(base);
     geo.setAttribute('position', attr);
     core.add(new THREE.Points(geo, new THREE.PointsMaterial({
-      color: 0x00eeff, size: 0.050, blending: ADD, transparent: true, opacity: 0.82
+      color: 0x88ffff, size: 0.052, blending: ADD, transparent: true, opacity: 0.90
     })));
-    /* volumetric glow layers — soft radial fill, like reference image */
+    /* dark outer shell — NormalBlending creates clear sphere boundary */
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(R * 0.96, 28, 20),
+      new THREE.MeshBasicMaterial({ color: 0x000d1f, transparent: true, opacity: 0.92 }));
+    shell.renderOrder = 1;
+    core.add(shell);
+    /* volumetric glow — additive layers, each brighter toward center */
     [
-      { r: R * 0.96, col: 0x003344, op: 0.55 }, // outer dark shell
-      { r: R * 0.80, col: 0x004466, op: 0.40 }, // mid glow
-      { r: R * 0.60, col: 0x0066aa, op: 0.28 }, // inner brighter
-      { r: R * 0.38, col: 0x0088cc, op: 0.18 }, // core bright spot
-    ].forEach(({ r, col, op }) =>
-      core.add(new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18),
-        new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: op })))
-    );
+      { r: R * 0.82, col: 0x001a33, op: 0.75 },
+      { r: R * 0.62, col: 0x002a55, op: 0.65 },
+      { r: R * 0.40, col: 0x003d88, op: 0.55 },
+      { r: R * 0.20, col: 0x0066cc, op: 0.50 },
+    ].forEach(({ r, col, op }, idx) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 22, 16),
+        new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: op }));
+      m.renderOrder = idx + 2;
+      core.add(m);
+    });
     refGeo.dispose();
     /* surface wave animation — bumps travel across sphere like the reference */
     animatables.push({
