@@ -17,20 +17,21 @@
   const mouseNDC = new THREE.Vector2();
   let hoveredNode = -1;
 
-  /* Soft circular point texture — replaces default square pixels */
+  /* Soft circular point texture (256px for crisp rendering at all sizes) */
   const ptTex = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
+    const sz = 256, c = document.createElement('canvas');
+    c.width = c.height = sz;
     const ctx = c.getContext('2d');
-    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    const h = sz / 2;
+    const g = ctx.createRadialGradient(h, h, 0, h, h, h);
     g.addColorStop(0,    'rgba(255,255,255,1.0)');
-    g.addColorStop(0.35, 'rgba(255,255,255,0.85)');
-    g.addColorStop(0.70, 'rgba(255,255,255,0.35)');
+    g.addColorStop(0.25, 'rgba(255,255,255,0.9)');
+    g.addColorStop(0.55, 'rgba(255,255,255,0.45)');
+    g.addColorStop(0.85, 'rgba(255,255,255,0.10)');
     g.addColorStop(1.0,  'rgba(255,255,255,0)');
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 64, 64);
-    const t = new THREE.CanvasTexture(c);
-    return t;
+    ctx.fillRect(0, 0, sz, sz);
+    return new THREE.CanvasTexture(c);
   })();
 
   /* STARFIELD */
@@ -50,8 +51,8 @@
     const attr = new THREE.BufferAttribute(cur, 3);
     geo.setAttribute('position', attr);
     const m = new THREE.Points(geo, new THREE.PointsMaterial({
-      color: col, size: size * 2.2, map: ptTex, blending: ADD,
-      transparent: true, opacity: 0.72, depthWrite: false
+      color: col, size: size * 1.5, map: ptTex, blending: ADD,
+      transparent: true, opacity: 0.75, depthWrite: false
     }));
     if (rx) m.rotation.x = rx;
     scene.add(m);
@@ -93,23 +94,16 @@
       color: 0x88ffff, size: 0.13, map: ptTex,
       blending: ADD, transparent: true, opacity: 0.90, depthWrite: false
     })));
-    /* dark outer shell — NormalBlending creates clear sphere boundary */
-    const shell = new THREE.Mesh(new THREE.SphereGeometry(R * 0.96, 28, 20),
-      new THREE.MeshBasicMaterial({ color: 0x000d1f, transparent: true, opacity: 0.92 }));
-    shell.renderOrder = 1;
-    core.add(shell);
-    /* volumetric glow — additive layers, each brighter toward center */
+    /* volumetric glow — stacked additive spheres, center accumulates all layers */
     [
-      { r: R * 0.82, col: 0x001a33, op: 0.75 },
-      { r: R * 0.62, col: 0x002a55, op: 0.65 },
-      { r: R * 0.40, col: 0x003d88, op: 0.55 },
-      { r: R * 0.20, col: 0x0066cc, op: 0.50 },
-    ].forEach(({ r, col, op }, idx) => {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 22, 16),
-        new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: op }));
-      m.renderOrder = idx + 2;
-      core.add(m);
-    });
+      { r: R * 0.90, col: 0x001840, op: 0.50 },
+      { r: R * 0.70, col: 0x003880, op: 0.50 },
+      { r: R * 0.48, col: 0x0066bb, op: 0.48 },
+      { r: R * 0.25, col: 0x0099ee, op: 0.52 },
+    ].forEach(({ r, col, op }) =>
+      core.add(new THREE.Mesh(new THREE.SphereGeometry(r, 22, 16),
+        new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: op })))
+    );
     refGeo.dispose();
     /* surface wave animation — bumps travel across sphere like the reference */
     animatables.push({
