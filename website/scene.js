@@ -57,7 +57,6 @@
 
   makeDotRing(4.40, 300, 0x00d4ff, 0.00045, 0.00, 0,    0.048); // outer grand
   makeDotRing(2.72, 210, 0x00d4ff, 0.00075, 1.05, 0,    0.056); // main
-  makeDotRing(2.54, 160, 0x44ccff,-0.00060, 2.10, 0,    0.042); // companion
   makeDotRing(1.98, 145, 0x9944ff, 0.00105, 3.14, 0.20, 0.050); // inner violet tilted
 
   /* ── CORE — SphereGeometry vertex cloud + surface wave (like reference) ── */
@@ -76,9 +75,16 @@
     core.add(new THREE.Points(geo, new THREE.PointsMaterial({
       color: 0x00eeff, size: 0.050, blending: ADD, transparent: true, opacity: 0.82
     })));
-    /* dark fill — slightly smaller to make surface dots pop */
-    core.add(new THREE.Mesh(new THREE.SphereGeometry(R * 0.86, 28, 20),
-      new THREE.MeshBasicMaterial({ color: 0x000a16, transparent: true, opacity: 0.65 })));
+    /* volumetric glow layers — soft radial fill, like reference image */
+    [
+      { r: R * 0.96, col: 0x003344, op: 0.55 }, // outer dark shell
+      { r: R * 0.80, col: 0x004466, op: 0.40 }, // mid glow
+      { r: R * 0.60, col: 0x0066aa, op: 0.28 }, // inner brighter
+      { r: R * 0.38, col: 0x0088cc, op: 0.18 }, // core bright spot
+    ].forEach(({ r, col, op }) =>
+      core.add(new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18),
+        new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: op })))
+    );
     refGeo.dispose();
     /* surface wave animation — bumps travel across sphere like the reference */
     animatables.push({
@@ -129,40 +135,31 @@
     const g = new THREE.Group();
     g.position.set(Math.cos(angle)*dist, Math.sin(angle)*dist*0.48, (Math.random()-0.5)*1.8);
 
-    /* center dot */
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.030, 8, 8),
+    /* bright center dot */
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 10),
       new THREE.MeshBasicMaterial({ color: col, blending: ADD }));
 
-    /* targeting reticle ring */
-    const rlPts = [];
-    for (let j = 0; j <= 32; j++) {
-      const a = (j / 32) * Math.PI * 2;
-      rlPts.push(Math.cos(a) * 0.13, Math.sin(a) * 0.13, 0);
+    /* soft glow halo */
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 10),
+      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.08 }));
+
+    /* 5-dot mini cluster orbiting the center (pure points, no lines) */
+    const clusterPos = new Float32Array(5 * 3);
+    for (let j = 0; j < 5; j++) {
+      const a = (j / 5) * Math.PI * 2;
+      clusterPos[j*3]   = Math.cos(a) * 0.18;
+      clusterPos[j*3+1] = Math.sin(a) * 0.18;
     }
-    const rlGeo = new THREE.BufferGeometry();
-    rlGeo.setAttribute('position', new THREE.Float32BufferAttribute(rlPts, 3));
-    const ring = new THREE.Line(rlGeo,
-      new THREE.LineBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.60 }));
+    const clGeo = new THREE.BufferGeometry();
+    clGeo.setAttribute('position', new THREE.BufferAttribute(clusterPos, 3));
+    const cluster = new THREE.Points(clGeo, new THREE.PointsMaterial({
+      color: col, size: 0.038, blending: ADD, transparent: true, opacity: 0.55
+    }));
 
-    /* 4 short tick marks outside the ring */
-    const tkV = [];
-    [0, Math.PI/2, Math.PI, Math.PI*3/2].forEach(a => {
-      const c = Math.cos(a), s = Math.sin(a);
-      tkV.push(c*0.15, s*0.15, 0, c*0.22, s*0.22, 0);
-    });
-    const tkGeo = new THREE.BufferGeometry();
-    tkGeo.setAttribute('position', new THREE.Float32BufferAttribute(tkV, 3));
-    const ticks = new THREE.LineSegments(tkGeo,
-      new THREE.LineBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.35 }));
-
-    /* faint glow (kept for hover-highlight compatibility) */
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8),
-      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.06 }));
-
-    g.add(dot, ring, ticks, glow);
+    g.add(dot, glow, cluster);
     scene.add(g);
     sphereMeshes.push(dot);
-    return { g, col, angle, dist, speed: 0.0013 + Math.random()*0.0009, glow, ring, label: LABELS[i] };
+    return { g, col, angle, dist, speed: 0.0013 + Math.random()*0.0009, glow, ring: null, label: LABELS[i] };
   });
 
   /* CONNECTION LINES */
