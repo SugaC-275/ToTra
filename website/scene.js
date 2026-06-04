@@ -17,12 +17,28 @@
   const mouseNDC = new THREE.Vector2();
   let hoveredNode = -1;
 
+  /* Soft circular point texture — replaces default square pixels */
+  const ptTex = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0,    'rgba(255,255,255,1.0)');
+    g.addColorStop(0.35, 'rgba(255,255,255,0.85)');
+    g.addColorStop(0.70, 'rgba(255,255,255,0.35)');
+    g.addColorStop(1.0,  'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const t = new THREE.CanvasTexture(c);
+    return t;
+  })();
+
   /* STARFIELD */
   const sPos = new Float32Array(2000 * 3);
   for (let i = 0; i < sPos.length; i++) sPos[i] = (Math.random() - 0.5) * 140;
   const sGeo = new THREE.BufferGeometry();
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
-  scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x1e3a5a, size: 0.07 })));
+  scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x1e3a5a, size: 0.12, map: ptTex, transparent: true, depthWrite: false })));
 
   /* ── ANIMATED DOT RINGS — no solid torus, pure point-wave ── */
   const animatables = [];
@@ -34,7 +50,8 @@
     const attr = new THREE.BufferAttribute(cur, 3);
     geo.setAttribute('position', attr);
     const m = new THREE.Points(geo, new THREE.PointsMaterial({
-      color: col, size, blending: ADD, transparent: true, opacity: 0.72, sizeAttenuation: true
+      color: col, size: size * 2.2, map: ptTex, blending: ADD,
+      transparent: true, opacity: 0.72, depthWrite: false
     }));
     if (rx) m.rotation.x = rx;
     scene.add(m);
@@ -73,7 +90,8 @@
     cur.set(base);
     geo.setAttribute('position', attr);
     core.add(new THREE.Points(geo, new THREE.PointsMaterial({
-      color: 0x88ffff, size: 0.052, blending: ADD, transparent: true, opacity: 0.90
+      color: 0x88ffff, size: 0.13, map: ptTex,
+      blending: ADD, transparent: true, opacity: 0.90, depthWrite: false
     })));
     /* dark outer shell — NormalBlending creates clear sphere boundary */
     const shell = new THREE.Mesh(new THREE.SphereGeometry(R * 0.96, 28, 20),
@@ -160,7 +178,7 @@
     const clGeo = new THREE.BufferGeometry();
     clGeo.setAttribute('position', new THREE.BufferAttribute(clusterPos, 3));
     const cluster = new THREE.Points(clGeo, new THREE.PointsMaterial({
-      color: col, size: 0.038, blending: ADD, transparent: true, opacity: 0.55
+      color: col, size: 0.085, map: ptTex, blending: ADD, transparent: true, opacity: 0.55, depthWrite: false
     }));
 
     g.add(dot, glow, cluster);
