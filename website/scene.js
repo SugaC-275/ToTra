@@ -11,12 +11,23 @@
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.4;
 
   const ADD = THREE.AdditiveBlending;
   const mouse = { x: 0, y: 0 };
   const raycaster = new THREE.Raycaster();
   const mouseNDC = new THREE.Vector2();
   let hoveredNode = -1;
+
+  /* LIGHTS — three orbiting colored lights for metallic reflections */
+  scene.add(new THREE.AmbientLight(0x0a0a1a, 1.2));
+  const orbLights = [
+    { lt: new THREE.PointLight(0x00d4ff, 6, 28), r: 8,  y:  3,  angle: 0,    speed:  0.008 },
+    { lt: new THREE.PointLight(0x7c6cfc, 4, 22), r: 6,  y: -2,  angle: 2.09, speed: -0.005 },
+    { lt: new THREE.PointLight(0xf5a623, 3, 20), r: 7,  y:  0.5,angle: 4.19, speed:  0.004 },
+  ];
+  orbLights.forEach(o => scene.add(o.lt));
 
   /* STARFIELD */
   const sPos = new Float32Array(2000 * 3);
@@ -28,17 +39,25 @@
   /* RINGS */
   const rings = [];
   [
-    { r: 2.4, t: 0.055, col: 0x00d4ff, rx: 0,           speed:  0.0025 },
-    { r: 2.4, t: 0.035, col: 0x00d4ff, rx: Math.PI/2,   speed: -0.003  },
-    { r: 1.25,t: 0.04,  col: 0x7c6cfc, rx: Math.PI/4,   speed:  0.006  },
-    { r: 0.6, t: 0.028, col: 0xf5a623, rx:-Math.PI/3,   speed: -0.011  },
+    { r: 2.4,  t: 0.055, base: 0x1a2e3a, emit: 0x003344, rx: 0,          speed:  0.0025 },
+    { r: 2.4,  t: 0.035, base: 0x1a2040, emit: 0x001133, rx: Math.PI/2,  speed: -0.003  },
+    { r: 1.25, t: 0.04,  base: 0x14102a, emit: 0x120820, rx: Math.PI/4,  speed:  0.006  },
+    { r: 0.6,  t: 0.028, base: 0x201408, emit: 0x1a0c00, rx:-Math.PI/3,  speed: -0.011  },
   ].forEach(c => {
-    const mat = new THREE.MeshBasicMaterial({ color: c.col, blending: ADD, transparent: true, opacity: 0.9 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(c.r, c.t, 18, 120), mat);
+    /* metallic ring — MeshStandardMaterial with high metalness */
+    const mat = new THREE.MeshStandardMaterial({
+      color: c.base,
+      metalness: 0.96,
+      roughness: 0.04,
+      emissive: c.emit,
+      emissiveIntensity: 1,
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(c.r, c.t, 32, 160), mat);
     ring.rotation.x = c.rx; ring.userData.speed = c.speed;
     scene.add(ring); rings.push(ring);
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(c.r, c.t*5, 18, 120),
-      new THREE.MeshBasicMaterial({ color: c.col, blending: ADD, transparent: true, opacity: 0.055 }));
+    /* atmospheric glow halo — keep additive blending for neon feel */
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(c.r, c.t * 6, 18, 120),
+      new THREE.MeshBasicMaterial({ color: 0x00aaff, blending: ADD, transparent: true, opacity: 0.04 }));
     halo.rotation.copy(ring.rotation); halo.userData.follower = ring;
     scene.add(halo); rings.push(halo);
   });
@@ -152,6 +171,11 @@
   let t = 0;
   (function tick() {
     requestAnimationFrame(tick); t += 0.01;
+    /* orbit lights for metallic sweep */
+    orbLights.forEach(o => {
+      o.angle += o.speed;
+      o.lt.position.set(Math.cos(o.angle)*o.r, o.y, Math.sin(o.angle)*o.r);
+    });
     rings.forEach(r => {
       if (r.userData.speed) r.rotation.z += r.userData.speed;
       if (r.userData.follower) r.rotation.copy(r.userData.follower.rotation);

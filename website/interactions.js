@@ -1,14 +1,22 @@
 /* ToTra interactive UI behaviors */
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── 1. SCROLL PROGRESS BAR ── */
-  const bar = document.createElement('div');
-  bar.id = 'scroll-bar';
-  document.body.prepend(bar);
-  window.addEventListener('scroll', () => {
+  /* ── 1. VERTICAL SCROLL INDICATOR ── */
+  const track = document.createElement('div');
+  track.id = 'scroll-track';
+  document.body.appendChild(track);
+  const dot = document.createElement('div');
+  dot.id = 'scroll-dot';
+  document.body.appendChild(dot);
+  function updateScrollDot() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
-    bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + '%';
-  }, { passive: true });
+    const progress = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+    const trackH = window.innerHeight * 0.6;
+    const trackTop = window.innerHeight * 0.2;
+    dot.style.top = (trackTop + progress * trackH) + 'px';
+  }
+  updateScrollDot();
+  window.addEventListener('scroll', updateScrollDot, { passive: true });
 
   /* ── 2. ANIMATED NUMBER COUNTERS ── */
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);

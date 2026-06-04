@@ -40,17 +40,53 @@
   will-change: transform;
 }
 
-/* ── Scroll progress bar ── */
-#scroll-bar {
+/* ── Vertical scroll indicator ── */
+#scroll-track {
   position: fixed;
-  top: 0;
-  left: 0;
-  height: 2px;
-  width: 0%;
-  background: var(--cyan);
-  z-index: 999;
-  transition: width 0.1s linear;
-  box-shadow: 0 0 8px var(--cyan);
+  right: 28px;
+  top: 20vh;
+  height: 60vh;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0,212,255,0.25) 20%,
+    rgba(0,212,255,0.35) 50%,
+    rgba(0,212,255,0.25) 80%,
+    transparent 100%
+  );
+  z-index: 500;
+  pointer-events: none;
+}
+
+#scroll-dot {
+  position: fixed;
+  right: 18px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  z-index: 501;
+  pointer-events: none;
+  /* cyberpunk metallic sphere */
+  background: radial-gradient(
+    circle at 38% 32%,
+    #e8f8ff 0%,
+    #aae8ff 10%,
+    #00d4ff 28%,
+    #006680 52%,
+    #001824 75%,
+    #00080f 100%
+  );
+  box-shadow:
+    0 0 6px rgba(0,212,255,0.9),
+    0 0 16px rgba(0,212,255,0.5),
+    0 0 32px rgba(0,212,255,0.2),
+    inset 0 1px 3px rgba(255,255,255,0.55),
+    inset 1px 0 2px rgba(180,240,255,0.3),
+    inset 0 -1px 3px rgba(0,0,0,0.85);
+  border: 1px solid rgba(0,212,255,0.65);
+  transition: top 0.08s linear;
 }
 
 /* ── Typewriter cursor ── */
