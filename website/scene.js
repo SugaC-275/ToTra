@@ -24,87 +24,94 @@
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
   scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x1e3a5a, size: 0.07 })));
 
-  /* ── RINGS — three tiers, large-medium-inner ── */
-  const rings = [];
-  const addRing = (r, t, col, speed, glowOp, rx = 0) => {
-    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 28, 200),
-      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.82 }));
-    m.rotation.x = rx; m.userData.speed = speed; scene.add(m); rings.push(m);
-    const g = new THREE.Mesh(new THREE.TorusGeometry(r, t * 10, 16, 100),
-      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: glowOp }));
-    g.rotation.x = rx; g.userData.speed = speed; scene.add(g); rings.push(g);
-  };
+  /* ── ANIMATED DOT RINGS — no solid torus, pure point-wave ── */
+  const animatables = [];
 
-  /* Tier 1 — grand architectural orbit, fills viewport */
-  addRing(4.4, 0.007, 0x00d4ff, 0.0003, 0.018);
-  /* small dot markers on grand orbit */
-  {
-    const n = 72, r = 4.4, p = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      p[i*3] = Math.cos(a) * r; p[i*3+1] = Math.sin(a) * r;
-    }
-    const dg = new THREE.BufferGeometry();
-    dg.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    const dm = new THREE.Points(dg, new THREE.PointsMaterial({
-      color: 0x00d4ff, size: 0.06, blending: ADD, transparent: true, opacity: 0.50
+  /* makeDotRing: every dot computes its own (x,y,z) each frame via wave math */
+  function makeDotRing(r, count, col, baseRot, phase, rx, size) {
+    const cur = new Float32Array(count * 3);
+    const geo = new THREE.BufferGeometry();
+    const attr = new THREE.BufferAttribute(cur, 3);
+    geo.setAttribute('position', attr);
+    const m = new THREE.Points(geo, new THREE.PointsMaterial({
+      color: col, size, blending: ADD, transparent: true, opacity: 0.72, sizeAttenuation: true
     }));
-    dm.userData.speed = 0.0003; scene.add(dm); rings.push(dm);
+    if (rx) m.rotation.x = rx;
+    scene.add(m);
+    let ang = 0;
+    animatables.push({
+      update(t, boost) {
+        ang += baseRot * boost;
+        for (let i = 0; i < count; i++) {
+          const a  = (i / count) * Math.PI * 2 + ang;
+          const w  = 1 + Math.sin(a * 6 - t * 2.0 + phase) * 0.06;
+          const rr = r * w;
+          cur[i*3]   = Math.cos(a) * rr;
+          cur[i*3+1] = Math.sin(a) * rr;
+          cur[i*3+2] = Math.sin(a * 4 - t * 1.6 + phase) * r * 0.10;
+        }
+        attr.needsUpdate = true;
+      }
+    });
   }
 
-  /* Tier 2 — main double ring, the visual anchor */
-  addRing(2.72, 0.022, 0x00d4ff,  0.0007, 0.060);   // bold main
-  addRing(2.56, 0.009, 0x55ccff, -0.0006, 0.028);   // thin companion
+  makeDotRing(4.40, 300, 0x00d4ff, 0.00045, 0.00, 0,    0.048); // outer grand
+  makeDotRing(2.72, 210, 0x00d4ff, 0.00075, 1.05, 0,    0.056); // main
+  makeDotRing(2.54, 160, 0x44ccff,-0.00060, 2.10, 0,    0.042); // companion
+  makeDotRing(1.98, 145, 0x9944ff, 0.00105, 3.14, 0.20, 0.050); // inner violet tilted
 
-  /* Tier 3 — inner violet, 12° tilt for 3-D depth */
-  addRing(1.98, 0.013, 0x9944ff, 0.0011, 0.040, 0.21);
-
-  /* ── CORE — point-cloud sphere + rings ── */
+  /* ── CORE — high-density Fibonacci sphere with breathing pulse ── */
   const core = new THREE.Group();
   scene.add(core);
-
-  /* Fibonacci point cloud sphere */
   {
-    const count = 130, r = 1.02;
-    const pos = new Float32Array(count * 3);
-    const phi = Math.PI * (3 - Math.sqrt(5));
+    const count = 320, r = 1.02;
+    const orig = new Float32Array(count * 3);
+    const cur  = new Float32Array(count * 3);
+    const phi  = Math.PI * (3 - Math.sqrt(5));
     for (let i = 0; i < count; i++) {
-      const y = 1 - (i / (count - 1)) * 2;
+      const y   = 1 - (i / (count - 1)) * 2;
       const rad = Math.sqrt(Math.max(0, 1 - y * y)) * r;
-      const theta = phi * i;
-      pos[i*3] = Math.cos(theta) * rad;
-      pos[i*3+1] = y * r;
-      pos[i*3+2] = Math.sin(theta) * rad;
+      const th  = phi * i;
+      orig[i*3] = cur[i*3] = Math.cos(th) * rad;
+      orig[i*3+1] = cur[i*3+1] = y * r;
+      orig[i*3+2] = cur[i*3+2] = Math.sin(th) * rad;
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const geo  = new THREE.BufferGeometry();
+    const attr = new THREE.BufferAttribute(cur, 3);
+    geo.setAttribute('position', attr);
     core.add(new THREE.Points(geo, new THREE.PointsMaterial({
-      color: 0x00eeff, size: 0.052, blending: ADD, transparent: true, opacity: 0.78
+      color: 0x00eeff, size: 0.048, blending: ADD, transparent: true, opacity: 0.80
     })));
-    /* faint structural edges beneath the dots */
-    const icoG = new THREE.IcosahedronGeometry(0.98, 1);
-    core.add(new THREE.LineSegments(new THREE.EdgesGeometry(icoG),
-      new THREE.LineBasicMaterial({ color: 0x002233, transparent: true, opacity: 0.22 })));
-    /* dark fill */
-    core.add(new THREE.Mesh(icoG.clone(),
+    /* dark fill for depth */
+    core.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.90, 1),
       new THREE.MeshBasicMaterial({ color: 0x000b18, transparent: true, opacity: 0.55 })));
+    /* per-dot breathing pulse — each dot radiates at its own phase */
+    animatables.push({
+      update(t) {
+        for (let i = 0; i < count; i++) {
+          const pulse = 1 + Math.sin(t * 1.8 + i * 0.082) * 0.044;
+          cur[i*3]   = orig[i*3]   * pulse;
+          cur[i*3+1] = orig[i*3+1] * pulse;
+          cur[i*3+2] = orig[i*3+2] * pulse;
+        }
+        attr.needsUpdate = true;
+      }
+    });
   }
 
-  /* Equatorial magenta ring */
+  /* Core accent — equatorial magenta ring */
   const eqRing = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.013, 14, 90),
     new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.9 }));
   const eqGlow = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.058, 14, 90),
     new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.07 }));
   eqRing.rotation.x = Math.PI / 2; eqGlow.rotation.x = Math.PI / 2;
   core.add(eqRing, eqGlow);
-
-  /* Tilted yellow accent ring */
+  /* tilted yellow ring */
   const secRing = new THREE.Mesh(new THREE.TorusGeometry(0.70, 0.009, 14, 90),
     new THREE.MeshBasicMaterial({ color: 0xffee00, blending: ADD, transparent: true, opacity: 0.75 }));
   secRing.rotation.set(Math.PI / 4, 0, Math.PI / 6);
   core.add(secRing);
-
-  /* Central orb */
+  /* central orb */
   const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x88ffff, blending: ADD, transparent: true, opacity: 0.9 }));
   const orbGlow = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 16),
@@ -223,18 +230,17 @@
   let t = 0;
   (function tick() {
     requestAnimationFrame(tick); t += 0.01;
-    /* outer rings spin (boost on scroll) */
+    /* dot rings + sphere pulse */
     const spinBoost = 1 + Math.pow(Math.max(0, scrollProgress - 0.25) / 0.75, 1.5) * 28;
-    rings.forEach(r => { if (r.userData.speed) r.rotation.z += r.userData.speed * spinBoost; });
-    /* core — self-rotation + scroll-driven Y reveal */
+    animatables.forEach(a => a.update(t, spinBoost));
+    /* core group — self-rotation + scroll Y reveal */
     core.rotation.x += 0.005;
     core.rotation.z += 0.003;
-    core.rotation.y = scrollProgress * Math.PI * 2.8;  // full revolution on scroll
+    core.rotation.y = scrollProgress * Math.PI * 2.8;
     /* orb pulse */
-    orb.material.opacity = 0.75 + Math.sin(t * 3.5) * 0.2;
+    orb.material.opacity     = 0.75 + Math.sin(t * 3.5) * 0.20;
     orbGlow.material.opacity = 0.05 + Math.sin(t * 3.5) * 0.025;
-    /* secondary ring spin */
-    secRing.rotation.z += 0.012 * spinBoost;
+    secRing.rotation.z += 0.009 * spinBoost;
     nodes.forEach((n, i) => {
       n.angle += n.speed;
       n.g.position.x = Math.cos(n.angle)*n.dist;
