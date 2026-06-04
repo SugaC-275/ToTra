@@ -32,12 +32,6 @@
 
 ---
 
-<p align="center">
-  <img alt="ToTra Admin Dashboard" src="docs/assets/02-dashboard.png" width="80%">
-</p>
-
----
-
 ## What is ToTra
 
 ToTra is an open-source AI gateway and governance platform that sits in front of any LLM provider.
@@ -49,6 +43,35 @@ Point your existing apps at ToTra instead of OpenAI, Anthropic, or any other pro
 - **Cost tracking** — per-user, per-team, per-model token and USD spend with chargeback reports
 - **Compliance** — GDPR workflows, EU AI Act checklist, hash-chained immutable audit log
 - **Zero code changes** — 100% OpenAI-compatible; swap one line in your config
+
+```mermaid
+flowchart LR
+    A["🖥️ Your App\n(OpenAI SDK / curl\n/ LangChain)"] -->|"1 · API request"| B
+
+    subgraph B["ToTra Gateway  :8080"]
+        direction TB
+        B1["🔑 Auth & API Key"]
+        B2["📊 Quota Check\n(per user / team)"]
+        B3["🔒 PII Scan\n(18 languages)"]
+        B4["⚡ Semantic Cache"]
+        B5["🔀 Route & Load Balance"]
+        B1 --> B2 --> B3 --> B4 --> B5
+    end
+
+    B -->|"2 · forward request"| C["☁️ LLM Providers\nOpenAI · Anthropic\nGemini · Mistral · Azure\nBedrock · Ollama"]
+    C -->|"3 · response"| A
+
+    B -->|"4 · usage events"| D
+
+    subgraph D["ToTra Admin  :8081"]
+        direction TB
+        D1["💸 Cost Tracking"]
+        D2["📋 Compliance & Audit"]
+        D3["🔔 Budget Alerts"]
+    end
+
+    D --> E["📊 Dashboard  :3000\nAdmin Console · Reports\nEmployee Self-Service"]
+```
 
 ---
 
