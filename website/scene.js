@@ -23,9 +23,9 @@
   /* LIGHTS — three orbiting colored lights for metallic reflections */
   scene.add(new THREE.AmbientLight(0x0a0a1a, 1.2));
   const orbLights = [
-    { lt: new THREE.PointLight(0x00d4ff, 6, 28), r: 8,  y:  3,  angle: 0,    speed:  0.008 },
-    { lt: new THREE.PointLight(0x7c6cfc, 4, 22), r: 6,  y: -2,  angle: 2.09, speed: -0.005 },
-    { lt: new THREE.PointLight(0xf5a623, 3, 20), r: 7,  y:  0.5,angle: 4.19, speed:  0.004 },
+    { lt: new THREE.PointLight(0xfff0cc, 7, 28), r: 8,  y:  3,  angle: 0,    speed:  0.008 },  // warm white — gold highlight
+    { lt: new THREE.PointLight(0x88ccff, 4, 22), r: 6,  y: -2,  angle: 2.09, speed: -0.005 },  // cool blue — chrome gleam
+    { lt: new THREE.PointLight(0xf5a000, 4, 20), r: 7,  y:  0.5,angle: 4.19, speed:  0.004 },  // amber — deep gold sheen
   ];
   orbLights.forEach(o => scene.add(o.lt));
 
@@ -36,31 +36,48 @@
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
   scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x1e3a5a, size: 0.07 })));
 
-  /* RINGS */
+  /* EMBLEM — chrome outer + gold inner rings + ⊤ ⊥ T-shapes (正T 反T) */
   const rings = [];
-  [
-    { r: 2.4,  t: 0.055, base: 0x1a2e3a, emit: 0x003344, rx: 0,          speed:  0.0025 },
-    { r: 2.4,  t: 0.035, base: 0x1a2040, emit: 0x001133, rx: Math.PI/2,  speed: -0.003  },
-    { r: 1.25, t: 0.04,  base: 0x14102a, emit: 0x120820, rx: Math.PI/4,  speed:  0.006  },
-    { r: 0.6,  t: 0.028, base: 0x201408, emit: 0x1a0c00, rx:-Math.PI/3,  speed: -0.011  },
-  ].forEach(c => {
-    /* metallic ring — MeshStandardMaterial with high metalness */
-    const mat = new THREE.MeshStandardMaterial({
-      color: c.base,
-      metalness: 0.96,
-      roughness: 0.04,
-      emissive: c.emit,
-      emissiveIntensity: 1,
-    });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(c.r, c.t, 32, 160), mat);
-    ring.rotation.x = c.rx; ring.userData.speed = c.speed;
-    scene.add(ring); rings.push(ring);
-    /* atmospheric glow halo — keep additive blending for neon feel */
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(c.r, c.t * 6, 18, 120),
-      new THREE.MeshBasicMaterial({ color: 0x00aaff, blending: ADD, transparent: true, opacity: 0.04 }));
-    halo.rotation.copy(ring.rotation); halo.userData.follower = ring;
-    scene.add(halo); rings.push(halo);
-  });
+
+  const mkStd = (col, emit, rough = 0.035) =>
+    new THREE.MeshStandardMaterial({ color: col, metalness: 0.97, roughness: rough, emissive: emit, emissiveIntensity: 0.9 });
+
+  const chromeMat = mkStd(0x0c1520, 0x001830);  // cool silver-chrome
+  const goldMat   = mkStd(0x1a0c00, 0x0e0600);  // warm dark gold base
+
+  /* helper — torus ring with matching glow halo */
+  const addRing = (r, t, mat, speed, glowCol, glowOp = 0.04) => {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 40, 200), mat);
+    m.userData.speed = speed;
+    scene.add(m); rings.push(m);
+    const h = new THREE.Mesh(new THREE.TorusGeometry(r, t * 5, 18, 120),
+      new THREE.MeshBasicMaterial({ color: glowCol, blending: ADD, transparent: true, opacity: glowOp }));
+    h.userData.speed = speed;
+    scene.add(h); rings.push(h);
+  };
+
+  addRing(2.42, 0.062, chromeMat,  0.0007,  0x0055aa, 0.03);  // outer chrome
+  addRing(2.06, 0.025, goldMat,   -0.0014,  0x884400, 0.025); // thin gold separator
+  addRing(1.72, 0.056, goldMat,    0.0011,  0xaa6600, 0.035); // inner gold
+
+  /* ⊤ upright T  and  ⊥ inverted T — both gold metallic */
+  const buildT = (inverted) => {
+    const g = new THREE.Group();
+    // Horizontal bar — at top for ⊤, at bottom for ⊥
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.105, 0.062), goldMat);
+    bar.position.y = inverted ? -0.765 : 0.765;
+    // Vertical stem — always centered Y=0, fills between bar and opposite end
+    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.105, 1.42, 0.062), goldMat);
+    stem.position.y = 0;
+    g.add(bar, stem);
+    return g;
+  };
+
+  const tUp = buildT(false);   // ⊤  left side
+  const tDn = buildT(true);    // ⊥  right side
+  tUp.position.x = -0.50;
+  tDn.position.x =  0.50;
+  scene.add(tUp, tDn);
 
   /* NODES */
   const LABELS = ['GPT-4o','Claude','Gemini','Llama','Mistral','Cohere'];
