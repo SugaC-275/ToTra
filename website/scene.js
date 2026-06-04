@@ -11,23 +11,11 @@
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 2.4;
-
   const ADD = THREE.AdditiveBlending;
   const mouse = { x: 0, y: 0 };
   const raycaster = new THREE.Raycaster();
   const mouseNDC = new THREE.Vector2();
   let hoveredNode = -1;
-
-  /* LIGHTS — three orbiting colored lights for metallic reflections */
-  scene.add(new THREE.AmbientLight(0x334455, 1.8));
-  const orbLights = [
-    { lt: new THREE.PointLight(0xfff8e8,  9, 18), r: 4.5, y:  2.5, angle: 0,    speed:  0.008 },
-    { lt: new THREE.PointLight(0xc8e8ff,  6, 14), r: 3.5, y: -1.5, angle: 2.09, speed: -0.005 },
-    { lt: new THREE.PointLight(0xffaa22,  7, 16), r: 4.0, y:  0.8, angle: 4.19, speed:  0.004 },
-  ];
-  orbLights.forEach(o => scene.add(o.lt));
 
   /* STARFIELD */
   const sPos = new Float32Array(2000 * 3);
@@ -36,50 +24,56 @@
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
   scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x1e3a5a, size: 0.07 })));
 
-  /* EMBLEM — chrome outer + gold inner rings + ⊤ ⊥ T-shapes (正T 反T) */
+  /* ── NEON RINGS ── */
   const rings = [];
-
-  const mkStd = (col, metal, rough, emit, emitInt = 0.25) =>
-    new THREE.MeshStandardMaterial({ color: col, metalness: metal, roughness: rough, emissive: emit, emissiveIntensity: emitInt });
-
-  // Chrome: actual silver-white base, high metal, low rough
-  const chromeMat = mkStd(0x9aaabb, 0.88, 0.12, 0x0a1520, 0.2);
-  // Gold: actual warm-gold base, moderate metal + roughness so color shows through
-  const goldMat   = mkStd(0xc49a10, 0.70, 0.25, 0x4a2800, 0.3);
-
-  /* helper — torus ring with matching glow halo */
-  const addRing = (r, t, mat, speed, glowCol, glowOp = 0.04) => {
-    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 40, 200), mat);
-    m.userData.speed = speed;
-    scene.add(m); rings.push(m);
-    const h = new THREE.Mesh(new THREE.TorusGeometry(r, t * 5, 18, 120),
-      new THREE.MeshBasicMaterial({ color: glowCol, blending: ADD, transparent: true, opacity: glowOp }));
-    h.userData.speed = speed;
-    scene.add(h); rings.push(h);
+  const neonRing = (r, t, col, speed, glowOp = 0.045) => {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 24, 160),
+      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.85 }));
+    m.userData.speed = speed; scene.add(m); rings.push(m);
+    const g = new THREE.Mesh(new THREE.TorusGeometry(r, t * 7, 16, 100),
+      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: glowOp }));
+    g.userData.speed = speed; scene.add(g); rings.push(g);
   };
+  neonRing(2.55, 0.010, 0x00d4ff,  0.0006, 0.035); // outer cyan
+  neonRing(2.18, 0.007, 0x00d4ff, -0.0010, 0.025); // mid cyan (thin)
+  neonRing(1.82, 0.010, 0x8855ff,  0.0008, 0.040); // inner violet
 
-  addRing(2.42, 0.060, chromeMat,  0.0007,  0x336699, 0.022); // outer chrome
-  addRing(2.06, 0.022, goldMat,   -0.0014,  0xaa7700, 0.018); // thin gold separator
-  addRing(1.72, 0.054, goldMat,    0.0011,  0xcc8800, 0.025); // inner gold
+  /* ── CYBERPUNK CORE (scroll-rotates on Y) ── */
+  const core = new THREE.Group();
+  scene.add(core);
 
-  /* ⊤ upright T  and  ⊥ inverted T — both gold metallic */
-  const buildT = (inverted) => {
-    const g = new THREE.Group();
-    // Horizontal bar — at top for ⊤, at bottom for ⊥
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.105, 0.062), goldMat);
-    bar.position.y = inverted ? -0.765 : 0.765;
-    // Vertical stem — always centered Y=0, fills between bar and opposite end
-    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.105, 1.42, 0.062), goldMat);
-    stem.position.y = 0;
-    g.add(bar, stem);
-    return g;
-  };
+  // Wireframe icosahedron — the gateway lattice
+  const icoGeo = new THREE.IcosahedronGeometry(1.0, 1);
+  const wireLine = new THREE.LineSegments(
+    new THREE.EdgesGeometry(icoGeo),
+    new THREE.LineBasicMaterial({ color: 0x00eeff, transparent: true, opacity: 0.75 })
+  );
+  core.add(wireLine);
 
-  const tUp = buildT(false);   // ⊤  left side
-  const tDn = buildT(true);    // ⊥  right side
-  tUp.position.x = -0.50;
-  tDn.position.x =  0.50;
-  scene.add(tUp, tDn);
+  // Dark solid fill for depth
+  core.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.96, 1),
+    new THREE.MeshBasicMaterial({ color: 0x000a14, transparent: true, opacity: 0.55 })));
+
+  // Equatorial magenta ring
+  const eqRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.013, 14, 90),
+    new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.9 }));
+  const eqGlow = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.055, 14, 90),
+    new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.07 }));
+  eqRing.rotation.x = Math.PI / 2; eqGlow.rotation.x = Math.PI / 2;
+  core.add(eqRing, eqGlow);
+
+  // Tilted secondary ring — electric yellow
+  const secRing = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.009, 14, 90),
+    new THREE.MeshBasicMaterial({ color: 0xffee00, blending: ADD, transparent: true, opacity: 0.75 }));
+  secRing.rotation.set(Math.PI / 4, 0, Math.PI / 6);
+  core.add(secRing);
+
+  // Central energy orb
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0x88ffff, blending: ADD, transparent: true, opacity: 0.9 }));
+  const orbGlow = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0x00aaff, blending: ADD, transparent: true, opacity: 0.07 }));
+  core.add(orb, orbGlow);
 
   /* NODES */
   const LABELS = ['GPT-4o','Claude','Gemini','Llama','Mistral','Cohere'];
@@ -193,17 +187,18 @@
   let t = 0;
   (function tick() {
     requestAnimationFrame(tick); t += 0.01;
-    /* orbit lights for metallic sweep */
-    orbLights.forEach(o => {
-      o.angle += o.speed;
-      o.lt.position.set(Math.cos(o.angle)*o.r, o.y, Math.sin(o.angle)*o.r);
-    });
-    /* scroll-driven spin boost — ramps from 1× to 30× as user scrolls through hero */
-    const spinBoost = 1 + Math.pow(Math.max(0, scrollProgress - 0.25) / 0.75, 1.5) * 29;
-    rings.forEach(r => {
-      if (r.userData.speed) r.rotation.z += r.userData.speed * spinBoost;
-      if (r.userData.follower) r.rotation.copy(r.userData.follower.rotation);
-    });
+    /* outer rings spin (boost on scroll) */
+    const spinBoost = 1 + Math.pow(Math.max(0, scrollProgress - 0.25) / 0.75, 1.5) * 28;
+    rings.forEach(r => { if (r.userData.speed) r.rotation.z += r.userData.speed * spinBoost; });
+    /* core — self-rotation + scroll-driven Y reveal */
+    core.rotation.x += 0.005;
+    core.rotation.z += 0.003;
+    core.rotation.y = scrollProgress * Math.PI * 2.8;  // full revolution on scroll
+    /* orb pulse */
+    orb.material.opacity = 0.75 + Math.sin(t * 3.5) * 0.2;
+    orbGlow.material.opacity = 0.05 + Math.sin(t * 3.5) * 0.025;
+    /* secondary ring spin */
+    secRing.rotation.z += 0.012 * spinBoost;
     nodes.forEach((n, i) => {
       n.angle += n.speed;
       n.g.position.x = Math.cos(n.angle)*n.dist;
