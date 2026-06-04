@@ -2,7 +2,7 @@
 
 /* ── Hero scroll wrapper (sticky effect) ── */
 #hero-wrapper {
-  height: 280vh;
+  height: 180vh;
   position: relative;
 }
 #hero {
@@ -71,31 +71,15 @@
 
 #scroll-dot {
   position: fixed;
-  right: 10px;
+  right: 17px;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   z-index: 501;
   pointer-events: none;
-  /* cyberpunk metallic sphere */
-  background: radial-gradient(
-    circle at 38% 32%,
-    #e8f8ff 0%,
-    #aae8ff 10%,
-    #00d4ff 28%,
-    #006680 52%,
-    #001824 75%,
-    #00080f 100%
-  );
-  box-shadow:
-    0 0 6px rgba(0,212,255,0.9),
-    0 0 16px rgba(0,212,255,0.5),
-    0 0 32px rgba(0,212,255,0.2),
-    inset 0 1px 3px rgba(255,255,255,0.55),
-    inset 1px 0 2px rgba(180,240,255,0.3),
-    inset 0 -1px 3px rgba(0,0,0,0.85);
-  border: 1px solid rgba(0,212,255,0.65);
+  background: var(--cyan);
+  box-shadow: 0 0 6px rgba(0,212,255,0.9), 0 0 14px rgba(0,212,255,0.4);
   transition: top 0.1s linear;
 }
 
