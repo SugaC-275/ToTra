@@ -19,8 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const globalP = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
 
-    /* dot moves top→bottom of viewport */
-    dot.style.top = (globalP * window.innerHeight) + 'px';
+    /* dot slides along right-side track (15vh to 85vh) */
+    const trackTop = window.innerHeight * 0.15;
+    const trackH   = window.innerHeight * 0.70;
+    dot.style.top = (trackTop + globalP * trackH) + 'px';
 
     /* hero-wrapper scroll progress (0 = top, 1 = end of wrapper) */
     if (heroWrapper) {

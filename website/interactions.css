@@ -50,20 +50,19 @@
   will-change: transform;
 }
 
-/* ── Vertical center scroll indicator ── */
+/* ── Vertical right-side scroll indicator ── */
 #scroll-track {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 0;
-  height: 100vh;
+  right: 20px;
+  top: 15vh;
+  height: 70vh;
   width: 1px;
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0,212,255,0.12) 15%,
-    rgba(0,212,255,0.18) 50%,
-    rgba(0,212,255,0.12) 85%,
+    rgba(0,212,255,0.22) 20%,
+    rgba(0,212,255,0.28) 50%,
+    rgba(0,212,255,0.22) 80%,
     transparent 100%
   );
   z-index: 500;
@@ -72,8 +71,8 @@
 
 #scroll-dot {
   position: fixed;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  right: 10px;
+  transform: translateY(-50%);
   width: 20px;
   height: 20px;
   border-radius: 50%;

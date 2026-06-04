@@ -21,11 +21,11 @@
   let hoveredNode = -1;
 
   /* LIGHTS — three orbiting colored lights for metallic reflections */
-  scene.add(new THREE.AmbientLight(0x112233, 2.0));
+  scene.add(new THREE.AmbientLight(0x334455, 1.8));
   const orbLights = [
-    { lt: new THREE.PointLight(0xfff4dd, 14, 32), r: 8,  y:  3,  angle: 0,    speed:  0.008 },  // warm white — gold highlight
-    { lt: new THREE.PointLight(0x99ddff,  8, 26), r: 6,  y: -2,  angle: 2.09, speed: -0.005 },  // cool blue — chrome gleam
-    { lt: new THREE.PointLight(0xff9900,  9, 24), r: 7,  y:  0.5,angle: 4.19, speed:  0.004 },  // amber — deep gold sheen
+    { lt: new THREE.PointLight(0xfff8e8,  9, 18), r: 4.5, y:  2.5, angle: 0,    speed:  0.008 },
+    { lt: new THREE.PointLight(0xc8e8ff,  6, 14), r: 3.5, y: -1.5, angle: 2.09, speed: -0.005 },
+    { lt: new THREE.PointLight(0xffaa22,  7, 16), r: 4.0, y:  0.8, angle: 4.19, speed:  0.004 },
   ];
   orbLights.forEach(o => scene.add(o.lt));
 
@@ -39,11 +39,13 @@
   /* EMBLEM — chrome outer + gold inner rings + ⊤ ⊥ T-shapes (正T 反T) */
   const rings = [];
 
-  const mkStd = (col, emit, rough = 0.035) =>
-    new THREE.MeshStandardMaterial({ color: col, metalness: 0.97, roughness: rough, emissive: emit, emissiveIntensity: 0.9 });
+  const mkStd = (col, metal, rough, emit, emitInt = 0.25) =>
+    new THREE.MeshStandardMaterial({ color: col, metalness: metal, roughness: rough, emissive: emit, emissiveIntensity: emitInt });
 
-  const chromeMat = mkStd(0x1a2e40, 0x003366);  // cool silver-chrome
-  const goldMat   = mkStd(0x3a1e00, 0x281200);  // warm dark gold base
+  // Chrome: actual silver-white base, high metal, low rough
+  const chromeMat = mkStd(0x9aaabb, 0.88, 0.12, 0x0a1520, 0.2);
+  // Gold: actual warm-gold base, moderate metal + roughness so color shows through
+  const goldMat   = mkStd(0xc49a10, 0.70, 0.25, 0x4a2800, 0.3);
 
   /* helper — torus ring with matching glow halo */
   const addRing = (r, t, mat, speed, glowCol, glowOp = 0.04) => {
@@ -56,9 +58,9 @@
     scene.add(h); rings.push(h);
   };
 
-  addRing(2.42, 0.062, chromeMat,  0.0007,  0x0055aa, 0.03);  // outer chrome
-  addRing(2.06, 0.025, goldMat,   -0.0014,  0x884400, 0.025); // thin gold separator
-  addRing(1.72, 0.056, goldMat,    0.0011,  0xaa6600, 0.035); // inner gold
+  addRing(2.42, 0.060, chromeMat,  0.0007,  0x336699, 0.022); // outer chrome
+  addRing(2.06, 0.022, goldMat,   -0.0014,  0xaa7700, 0.018); // thin gold separator
+  addRing(1.72, 0.054, goldMat,    0.0011,  0xcc8800, 0.025); // inner gold
 
   /* ⊤ upright T  and  ⊥ inverted T — both gold metallic */
   const buildT = (inverted) => {
@@ -87,10 +89,10 @@
     const angle = (i / COLORS.length) * Math.PI * 2, dist = 4.6;
     const g = new THREE.Group();
     g.position.set(Math.cos(angle)*dist, Math.sin(angle)*dist*0.48, (Math.random()-0.5)*1.8);
-    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.13,16,16),
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12),
       new THREE.MeshBasicMaterial({ color: col, blending: ADD }));
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.36,16,16),
-      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.14 }));
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10),
+      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.07 }));
     g.add(sphere); g.add(glow); scene.add(g);
     sphereMeshes.push(sphere);
     return { g, col, angle, dist, speed: 0.0013 + Math.random()*0.0009, glow, label: LABELS[i] };
@@ -100,7 +102,7 @@
   nodes.forEach(n => {
     const line = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), n.g.position.clone()]),
-      new THREE.LineBasicMaterial({ color: 0x0f2744, transparent: true, opacity: 0.55 }));
+      new THREE.LineBasicMaterial({ color: 0x0a1e33, transparent: true, opacity: 0.18 }));
     scene.add(line); n.line = line;
   });
 
@@ -210,7 +212,7 @@
       pos.setXYZ(1, n.g.position.x, n.g.position.y, n.g.position.z); pos.needsUpdate = true;
       const ts = i === hoveredNode ? 1.4 : 1+Math.sin(t*2.2+n.angle)*0.12;
       n.g.scale.lerp(new THREE.Vector3(ts,ts,ts), 0.12);
-      n.glow.material.opacity = i === hoveredNode ? 0.5 : 0.14;
+      n.glow.material.opacity = i === hoveredNode ? 0.35 : 0.07;
     });
     for (let i = particles.length-1; i >= 0; i--) {
       const p = particles[i];
