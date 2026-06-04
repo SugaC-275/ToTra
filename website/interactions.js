@@ -1,22 +1,50 @@
 /* ToTra interactive UI behaviors */
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── 1. VERTICAL SCROLL INDICATOR ── */
+  /* ── 1. CENTER VERTICAL SCROLL INDICATOR ── */
   const track = document.createElement('div');
   track.id = 'scroll-track';
   document.body.appendChild(track);
   const dot = document.createElement('div');
   dot.id = 'scroll-dot';
   document.body.appendChild(dot);
-  function updateScrollDot() {
+
+  /* ── HERO SCROLL ANIMATION ── */
+  const heroWrapper = document.getElementById('hero-wrapper');
+  const heroCanvas  = document.getElementById('c');
+  const heroBody    = document.querySelector('.hero-body');
+  const perfTag     = document.querySelector('.perf-tag');
+
+  function updateScroll() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
-    const trackH = window.innerHeight * 0.6;
-    const trackTop = window.innerHeight * 0.2;
-    dot.style.top = (trackTop + progress * trackH) + 'px';
+    const globalP = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+
+    /* dot moves top→bottom of viewport */
+    dot.style.top = (globalP * window.innerHeight) + 'px';
+
+    /* hero-wrapper scroll progress (0 = top, 1 = end of wrapper) */
+    if (heroWrapper) {
+      const wrapH = heroWrapper.offsetHeight - window.innerHeight;
+      const heroP = wrapH > 0 ? Math.min(window.scrollY / wrapH, 1) : 0;
+
+      /* pass to Three.js for spin-up */
+      window.sceneAPI?.setScrollProgress(heroP);
+
+      /* fade + scale canvas: starts at 55%, gone by 92% */
+      const fadeP = Math.max(0, Math.min(1, (heroP - 0.55) / 0.37));
+      if (heroCanvas) {
+        heroCanvas.style.opacity   = String(1 - fadeP);
+        heroCanvas.style.transform = `scale(${1 + fadeP * 0.65})`;
+      }
+      /* text fades faster: starts at 40%, gone by 72% */
+      const textP = Math.max(0, Math.min(1, (heroP - 0.40) / 0.32));
+      if (heroBody) heroBody.style.opacity = String(1 - textP);
+      if (perfTag)  perfTag.style.opacity  = String(1 - textP);
+    }
   }
-  updateScrollDot();
-  window.addEventListener('scroll', updateScrollDot, { passive: true });
+
+  updateScroll();
+  window.addEventListener('scroll', updateScroll, { passive: true });
 
   /* ── 2. ANIMATED NUMBER COUNTERS ── */
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);

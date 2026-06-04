@@ -12,7 +12,7 @@
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.4;
+  renderer.toneMappingExposure = 2.4;
 
   const ADD = THREE.AdditiveBlending;
   const mouse = { x: 0, y: 0 };
@@ -21,11 +21,11 @@
   let hoveredNode = -1;
 
   /* LIGHTS — three orbiting colored lights for metallic reflections */
-  scene.add(new THREE.AmbientLight(0x0a0a1a, 1.2));
+  scene.add(new THREE.AmbientLight(0x112233, 2.0));
   const orbLights = [
-    { lt: new THREE.PointLight(0xfff0cc, 7, 28), r: 8,  y:  3,  angle: 0,    speed:  0.008 },  // warm white — gold highlight
-    { lt: new THREE.PointLight(0x88ccff, 4, 22), r: 6,  y: -2,  angle: 2.09, speed: -0.005 },  // cool blue — chrome gleam
-    { lt: new THREE.PointLight(0xf5a000, 4, 20), r: 7,  y:  0.5,angle: 4.19, speed:  0.004 },  // amber — deep gold sheen
+    { lt: new THREE.PointLight(0xfff4dd, 14, 32), r: 8,  y:  3,  angle: 0,    speed:  0.008 },  // warm white — gold highlight
+    { lt: new THREE.PointLight(0x99ddff,  8, 26), r: 6,  y: -2,  angle: 2.09, speed: -0.005 },  // cool blue — chrome gleam
+    { lt: new THREE.PointLight(0xff9900,  9, 24), r: 7,  y:  0.5,angle: 4.19, speed:  0.004 },  // amber — deep gold sheen
   ];
   orbLights.forEach(o => scene.add(o.lt));
 
@@ -42,8 +42,8 @@
   const mkStd = (col, emit, rough = 0.035) =>
     new THREE.MeshStandardMaterial({ color: col, metalness: 0.97, roughness: rough, emissive: emit, emissiveIntensity: 0.9 });
 
-  const chromeMat = mkStd(0x0c1520, 0x001830);  // cool silver-chrome
-  const goldMat   = mkStd(0x1a0c00, 0x0e0600);  // warm dark gold base
+  const chromeMat = mkStd(0x1a2e40, 0x003366);  // cool silver-chrome
+  const goldMat   = mkStd(0x3a1e00, 0x281200);  // warm dark gold base
 
   /* helper — torus ring with matching glow halo */
   const addRing = (r, t, mat, speed, glowCol, glowOp = 0.04) => {
@@ -177,11 +177,14 @@
     } else { fireBurst(new THREE.Vector3(), 0x00d4ff); }
   });
 
+  let scrollProgress = 0;
+
   /* PUBLIC API */
   window.sceneAPI = {
     triggerBurst() { fireBurst(new THREE.Vector3(), 0x00d4ff); },
     onNodeHover: null,
-    get nodes() { return nodes.map((n,i) => ({ index:i, label:n.label, color:n.col })); }
+    get nodes() { return nodes.map((n,i) => ({ index:i, label:n.label, color:n.col })); },
+    setScrollProgress(p) { scrollProgress = p; },
   };
 
   /* LOOP */
@@ -193,8 +196,10 @@
       o.angle += o.speed;
       o.lt.position.set(Math.cos(o.angle)*o.r, o.y, Math.sin(o.angle)*o.r);
     });
+    /* scroll-driven spin boost — ramps from 1× to 30× as user scrolls through hero */
+    const spinBoost = 1 + Math.pow(Math.max(0, scrollProgress - 0.25) / 0.75, 1.5) * 29;
     rings.forEach(r => {
-      if (r.userData.speed) r.rotation.z += r.userData.speed;
+      if (r.userData.speed) r.rotation.z += r.userData.speed * spinBoost;
       if (r.userData.follower) r.rotation.copy(r.userData.follower.rotation);
     });
     nodes.forEach((n, i) => {
