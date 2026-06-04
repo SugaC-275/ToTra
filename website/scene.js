@@ -24,54 +24,90 @@
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
   scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x1e3a5a, size: 0.07 })));
 
-  /* ── NEON RINGS ── */
+  /* ── RINGS — three tiers, large-medium-inner ── */
   const rings = [];
-  const neonRing = (r, t, col, speed, glowOp = 0.045) => {
-    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 24, 160),
-      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.85 }));
-    m.userData.speed = speed; scene.add(m); rings.push(m);
-    const g = new THREE.Mesh(new THREE.TorusGeometry(r, t * 7, 16, 100),
+  const addRing = (r, t, col, speed, glowOp, rx = 0) => {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 28, 200),
+      new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: 0.82 }));
+    m.rotation.x = rx; m.userData.speed = speed; scene.add(m); rings.push(m);
+    const g = new THREE.Mesh(new THREE.TorusGeometry(r, t * 10, 16, 100),
       new THREE.MeshBasicMaterial({ color: col, blending: ADD, transparent: true, opacity: glowOp }));
-    g.userData.speed = speed; scene.add(g); rings.push(g);
+    g.rotation.x = rx; g.userData.speed = speed; scene.add(g); rings.push(g);
   };
-  neonRing(2.55, 0.010, 0x00d4ff,  0.0006, 0.035); // outer cyan
-  neonRing(2.18, 0.007, 0x00d4ff, -0.0010, 0.025); // mid cyan (thin)
-  neonRing(1.82, 0.010, 0x8855ff,  0.0008, 0.040); // inner violet
 
-  /* ── CYBERPUNK CORE (scroll-rotates on Y) ── */
+  /* Tier 1 — grand architectural orbit, fills viewport */
+  addRing(4.4, 0.007, 0x00d4ff, 0.0003, 0.018);
+  /* small dot markers on grand orbit */
+  {
+    const n = 72, r = 4.4, p = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      p[i*3] = Math.cos(a) * r; p[i*3+1] = Math.sin(a) * r;
+    }
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    const dm = new THREE.Points(dg, new THREE.PointsMaterial({
+      color: 0x00d4ff, size: 0.06, blending: ADD, transparent: true, opacity: 0.50
+    }));
+    dm.userData.speed = 0.0003; scene.add(dm); rings.push(dm);
+  }
+
+  /* Tier 2 — main double ring, the visual anchor */
+  addRing(2.72, 0.022, 0x00d4ff,  0.0007, 0.060);   // bold main
+  addRing(2.56, 0.009, 0x55ccff, -0.0006, 0.028);   // thin companion
+
+  /* Tier 3 — inner violet, 12° tilt for 3-D depth */
+  addRing(1.98, 0.013, 0x9944ff, 0.0011, 0.040, 0.21);
+
+  /* ── CORE — point-cloud sphere + rings ── */
   const core = new THREE.Group();
   scene.add(core);
 
-  // Wireframe icosahedron — the gateway lattice
-  const icoGeo = new THREE.IcosahedronGeometry(1.0, 1);
-  const wireLine = new THREE.LineSegments(
-    new THREE.EdgesGeometry(icoGeo),
-    new THREE.LineBasicMaterial({ color: 0x00eeff, transparent: true, opacity: 0.75 })
-  );
-  core.add(wireLine);
+  /* Fibonacci point cloud sphere */
+  {
+    const count = 130, r = 1.02;
+    const pos = new Float32Array(count * 3);
+    const phi = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < count; i++) {
+      const y = 1 - (i / (count - 1)) * 2;
+      const rad = Math.sqrt(Math.max(0, 1 - y * y)) * r;
+      const theta = phi * i;
+      pos[i*3] = Math.cos(theta) * rad;
+      pos[i*3+1] = y * r;
+      pos[i*3+2] = Math.sin(theta) * rad;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    core.add(new THREE.Points(geo, new THREE.PointsMaterial({
+      color: 0x00eeff, size: 0.052, blending: ADD, transparent: true, opacity: 0.78
+    })));
+    /* faint structural edges beneath the dots */
+    const icoG = new THREE.IcosahedronGeometry(0.98, 1);
+    core.add(new THREE.LineSegments(new THREE.EdgesGeometry(icoG),
+      new THREE.LineBasicMaterial({ color: 0x002233, transparent: true, opacity: 0.22 })));
+    /* dark fill */
+    core.add(new THREE.Mesh(icoG.clone(),
+      new THREE.MeshBasicMaterial({ color: 0x000b18, transparent: true, opacity: 0.55 })));
+  }
 
-  // Dark solid fill for depth
-  core.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.96, 1),
-    new THREE.MeshBasicMaterial({ color: 0x000a14, transparent: true, opacity: 0.55 })));
-
-  // Equatorial magenta ring
-  const eqRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.013, 14, 90),
+  /* Equatorial magenta ring */
+  const eqRing = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.013, 14, 90),
     new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.9 }));
-  const eqGlow = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.055, 14, 90),
+  const eqGlow = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.058, 14, 90),
     new THREE.MeshBasicMaterial({ color: 0xff00cc, blending: ADD, transparent: true, opacity: 0.07 }));
   eqRing.rotation.x = Math.PI / 2; eqGlow.rotation.x = Math.PI / 2;
   core.add(eqRing, eqGlow);
 
-  // Tilted secondary ring — electric yellow
-  const secRing = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.009, 14, 90),
+  /* Tilted yellow accent ring */
+  const secRing = new THREE.Mesh(new THREE.TorusGeometry(0.70, 0.009, 14, 90),
     new THREE.MeshBasicMaterial({ color: 0xffee00, blending: ADD, transparent: true, opacity: 0.75 }));
   secRing.rotation.set(Math.PI / 4, 0, Math.PI / 6);
   core.add(secRing);
 
-  // Central energy orb
+  /* Central orb */
   const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x88ffff, blending: ADD, transparent: true, opacity: 0.9 }));
-  const orbGlow = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16),
+  const orbGlow = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x00aaff, blending: ADD, transparent: true, opacity: 0.07 }));
   core.add(orb, orbGlow);
 
