@@ -98,3 +98,8 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
+
+/* ── Active nav link on scroll ── */
+.nav-links a.nav-active {
+  color: var(--cyan);
+}

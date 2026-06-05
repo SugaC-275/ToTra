@@ -650,6 +650,45 @@
 <script src="scene.js"></script>
 <script src="interactions.js"></script>
 <script>
+  (function () {
+    var sectionIds = ['features', 'usecases', 'how', 'architecture'];
+    var navLinks = {};
+    sectionIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var link = document.querySelector('.nav-links a[href="#' + id + '"]');
+      if (link) navLinks[id] = { section: el, link: link };
+    });
+
+    var visible = {};
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var id = entry.target.id;
+        if (entry.isIntersecting) {
+          visible[id] = entry.intersectionRatio;
+        } else {
+          delete visible[id];
+        }
+        var bestId = null, bestRatio = 0;
+        Object.keys(visible).forEach(function (k) {
+          if (visible[k] > bestRatio) { bestRatio = visible[k]; bestId = k; }
+        });
+        Object.keys(navLinks).forEach(function (k) {
+          if (k === bestId) {
+            navLinks[k].link.classList.add('nav-active');
+          } else {
+            navLinks[k].link.classList.remove('nav-active');
+          }
+        });
+      });
+    }, { threshold: 0.3 });
+
+    Object.keys(navLinks).forEach(function (id) {
+      observer.observe(navLinks[id].section);
+    });
+  })();
+</script>
+<script>
   const glow = document.getElementById('glow');
   document.addEventListener('mousemove', e => {
     glow.style.left = e.clientX + 'px';
