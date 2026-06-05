@@ -517,6 +517,84 @@ footer {
   text-transform: uppercase;
 }
 
+/* ── BENCHMARK CHART ── */
+.bench-section { background: var(--bg2); }
+
+.bench-chart {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.bench-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.bench-label {
+  flex: 0 0 160px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-family: 'Lexend', sans-serif;
+  font-weight: 400;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.bench-label--highlight {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+.bench-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.bench-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.2);
+  transition: width 0.8s ease-out;
+}
+
+.bench-bar--highlight {
+  background: var(--cyan);
+  box-shadow: 0 0 12px rgba(0,212,255,0.45);
+}
+
+.bench-value {
+  flex: 0 0 3.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+.bench-value--highlight {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+.bench-footnote {
+  margin-top: 1.75rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 800px) {
+  .bench-label { flex: 0 0 120px; font-size: 0.75rem; }
+  .bench-value { flex: 0 0 2.8rem; }
+}
+
 /* ── REVEAL ANIMATION ── */
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.65s ease, transform 0.65s ease; }
 .reveal.in { opacity: 1; transform: none; }
