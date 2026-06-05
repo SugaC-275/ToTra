@@ -113,6 +113,43 @@
   </div>
 </section>
 
+<!-- ── SCREENSHOTS ── -->
+<section id="screenshots" class="section bg2 screenshots-section">
+  <div class="container">
+    <p class="eyebrow reveal">Product</p>
+    <h2 class="h2 reveal">See it in action</h2>
+    <p class="lead reveal">From cost dashboards to per-user analytics — everything your team needs, in one clean admin UI.</p>
+    <div class="screenshots-grid reveal" style="transition-delay:.12s">
+      <figure class="screenshot-item" data-lightbox="../docs/assets/02-dashboard.png" data-caption="Admin Dashboard">
+        <img src="../docs/assets/02-dashboard.png" alt="Admin Dashboard — cost overview and statistics" loading="lazy">
+        <figcaption>Dashboard</figcaption>
+      </figure>
+      <figure class="screenshot-item" data-lightbox="../docs/assets/07-reports.png" data-caption="Department Reports">
+        <img src="../docs/assets/07-reports.png" alt="Department Reports" loading="lazy">
+        <figcaption>Reports</figcaption>
+      </figure>
+      <figure class="screenshot-item" data-lightbox="../docs/assets/04-users.png" data-caption="User Management">
+        <img src="../docs/assets/04-users.png" alt="User Management" loading="lazy">
+        <figcaption>Team Management</figcaption>
+      </figure>
+      <figure class="screenshot-item" data-lightbox="../docs/assets/08-myusage.png" data-caption="Employee Self-Service — My Usage">
+        <img src="../docs/assets/08-myusage.png" alt="Employee Self-Service — My Usage" loading="lazy">
+        <figcaption>My Usage</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ── LIGHTBOX ── -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+  <figure class="lightbox-figure">
+    <img class="lightbox-img" id="lightboxImg" src="" alt="">
+    <figcaption class="lightbox-caption" id="lightboxCaption"></figcaption>
+  </figure>
+</div>
+
 <!-- ── HOW IT WORKS ── -->
 <section id="how" class="section bg2">
   <div class="container">
@@ -411,6 +448,49 @@
   </div>
 </footer>
 
+<script>
+  (function () {
+    var lightbox    = document.getElementById('lightbox');
+    var lbImg       = document.getElementById('lightboxImg');
+    var lbCaption   = document.getElementById('lightboxCaption');
+    var lbClose     = document.getElementById('lightboxClose');
+    var lbBackdrop  = document.getElementById('lightboxBackdrop');
+
+    function openLightbox(src, caption) {
+      lbImg.src        = src;
+      lbImg.alt        = caption;
+      lbCaption.textContent = caption;
+      lightbox.classList.add('lightbox--open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('lightbox--open');
+      document.body.style.overflow = '';
+      lbImg.src = '';
+    }
+
+    document.querySelectorAll('.screenshot-item').forEach(function (fig) {
+      fig.addEventListener('click', function () {
+        openLightbox(fig.dataset.lightbox, fig.dataset.caption);
+      });
+      fig.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLightbox(fig.dataset.lightbox, fig.dataset.caption);
+        }
+      });
+      fig.setAttribute('tabindex', '0');
+      fig.setAttribute('role', 'button');
+    });
+
+    lbClose.addEventListener('click', closeLightbox);
+    lbBackdrop.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  })();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 <script src="scene.js"></script>
 <script src="interactions.js"></script>
