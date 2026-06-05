@@ -660,6 +660,34 @@ footer {
 .reveal.in { opacity: 1; transform: none; }
 
 /* ── RESPONSIVE ── */
+/* ── WORKS WITH ── */
+.works-with {
+  padding: 2.2rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.works-with-label {
+  font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted); text-align: center;
+  margin-bottom: 1.5rem;
+}
+.works-with-logos {
+  display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 2rem 3rem;
+}
+.works-item {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  opacity: 0.45; transition: opacity 0.2s;
+}
+.works-item:hover { opacity: 0.85; }
+.works-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.works-name {
+  font-family: 'Lexend', sans-serif; font-size: 0.85rem;
+  font-weight: 500; color: #fff;
+}
+
 @media (max-width: 800px) {
   nav { padding: 1rem 1.5rem; }
   .nav-links { display: none; }
