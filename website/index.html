@@ -191,14 +191,21 @@
           <li><span>✦</span> Zero extra round-trips, zero data egress</li>
         </ul>
       </div>
-      <div class="code-box reveal" style="transition-delay:.2s">
-        <div class="code-head">
-          <div class="dot" style="background:#ff5f57"></div>
-          <div class="dot" style="background:#febc2e"></div>
-          <div class="dot" style="background:#28c840"></div>
-          <span class="code-file">app.py</span>
+      <div class="code-box code-tabs-box reveal" style="transition-delay:.2s">
+        <div class="code-tabs-bar">
+          <button class="code-tab code-tab--active" data-tab="py">Python</button>
+          <button class="code-tab" data-tab="js">Node.js</button>
+          <button class="code-tab" data-tab="curl">curl</button>
         </div>
-        <pre><span class="ck">from</span> <span class="cv">openai</span> <span class="ck">import</span> <span class="cv">OpenAI</span>
+        <!-- Python panel -->
+        <div class="code-panel" id="code-panel-py">
+          <div class="code-head">
+            <div class="dot" style="background:#ff5f57"></div>
+            <div class="dot" style="background:#febc2e"></div>
+            <div class="dot" style="background:#28c840"></div>
+            <span class="code-file">app.py</span>
+          </div>
+          <pre><span class="ck">from</span> <span class="cv">openai</span> <span class="ck">import</span> <span class="cv">OpenAI</span>
 
 <span class="cm"># Before: direct provider call</span>
 <span class="cv">client</span> = <span class="cf">OpenAI</span>(<span class="cv">api_key</span>=<span class="cs">"sk-..."</span>)
@@ -217,7 +224,67 @@
     <span class="cs">"content"</span>: <span class="cs">"Hello, world"</span>
   }]
 )</pre>
+        </div>
+        <!-- Node.js panel -->
+        <div class="code-panel code-panel--hidden" id="code-panel-js">
+          <div class="code-head">
+            <div class="dot" style="background:#ff5f57"></div>
+            <div class="dot" style="background:#febc2e"></div>
+            <div class="dot" style="background:#28c840"></div>
+            <span class="code-file">app.js</span>
+          </div>
+          <pre><span class="ck">import</span> <span class="cv">OpenAI</span> <span class="ck">from</span> <span class="cs">"openai"</span>;
+
+<span class="cm">// Before: direct provider call</span>
+<span class="ck">const</span> <span class="cv">client</span> = <span class="ck">new</span> <span class="cf">OpenAI</span>({ <span class="cv">apiKey</span>: <span class="cs">"sk-..."</span> });
+
+<span class="cm">// After: route through ToTra ✓</span>
+<span class="ck">const</span> <span class="cv">client</span> = <span class="ck">new</span> <span class="cf">OpenAI</span>({
+  <span class="cv">apiKey</span>: <span class="cs">"your-totra-token"</span>,
+  <span class="cv">baseURL</span>: <span class="cs">"https://your-totra.railway.app/v1"</span>,
+});
+
+<span class="cm">// Same code — now with governance</span>
+<span class="ck">const</span> <span class="cv">resp</span> = <span class="ck">await</span> <span class="cv">client</span>.<span class="cv">chat</span>.<span class="cv">completions</span>.<span class="cf">create</span>({
+  <span class="cv">model</span>: <span class="cs">"gpt-4o"</span>,
+  <span class="cv">messages</span>: [{ <span class="cv">role</span>: <span class="cs">"user"</span>, <span class="cv">content</span>: <span class="cs">"Hello, world"</span> }],
+});</pre>
+        </div>
+        <!-- curl panel -->
+        <div class="code-panel code-panel--hidden" id="code-panel-curl">
+          <div class="code-head">
+            <div class="dot" style="background:#ff5f57"></div>
+            <div class="dot" style="background:#febc2e"></div>
+            <div class="dot" style="background:#28c840"></div>
+            <span class="code-file">terminal</span>
+          </div>
+          <pre><span class="cm"># Before: direct provider call</span>
+<span class="cf">curl</span> <span class="cs">https://api.openai.com/v1/chat/completions</span> \
+  <span class="cv">-H</span> <span class="cs">"Authorization: Bearer sk-..."</span>
+
+<span class="cm"># After: route through ToTra ✓</span>
+<span class="cf">curl</span> <span class="cs">https://your-totra.railway.app/v1/chat/completions</span> \
+  <span class="cv">-H</span> <span class="cs">"Authorization: Bearer your-totra-token"</span> \
+  <span class="cv">-H</span> <span class="cs">"Content-Type: application/json"</span> \
+  <span class="cv">-d</span> <span class="cs">'{"model":"gpt-4o","messages":[{"role":"user","content":"Hello, world"}]}'</span></pre>
+        </div>
       </div>
+      <script>
+        (function () {
+          var tabs = document.querySelectorAll('.code-tab');
+          tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+              tabs.forEach(function (t) { t.classList.remove('code-tab--active'); });
+              tab.classList.add('code-tab--active');
+              var target = tab.getAttribute('data-tab');
+              document.querySelectorAll('.code-panel').forEach(function (panel) {
+                panel.classList.add('code-panel--hidden');
+              });
+              document.getElementById('code-panel-' + target).classList.remove('code-panel--hidden');
+            });
+          });
+        })();
+      </script>
     </div>
   </div>
 </section>
