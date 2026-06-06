@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ToTra OG Image</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Lexend:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #010810;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Lexend', sans-serif;
+  }
+
+  .card {
+    width: 1200px;
+    height: 630px;
+    background: #030d1c;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    /* Outer glow border */
+    box-shadow:
+      0 0 0 1.5px #00d4ff55,
+      0 0 30px 4px #00d4ff22,
+      inset 0 0 80px 0 #00d4ff08;
+  }
+
+  /* Cyan border inset line */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1.5px solid #00d4ff44;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Grid overlay */
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Radial glow behind content */
+  .glow-left {
+    position: absolute;
+    top: -80px;
+    left: -80px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, #00d4ff14 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-right {
+    position: absolute;
+    bottom: -100px;
+    right: -60px;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, #7c6cfc12 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── LEFT PANEL ── */
+  .left {
+    flex: 0 0 600px;
+    padding: 56px 52px 56px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Logo */
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    margin-bottom: 32px;
+  }
+
+  .logo-to {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    color: #00d4ff;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  .logo-tra {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    color: #7c6cfc;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  .logo-tagline {
+    font-family: 'Lexend', sans-serif;
+    font-weight: 300;
+    font-size: 11px;
+    color: #00d4ff88;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-left: 14px;
+    margin-bottom: 2px;
+    align-self: flex-end;
+  }
+
+  /* Headline */
+  .headline {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1.1;
+    color: #f0f8ff;
+    margin-bottom: 30px;
+    letter-spacing: -0.01em;
+  }
+
+  .headline .accent {
+    color: #00d4ff;
+  }
+
+  /* Divider */
+  .divider {
+    width: 48px;
+    height: 2px;
+    background: linear-gradient(90deg, #00d4ff, #7c6cfc);
+    margin-bottom: 28px;
+    border-radius: 2px;
+  }
+
+  /* Bullets */
+  .bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .bullet {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Lexend', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    color: #a8c8e8;
+    line-height: 1.4;
+  }
+
+  .bullet-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00d4ff;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px #00d4ffaa;
+  }
+
+  .bullet strong {
+    color: #daeeff;
+    font-weight: 500;
+  }
+
+  /* ── DIVIDER LINE between panels ── */
+  .panel-divider {
+    width: 1px;
+    height: 420px;
+    background: linear-gradient(to bottom, transparent, #00d4ff33 30%, #7c6cfc33 70%, transparent);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── RIGHT PANEL ── */
+  .right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 48px 40px 44px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .diagram-label {
+    font-family: 'Lexend', sans-serif;
+    font-weight: 300;
+    font-size: 11px;
+    color: #00d4ff66;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  /* Diagram boxes */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+
+  .box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .box-app {
+    background: #0d1f35;
+    border: 1px solid #1e3a5a;
+    color: #a8c8e8;
+    width: 180px;
+  }
+
+  .box-totra {
+    background: #001a2e;
+    border: 1.5px solid #00d4ff66;
+    color: #00d4ff;
+    width: 200px;
+    box-shadow: 0 0 20px #00d4ff22, inset 0 0 20px #00d4ff08;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .box-totra .box-sub {
+    display: block;
+    font-size: 9px;
+    color: #00d4ff77;
+    letter-spacing: 0.12em;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .providers-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+
+  .box-provider {
+    background: #110d22;
+    border: 1px solid #7c6cfc55;
+    color: #b8a8fc;
+    font-size: 11px;
+    padding: 9px 13px;
+    border-radius: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  /* Arrows */
+  .arrow-down {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px 0;
+  }
+
+  .arrow-line {
+    width: 1.5px;
+    height: 20px;
+    background: linear-gradient(to bottom, #00d4ff, #00d4ffaa);
+  }
+
+  .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #00d4ff;
+  }
+
+  .arrow-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #00d4ff55;
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+
+  .arrow-up-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px 0;
+  }
+
+  .arrow-head-up {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 7px solid #7c6cfc;
+  }
+
+  .arrow-line-up {
+    width: 1.5px;
+    height: 20px;
+    background: linear-gradient(to top, #7c6cfc, #7c6cfcaa);
+  }
+
+  /* Feature pills */
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: center;
+    margin-top: 26px;
+    max-width: 340px;
+  }
+
+  .pill {
+    font-family: 'Lexend', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #00d4ffbb;
+    background: #00d4ff0d;
+    border: 1px solid #00d4ff33;
+    border-radius: 100px;
+    padding: 4px 11px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    background: #00d4ff09;
+    border-top: 1px solid #00d4ff1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    z-index: 3;
+  }
+
+  .bottom-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: #00d4ff66;
+    letter-spacing: 0.08em;
+  }
+
+  .bottom-sep {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #00d4ff33;
+    margin: 0 16px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="grid-overlay"></div>
+  <div class="glow-left"></div>
+  <div class="glow-right"></div>
+
+  <!-- LEFT PANEL -->
+  <div class="left">
+    <div class="logo">
+      <span class="logo-to">TO</span><span class="logo-tra">TRA</span>
+      <span class="logo-tagline">LLM Gateway</span>
+    </div>
+
+    <div class="headline">
+      AI Governance<br>
+      <span class="accent">From Day Zero</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="bullets">
+      <div class="bullet">
+        <div class="bullet-dot"></div>
+        <span><strong>PII Blocking</strong> &nbsp;·&nbsp; 18 Languages</span>
+      </div>
+      <div class="bullet">
+        <div class="bullet-dot"></div>
+        <span><strong>Hard Budget Caps</strong> &nbsp;·&nbsp; Per-user &amp; global</span>
+      </div>
+      <div class="bullet">
+        <div class="bullet-dot"></div>
+        <span><strong>&lt; 2ms Overhead</strong> &nbsp;·&nbsp; Written in Go</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DIVIDER -->
+  <div class="panel-divider"></div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="diagram-label">How it works</div>
+
+    <div class="diagram">
+      <!-- Your App -->
+      <div class="box box-app">[ Your App ]</div>
+
+      <!-- Arrow down -->
+      <div class="arrow-down">
+        <div class="arrow-line"></div>
+        <div class="arrow-head"></div>
+      </div>
+      <div class="arrow-label">request</div>
+
+      <!-- ToTra -->
+      <div class="box box-totra">
+        [ ToTra ]
+        <span class="box-sub">AUDIT · REDACT · ROUTE · CAP</span>
+      </div>
+
+      <!-- Arrow down to providers -->
+      <div class="arrow-down">
+        <div class="arrow-line"></div>
+        <div class="arrow-head"></div>
+      </div>
+      <div class="arrow-label">proxied</div>
+
+      <!-- Providers row -->
+      <div class="providers-row">
+        <div class="box-provider">OpenAI</div>
+        <div class="box-provider">Claude</div>
+        <div class="box-provider">Gemini</div>
+      </div>
+    </div>
+
+    <div class="pills">
+      <div class="pill">Open Source</div>
+      <div class="pill">Self-Hosted</div>
+      <div class="pill">MIT License</div>
+      <div class="pill">Drop-in Proxy</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span class="bottom-text">github.com/SugaC-275/ToTra</span>
+    <span class="bottom-sep">·</span>
+    <span class="bottom-text">MIT License</span>
+    <span class="bottom-sep">·</span>
+    <span class="bottom-text">Self-Hosted</span>
+  </div>
+</div>
+</body>
+</html>
