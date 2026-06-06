@@ -83,8 +83,8 @@
 
   /* ── LEFT PANEL ── */
   .left {
-    flex: 0 0 600px;
-    padding: 56px 52px 56px 60px;
+    flex: 0 0 500px;
+    padding: 56px 44px 56px 60px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -252,7 +252,9 @@
     background: #001a2e;
     border: 1.5px solid #00d4ff66;
     color: #00d4ff;
-    width: 200px;
+    width: 240px;
+    flex-direction: column;
+    gap: 5px;
     box-shadow: 0 0 20px #00d4ff22, inset 0 0 20px #00d4ff08;
     font-weight: 600;
     font-size: 15px;
@@ -262,8 +264,7 @@
     display: block;
     font-size: 9px;
     color: #00d4ff77;
-    letter-spacing: 0.12em;
-    margin-top: 4px;
+    letter-spacing: 0.08em;
     font-weight: 400;
   }
 
@@ -284,6 +285,16 @@
     border-radius: 7px;
     font-family: 'JetBrains Mono', monospace;
     white-space: nowrap;
+  }
+  .box-provider--more {
+    background: transparent;
+    border-color: #7c6cfc33;
+    color: #7c6cfc88;
+    font-style: italic;
+  }
+  .providers-row {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   /* Arrows */
@@ -409,7 +420,7 @@
 
     <div class="headline">
       AI Governance<br>
-      <span class="accent">From Day Zero</span>
+      <span class="accent">For Every Team</span>
     </div>
 
     <div class="divider"></div>
@@ -466,6 +477,8 @@
         <div class="box-provider">OpenAI</div>
         <div class="box-provider">Claude</div>
         <div class="box-provider">Gemini</div>
+        <div class="box-provider">Mistral</div>
+        <div class="box-provider box-provider--more">+ 6 more</div>
       </div>
     </div>
 
