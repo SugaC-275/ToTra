@@ -1,0 +1,45 @@
+{
+  "current_week": 1,
+  "phase": 1,
+  "started_date": "2026-05-24",
+  "completed_articles": [],
+  "scheduled": {
+    "next_publish": {
+      "week": 1,
+      "platform": "Hacker News",
+      "date": "2026-05-25",
+      "time_beijing": "21:00",
+      "file": "docs/articles/week-01-hacker-news-show-hn.md",
+      "status": "ready_to_post"
+    },
+    "next_article_week": 3,
+    "next_linkedin_date": "2026-06-02",
+    "week_2": {
+      "week": 2,
+      "platform": "LinkedIn",
+      "file": "docs/articles/week-02-linkedin-gdpr.md",
+      "status": "ready_to_post"
+    }
+  },
+  "stats": {
+    "github_stars": 0,
+    "discord_members": 0,
+    "mrr_usd": 0,
+    "paid_customers": 0,
+    "user_conversations": 0
+  },
+  "_workflow_note": {
+    "how_to_resume": "Start a new Claude session in this project and say: '激活 ToTra GTM 内容工作流，读取 docs/articles/tracker.json 和 content-plan.json，写下一周文章并设置下一次 Cron。'",
+    "what_claude_will_do": [
+      "Read tracker.json to find current_week and next_article_week",
+      "Read content-plan.json to get the next week's topic, audience, key_points",
+      "Write the article to docs/articles/week-XX-<platform>.md",
+      "Update tracker.json: increment current_week, move completed article to completed_articles",
+      "Send a push notification via PushNotification tool telling you the article is ready and what to post",
+      "Set a new Cron for the following week"
+    ],
+    "article_files": {
+      "week_01": "docs/articles/week-01-hacker-news-show-hn.md"
+    }
+  }
+}
